@@ -1,0 +1,7 @@
+node_modules/
+.claude/
+*.docx
+styles.css
+input.css
+tailwind.config.js
+package-lock.json
