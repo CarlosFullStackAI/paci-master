@@ -61,6 +61,38 @@ table{border-collapse:collapse}
             input[type="date"]::-webkit-calendar-picker-indicator { display: none; }
             input[type="date"] { appearance: none; -moz-appearance: none; -webkit-appearance: none; }
         }
+
+        /* === RESPONSIVE MÓVIL === */
+        @media (max-width: 768px) {
+            html { height: auto; overflow: auto; }
+            body { flex-direction: column !important; height: auto !important; overflow-y: auto !important; }
+
+            #control-panel {
+                width: 100% !important; min-width: 0 !important; height: auto !important;
+                flex-shrink: 1 !important; max-height: none !important;
+            }
+            #control-panel > div:nth-child(2) {
+                overflow-y: visible !important; flex: none !important;
+            }
+
+            #preview-panel {
+                flex: none !important; height: auto !important;
+                overflow-y: visible !important; padding: 0.5rem !important;
+            }
+            #documento { padding: 1rem !important; }
+
+            .mobile-hidden { display: none !important; }
+            #mobile-nav { display: flex !important; }
+            #mobile-actions { display: flex !important; }
+
+            /* Ocultar botones PDF/Print del header desktop */
+            #control-panel .p-5 .flex.gap-2 { display: none !important; }
+        }
+
+        @media (min-width: 769px) {
+            #mobile-nav { display: none !important; }
+            #mobile-actions { display: none !important; }
+        }
     </style>
 </head>
 <body style="display:flex!important;flex-direction:row!important;height:100vh!important;overflow:hidden!important;margin:0!important">
@@ -329,6 +361,18 @@ table{border-collapse:collapse}
 
     <!-- PREVISUALIZACIÓN DEL DOCUMENTO -->
     <main id="preview-panel" style="flex:1 1 auto!important;height:100%!important;overflow-y:scroll!important;padding:2rem!important" class="bg-slate-200">
+        <!-- Acciones móviles -->
+        <div id="mobile-actions" style="display:none;position:sticky;top:0;z-index:40;background:#0f172a;padding:10px;gap:8px;border-radius:0 0 12px 12px;">
+            <button onclick="downloadPDF()" style="flex:1;background:#2563eb;color:#fff;padding:10px;border:none;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;">
+                <i class="fa-solid fa-download"></i> Descargar PDF
+            </button>
+            <button onclick="shareDocument()" style="flex:1;background:#10b981;color:#fff;padding:10px;border:none;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;">
+                <i class="fa-solid fa-share"></i> Compartir
+            </button>
+            <button onclick="printPDF()" style="flex:1;background:#64748b;color:#fff;padding:10px;border:none;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;">
+                <i class="fa-solid fa-print"></i> Imprimir
+            </button>
+        </div>
         <div id="documento" class="max-w-4xl mx-auto bg-white p-14 shadow-2xl min-h-full border border-slate-300 relative text-slate-900">
 
             <!-- [MEJORA 5] Header mejorado del documento -->
@@ -589,28 +633,164 @@ table{border-collapse:collapse}
         }
 
         // ==========================================
+        // MOBILE RESPONSIVE
+        // ==========================================
+        function isMobile() { return window.innerWidth <= 768; }
+
+        function showPanel(panel) {
+            const cp = document.getElementById('control-panel');
+            const pp = document.getElementById('preview-panel');
+            const btnForm = document.getElementById('mob-btn-form');
+            const btnPreview = document.getElementById('mob-btn-preview');
+            const btnActions = document.getElementById('mob-btn-actions');
+            const activeColor = '#fff';
+            const inactiveColor = '#94a3b8';
+
+            [btnForm, btnPreview, btnActions].forEach(b => { if(b) b.style.color = inactiveColor; });
+
+            if (panel === 'form') {
+                cp.classList.remove('mobile-hidden');
+                pp.classList.add('mobile-hidden');
+                if(btnForm) btnForm.style.color = activeColor;
+            } else {
+                cp.classList.add('mobile-hidden');
+                pp.classList.remove('mobile-hidden');
+                if(panel === 'preview') { if(btnPreview) btnPreview.style.color = activeColor; }
+                else { if(btnActions) btnActions.style.color = activeColor; }
+                pp.scrollTop = 0;
+            }
+        }
+
+        function shareDocument() {
+            const element = document.getElementById('documento');
+            const nombre = document.getElementById('in-nombre') ? (document.getElementById('in-nombre').value || 'Estudiante') : 'Estudiante';
+
+            // En móvil: forzar layout desktop para captura correcta
+            const mobileSaved = prepareForPDF();
+
+            const noPrintElements = element.querySelectorAll('.no-print');
+            noPrintElements.forEach(el => el.style.display = 'none');
+
+            const textareas = Array.from(element.querySelectorAll('textarea'));
+            textareas.forEach(ta => {
+                const div = document.createElement('div');
+                div.textContent = ta.value;
+                div.setAttribute('data-pdf-swap', 'true');
+                div.style.cssText = 'white-space:pre-wrap;word-wrap:break-word;overflow:visible;height:auto;width:100%;border:none;background:transparent;margin:0;box-sizing:border-box;';
+                div.style.fontSize = ta.style.fontSize || '';
+                div.style.padding = ta.style.padding || '4px';
+                div.style.minHeight = ta.style.minHeight || '0';
+                var cls = ta.className.replace(/auto-expand/g, '').replace(/resize-y/g, '').trim();
+                if (cls) div.className = cls;
+                ta.style.display = 'none';
+                ta.parentNode.insertBefore(div, ta.nextSibling);
+            });
+
+            const dateInputs = Array.from(element.querySelectorAll('input[type="date"]'));
+            dateInputs.forEach(inp => {
+                const span = document.createElement('span');
+                span.setAttribute('data-pdf-swap', 'true');
+                const val = inp.value;
+                if (val) { const p = val.split('-'); span.textContent = p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : val; }
+                span.style.cssText = 'font-size:10px;font-weight:900;color:#091845;text-align:center;display:block;padding:0;';
+                inp.style.display = 'none';
+                inp.parentNode.insertBefore(span, inp.nextSibling);
+            });
+
+            function restaurar() {
+                textareas.forEach(ta => { ta.style.display = ''; });
+                dateInputs.forEach(inp => { inp.style.display = ''; });
+                element.querySelectorAll('[data-pdf-swap]').forEach(el => el.remove());
+                noPrintElements.forEach(el => el.style.display = '');
+                restoreAfterPDF(mobileSaved);
+            }
+
+            const opt = {
+                margin: [12, 8, 12, 8],
+                filename: `PACI_${nombre}.pdf`,
+                image: { type: 'png' },
+                html2canvas: { scale: mobileSaved ? 1.5 : 2, useCORS: false, letterRendering: true, backgroundColor: '#ffffff' },
+                jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
+                pagebreak: { mode: ['css', 'legacy'], before: ['.html2pdf__page-break'], avoid: ['.evitar-corte', 'tr', 'h3', 'h4'] }
+            };
+
+            html2pdf().set(opt).from(element).outputPdf('blob').then(blob => {
+                restaurar();
+                const file = new File([blob], `PACI_${nombre}.pdf`, { type: 'application/pdf' });
+
+                if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                    navigator.share({ title: `PACI - ${nombre}`, files: [file] });
+                } else if (navigator.share) {
+                    navigator.share({ title: `PACI - ${nombre}`, text: 'Documento PACI generado' });
+                } else {
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    a.download = `PACI_${nombre}.pdf`;
+                    a.click();
+                    alert('Tu navegador no soporta compartir. El PDF se descargó.');
+                }
+            }).catch(() => { restaurar(); });
+        }
+
+        function initMobileLayout() {
+            if (isMobile()) {
+                showPanel('form');
+                document.body.style.paddingBottom = '70px';
+            }
+        }
+
+        // Preparar layout desktop temporal para captura PDF en móvil
+        function prepareForPDF() {
+            if (!isMobile()) return null;
+            const doc = document.getElementById('documento');
+            const pp = document.getElementById('preview-panel');
+            const saved = { docStyle: doc.style.cssText, ppStyle: pp.style.cssText, ppClass: pp.className, bodyPB: document.body.style.paddingBottom };
+            // Mostrar preview si estaba oculto
+            pp.classList.remove('mobile-hidden');
+            // Forzar dimensiones desktop para que html2canvas capture bien
+            pp.style.cssText = 'width:900px!important;height:auto!important;overflow:visible!important;padding:2rem!important;position:absolute!important;left:-9999px!important;top:0!important;';
+            doc.style.cssText = 'width:800px!important;padding:3.5rem!important;min-height:0!important;background:#fff;';
+            return saved;
+        }
+
+        function restoreAfterPDF(saved) {
+            if (!saved) return;
+            const doc = document.getElementById('documento');
+            const pp = document.getElementById('preview-panel');
+            doc.style.cssText = saved.docStyle;
+            pp.style.cssText = saved.ppStyle;
+            pp.className = saved.ppClass;
+            document.body.style.paddingBottom = saved.bodyPB;
+        }
+
+        // ==========================================
         // INICIALIZACIÓN
         // ==========================================
         window.onload = () => {
-            // PROTECCIÓN NUCLEAR: impedir que el body JAMÁS haga scroll
-            document.body.scrollTop = 0;
-            document.documentElement.scrollTop = 0;
-            window.addEventListener('scroll', function() {
-                window.scrollTo(0, 0);
+            // PROTECCIÓN NUCLEAR: impedir scroll del body (solo desktop)
+            if (!isMobile()) {
                 document.body.scrollTop = 0;
                 document.documentElement.scrollTop = 0;
-            }, true);
-            // Impedir focus-scroll en CUALQUIER elemento hidden
-            document.addEventListener('focus', function(e) {
-                var el = e.target;
-                if(el && el.offsetParent === null && el.tagName === 'INPUT') {
-                    e.preventDefault();
-                    el.blur();
-                    window.scrollTo(0, 0);
-                    document.body.scrollTop = 0;
-                    document.documentElement.scrollTop = 0;
-                }
-            }, true);
+                window.addEventListener('scroll', function() {
+                    if (!isMobile()) {
+                        window.scrollTo(0, 0);
+                        document.body.scrollTop = 0;
+                        document.documentElement.scrollTop = 0;
+                    }
+                }, true);
+                document.addEventListener('focus', function(e) {
+                    if (!isMobile()) {
+                        var el = e.target;
+                        if(el && el.offsetParent === null && el.tagName === 'INPUT') {
+                            e.preventDefault();
+                            el.blur();
+                            window.scrollTo(0, 0);
+                            document.body.scrollTop = 0;
+                            document.documentElement.scrollTop = 0;
+                        }
+                    }
+                }, true);
+            }
             buildCurriculum();
             const dSel = document.getElementById('in-diag');
             if(dSel) {
@@ -644,6 +824,18 @@ table{border-collapse:collapse}
                 if (pp) pp.style.cssText = pp.getAttribute('data-original-style') || '';
                 var doc = document.getElementById('documento');
                 if (doc) doc.style.cssText = doc.getAttribute('data-original-style') || '';
+            });
+
+            // Inicializar layout móvil
+            initMobileLayout();
+            window.addEventListener('resize', () => {
+                if (isMobile()) {
+                    initMobileLayout();
+                } else {
+                    document.getElementById('control-panel').classList.remove('mobile-hidden');
+                    document.getElementById('preview-panel').classList.remove('mobile-hidden');
+                    document.body.style.paddingBottom = '';
+                }
             });
         };
 
@@ -1793,6 +1985,9 @@ table{border-collapse:collapse}
             const element = document.getElementById('documento');
             const nombreEstudiante = document.getElementById('in-nombre') ? (document.getElementById('in-nombre').value || 'Estudiante') : 'Estudiante';
 
+            // En móvil: forzar layout desktop para captura correcta
+            const mobileSaved = prepareForPDF();
+
             // Ocultar botones no-print
             const noPrintElements = element.querySelectorAll('.no-print');
             noPrintElements.forEach(el => el.style.display = 'none');
@@ -1807,7 +2002,6 @@ table{border-collapse:collapse}
                 div.style.fontSize = ta.style.fontSize || '';
                 div.style.padding = ta.style.padding || '4px';
                 div.style.minHeight = ta.style.minHeight || '0';
-                // Copiar solo las clases de diseño, no las funcionales
                 var cls = ta.className.replace(/auto-expand/g, '').replace(/resize-y/g, '').trim();
                 if (cls) div.className = cls;
                 ta.style.display = 'none';
@@ -1833,23 +2027,23 @@ table{border-collapse:collapse}
                 margin:       [12, 8, 12, 8],
                 filename:     `PACI_${nombreEstudiante}.pdf`,
                 image:        { type: 'png' },
-                html2canvas:  { scale: 2, useCORS: false, letterRendering: true, backgroundColor: '#ffffff' },
+                html2canvas:  { scale: mobileSaved ? 1.5 : 2, useCORS: false, letterRendering: true, backgroundColor: '#ffffff' },
                 jsPDF:        { unit: 'mm', format: 'letter', orientation: 'portrait' },
                 pagebreak:    { mode: ['css', 'legacy'], before: ['.html2pdf__page-break'], avoid: ['.evitar-corte', 'tr', 'h3', 'h4'] }
             };
 
+            function restaurar() {
+                textareas.forEach(ta => { ta.style.display = ''; });
+                dateInputs.forEach(inp => { inp.style.display = ''; });
+                element.querySelectorAll('[data-pdf-swap]').forEach(el => el.remove());
+                noPrintElements.forEach(el => el.style.display = '');
+                restoreAfterPDF(mobileSaved);
+            }
+
             html2pdf().set(opt).from(element).save().then(() => {
-                // Restaurar: mostrar originales y eliminar swaps
-                textareas.forEach(ta => { ta.style.display = ''; });
-                dateInputs.forEach(inp => { inp.style.display = ''; });
-                element.querySelectorAll('[data-pdf-swap]').forEach(el => el.remove());
-                noPrintElements.forEach(el => el.style.display = '');
+                restaurar();
             }).catch(() => {
-                // Restaurar aunque falle
-                textareas.forEach(ta => { ta.style.display = ''; });
-                dateInputs.forEach(inp => { inp.style.display = ''; });
-                element.querySelectorAll('[data-pdf-swap]').forEach(el => el.remove());
-                noPrintElements.forEach(el => el.style.display = '');
+                restaurar();
             });
         }
 
@@ -1857,6 +2051,9 @@ table{border-collapse:collapse}
         function printPDF() {
             const element = document.getElementById('documento');
             const nombreEstudiante = document.getElementById('in-nombre') ? (document.getElementById('in-nombre').value || 'Estudiante') : 'Estudiante';
+
+            // En móvil: forzar layout desktop para captura correcta
+            const mobileSaved = prepareForPDF();
 
             const noPrintElements = element.querySelectorAll('.no-print');
             noPrintElements.forEach(el => el.style.display = 'none');
@@ -1891,7 +2088,7 @@ table{border-collapse:collapse}
                 margin: [12, 8, 12, 8],
                 filename: `PACI_${nombreEstudiante}.pdf`,
                 image: { type: 'png' },
-                html2canvas: { scale: 2, useCORS: false, letterRendering: true, backgroundColor: '#ffffff' },
+                html2canvas: { scale: mobileSaved ? 1.5 : 2, useCORS: false, letterRendering: true, backgroundColor: '#ffffff' },
                 jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
                 pagebreak: { mode: ['css', 'legacy'], before: ['.html2pdf__page-break'], avoid: ['.evitar-corte', 'tr', 'h3', 'h4'] }
             };
@@ -1901,6 +2098,7 @@ table{border-collapse:collapse}
                 dateInputs.forEach(inp => { inp.style.display = ''; });
                 element.querySelectorAll('[data-pdf-swap]').forEach(el => el.remove());
                 noPrintElements.forEach(el => el.style.display = '');
+                restoreAfterPDF(mobileSaved);
             }
 
             html2pdf().set(opt).from(element).outputPdf('blob').then(blob => {
@@ -1919,5 +2117,20 @@ table{border-collapse:collapse}
             }).catch(() => { restaurar(); });
         }
     </script>
+
+    <!-- Navegación móvil -->
+    <nav id="mobile-nav" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:50;background:#0f172a;border-top:2px solid #2563eb;padding:0.5rem 0;">
+        <div style="display:flex;justify-content:space-around;align-items:center;">
+            <button onclick="showPanel('form')" id="mob-btn-form" style="flex:1;text-align:center;padding:8px 0;color:#fff;font-size:11px;font-weight:700;background:none;border:none;cursor:pointer;">
+                <i class="fa-solid fa-edit" style="display:block;font-size:18px;margin-bottom:2px;"></i> Formulario
+            </button>
+            <button onclick="showPanel('preview')" id="mob-btn-preview" style="flex:1;text-align:center;padding:8px 0;color:#94a3b8;font-size:11px;font-weight:700;background:none;border:none;cursor:pointer;">
+                <i class="fa-solid fa-file-alt" style="display:block;font-size:18px;margin-bottom:2px;"></i> Vista Previa
+            </button>
+            <button onclick="showPanel('actions')" id="mob-btn-actions" style="flex:1;text-align:center;padding:8px 0;color:#94a3b8;font-size:11px;font-weight:700;background:none;border:none;cursor:pointer;">
+                <i class="fa-solid fa-share-nodes" style="display:block;font-size:18px;margin-bottom:2px;"></i> Compartir
+            </button>
+        </div>
+    </nav>
 </body>
 </html>
