@@ -547,14 +547,56 @@
     }
 
     // ==========================================
-    // OAs TAB
+    // OAs TAB CON SEGUIMIENTO SEMESTRAL
     // ==========================================
+    const STATUS_COLORS = {
+      logrado: { bg: '#d1fae5', color: '#065f46', label: 'Logrado', icon: 'fa-check-circle' },
+      en_desarrollo: { bg: '#fef3c7', color: '#92400e', label: 'En Desarrollo', icon: 'fa-clock' },
+      no_logrado: { bg: '#fef2f2', color: '#dc2626', label: 'No Logrado', icon: 'fa-times-circle' },
+      no_evaluado: { bg: '#f1f5f9', color: '#64748b', label: 'No Evaluado', icon: 'fa-minus-circle' }
+    };
+
     function renderOAsTab(id, oas, student) {
       const c = document.getElementById('tab-oas-' + id);
       if (!oas || !oas.length) {
         c.innerHTML = '<div class="empty-state"><i class="fa-solid fa-bullseye"></i><p>Sin OAs registrados. Crea un PACI para comenzar.</p></div>';
         return;
       }
+
+      // Cargar progreso desde el backend
+      loadOAProgress(id, oas);
+    }
+
+    async function loadOAProgress(studentId, oas) {
+      const c = document.getElementById('tab-oas-' + studentId);
+      c.innerHTML = '<div class="loading"><i class="fa-solid fa-spinner"></i> Cargando progreso...</div>';
+
+      let progressData = {};
+      try {
+        const res = await api('/api/students/oa-summary', { studentId });
+        if (res.ok && res.summary) {
+          // Crear mapa id -> progreso
+          for (const [, subj] of Object.entries(res.summary)) {
+            for (const [, trim] of Object.entries(subj.trimesters)) {
+              trim.oas.forEach(oa => { progressData[oa.id] = oa; });
+            }
+          }
+        }
+      } catch (e) { /* continuar sin progreso */ }
+
+      renderOAsWithProgress(studentId, oas, progressData);
+    }
+
+    function renderOAsWithProgress(studentId, oas, progressData) {
+      const c = document.getElementById('tab-oas-' + studentId);
+
+      // Contar estadisticas de progreso
+      let stats = { logrado: 0, en_desarrollo: 0, no_logrado: 0, no_evaluado: 0 };
+      oas.forEach(oa => {
+        const p = progressData[oa.id];
+        const st = p ? p.status : 'no_evaluado';
+        stats[st] = (stats[st] || 0) + 1;
+      });
 
       // Group by subject
       const grouped = {};
@@ -563,7 +605,23 @@
         grouped[oa.subject_key].oas.push(oa);
       });
 
-      let html = '<div style="margin-bottom:0.75rem;font-size:0.7rem;color:#475569;"><strong>' + oas.length + '</strong> OA(s) unicos trabajados en <strong>' + Object.keys(grouped).length + '</strong> asignatura(s).</div>';
+      // Barra de progreso visual
+      const total = oas.length;
+      let progressBar = '<div style="display:flex;height:8px;border-radius:4px;overflow:hidden;margin-bottom:0.75rem;">';
+      if (stats.logrado) progressBar += '<div style="background:#10b981;width:' + (stats.logrado / total * 100) + '%;"></div>';
+      if (stats.en_desarrollo) progressBar += '<div style="background:#f59e0b;width:' + (stats.en_desarrollo / total * 100) + '%;"></div>';
+      if (stats.no_logrado) progressBar += '<div style="background:#ef4444;width:' + (stats.no_logrado / total * 100) + '%;"></div>';
+      if (stats.no_evaluado) progressBar += '<div style="background:#e2e8f0;width:' + (stats.no_evaluado / total * 100) + '%;"></div>';
+      progressBar += '</div>';
+
+      let html = `
+        <div style="margin-bottom:1rem;">
+          <div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-bottom:0.5rem;">
+            ${Object.entries(STATUS_COLORS).map(([key, s]) => '<span style="font-size:0.65rem;font-weight:700;color:' + s.color + ';"><i class="fa-solid ' + s.icon + '"></i> ' + s.label + ': ' + (stats[key] || 0) + '</span>').join('')}
+            <span style="font-size:0.65rem;font-weight:700;color:#475569;">Total: ${total}</span>
+          </div>
+          ${progressBar}
+        </div>`;
 
       for (const [key, data] of Object.entries(grouped)) {
         const color = ASIG_COLORS[key] || '#64748b';
@@ -574,15 +632,21 @@
             <span style="opacity:0.8;">${data.oas.length} OA(s) &middot; ${esc(data.level)}</span>
           </div>
           <table class="oa-table">
-            <thead><tr><th>OA</th><th>Descripcion</th><th>Trimestre</th><th>Eje</th></tr></thead>
+            <thead><tr><th>OA</th><th>Descripcion</th><th>Trimestre</th><th>Estado</th>${CAN_MANAGE_STUDENTS ? '<th>Accion</th>' : ''}</tr></thead>
             <tbody>
-              ${data.oas.map(oa => `
+              ${data.oas.map(oa => {
+                const p = progressData[oa.id];
+                const st = p ? p.status : 'no_evaluado';
+                const sc = STATUS_COLORS[st];
+                return `
                 <tr>
                   <td><span class="oa-chip" style="background:${color}18;color:${color};">${esc(oa.oa_code)}</span></td>
                   <td style="font-size:0.7rem;">${esc(oa.oa_text.replace(oa.oa_code + ': ', '').substring(0, 120))}...</td>
                   <td><span class="oa-chip" style="background:#f1f5f9;color:#475569;">${esc(oa.trimester)}</span></td>
-                  <td style="font-size:0.65rem;color:#64748b;">${esc(oa.unit_name)}</td>
-                </tr>`).join('')}
+                  <td><span style="background:${sc.bg};color:${sc.color};font-size:0.6rem;font-weight:700;padding:0.2rem 0.5rem;border-radius:1rem;white-space:nowrap;"><i class="fa-solid ${sc.icon}"></i> ${sc.label}</span></td>
+                  ${CAN_MANAGE_STUDENTS ? '<td><select onchange="updateOAProgress(' + oa.id + ', this.value, ' + studentId + ')" style="font-size:0.65rem;border:1px solid #e2e8f0;border-radius:0.375rem;padding:0.25rem;"><option value="no_evaluado"' + (st === 'no_evaluado' ? ' selected' : '') + '>No Evaluado</option><option value="logrado"' + (st === 'logrado' ? ' selected' : '') + '>Logrado</option><option value="en_desarrollo"' + (st === 'en_desarrollo' ? ' selected' : '') + '>En Desarrollo</option><option value="no_logrado"' + (st === 'no_logrado' ? ' selected' : '') + '>No Logrado</option></select></td>' : ''}
+                </tr>`;
+              }).join('')}
             </tbody>
           </table>
         </div>`;
@@ -833,6 +897,27 @@
         loadComments(docId);
       } else {
         alert('Error: ' + (res.error || 'No se pudo agregar comentario'));
+      }
+    }
+
+    // ==========================================
+    // ACTUALIZAR PROGRESO DE OA
+    // ==========================================
+    async function updateOAProgress(oaId, status, studentId) {
+      const res = await api('/api/students/oa-progress', { oaId, status });
+      if (res.ok) {
+        // Refrescar tab de OAs
+        loadedStudents[studentId] = false;
+        loadStudentDetail(studentId);
+        // Mostrar confirmacion breve
+        const cell = event.target.closest('td');
+        if (cell) {
+          const sc = STATUS_COLORS[status] || STATUS_COLORS.no_evaluado;
+          cell.style.background = sc.bg;
+          setTimeout(() => { cell.style.background = ''; }, 1000);
+        }
+      } else {
+        alert('Error: ' + (res.error || 'No se pudo actualizar'));
       }
     }
 
