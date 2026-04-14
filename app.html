@@ -3261,10 +3261,10 @@ table{border-collapse:collapse}
             await waitForReflow();
 
             var opt = {
-                margin: [15, 15, 15, 15],
+                margin: [15, 25, 15, 25],
                 filename: 'PACI_' + nombre + '.pdf',
                 image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: (mobileSaved && mobileSaved.isMob) ? 1.5 : 2, useCORS: true, letterRendering: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0, windowWidth: 900 },
+                html2canvas: { scale: (mobileSaved && mobileSaved.isMob) ? 1.5 : 2, useCORS: true, letterRendering: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0, windowWidth: 1000 },
                 jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
                 pagebreak: { mode: ['css', 'legacy'], before: ['.html2pdf__page-break'], avoid: ['.evitar-corte', 'tr', '.paci-header', 'h3', 'h4'] }
             };
@@ -3339,10 +3339,10 @@ table{border-collapse:collapse}
 
             if (isMobile()) {
                 pp.classList.remove('mobile-hidden');
-                pp.style.cssText = 'width:900px!important;height:auto!important;overflow:visible!important;padding:0!important;position:fixed!important;left:0!important;top:0!important;z-index:9999!important;opacity:0!important;background:white!important;';
+                pp.style.cssText = 'width:1000px!important;height:auto!important;overflow:visible!important;padding:0!important;position:fixed!important;left:0!important;top:0!important;z-index:9999!important;opacity:0!important;background:white!important;';
                 doc.style.cssText = docCaptureStyles + docBaseStyles;
             } else {
-                pp.style.cssText = 'display:block!important;width:900px!important;height:auto!important;overflow:visible!important;padding:0!important;background:white!important;position:static!important;';
+                pp.style.cssText = 'display:block!important;width:1000px!important;height:auto!important;overflow:visible!important;padding:0!important;background:white!important;position:static!important;';
                 doc.style.cssText = docCaptureStyles + docBaseStyles;
             }
 
@@ -5262,10 +5262,10 @@ table{border-collapse:collapse}
             await waitForReflow();
 
             var opt = {
-                margin:       [15, 15, 15, 15],
+                margin:       [15, 25, 15, 25],
                 filename:     'PACI_' + nombreEstudiante + '.pdf',
                 image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: (mobileSaved && mobileSaved.isMob) ? 1.5 : 2, useCORS: true, letterRendering: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0, windowWidth: 900 },
+                html2canvas:  { scale: (mobileSaved && mobileSaved.isMob) ? 1.5 : 2, useCORS: true, letterRendering: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0, windowWidth: 1000 },
                 jsPDF:        { unit: 'mm', format: 'letter', orientation: 'portrait' },
                 pagebreak:    { mode: ['css', 'legacy'], before: ['.html2pdf__page-break'], avoid: ['.evitar-corte', 'tr', '.paci-header', 'h3', 'h4'] }
             };
