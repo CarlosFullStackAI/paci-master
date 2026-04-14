@@ -3264,7 +3264,7 @@ table{border-collapse:collapse}
                 margin: [12, 12, 12, 12],
                 filename: 'PACI_' + nombre + '.pdf',
                 image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: (mobileSaved && mobileSaved.isMob) ? 1.5 : 2, useCORS: true, letterRendering: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0, windowWidth: 1100 },
+                html2canvas: { scale: (mobileSaved && mobileSaved.isMob) ? 1.5 : 2, useCORS: true, letterRendering: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0, windowWidth: 900 },
                 jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
                 pagebreak: { mode: ['css', 'legacy'], before: ['.html2pdf__page-break'], avoid: ['.evitar-corte', 'tr', '.paci-header', 'h3', 'h4'] }
             };
@@ -3334,13 +3334,17 @@ table{border-collapse:collapse}
             // Propiedades criticas que SIEMPRE deben estar en el documento
             const docBaseStyles = 'color:#1a1a2e;font-family:Merriweather,Georgia,Charter,serif;font-size:12pt;line-height:1.5;background-color:#fff;';
 
+            // Preview y documento MISMO ancho exacto, sin centrado CSS
+            // Esto elimina cualquier offset/shift durante la captura html2canvas
+            var docFullStyles = 'width:100%!important;max-width:none!important;margin:0!important;padding:3.5rem!important;min-height:0!important;overflow:visible!important;box-shadow:none!important;border:none!important;';
+
             if (isMobile()) {
                 pp.classList.remove('mobile-hidden');
-                pp.style.cssText = 'width:1100px!important;height:auto!important;overflow:visible!important;padding:2rem!important;position:fixed!important;left:0!important;top:0!important;z-index:9999!important;opacity:0!important;background:white!important;';
-                doc.style.cssText = 'max-width:56rem;margin:0 auto;padding:3.5rem;min-height:0;overflow:visible;box-shadow:none;border:none;' + docBaseStyles;
+                pp.style.cssText = 'width:900px!important;height:auto!important;overflow:visible!important;padding:0!important;margin:0!important;position:fixed!important;left:0!important;top:0!important;z-index:9999!important;opacity:0!important;background:white!important;';
+                doc.style.cssText = docFullStyles + docBaseStyles;
             } else {
-                pp.style.cssText = 'display:block!important;width:100%!important;height:auto!important;overflow:visible!important;padding:2rem!important;background:white;';
-                doc.style.cssText = 'max-width:56rem;margin:0 auto;padding:3.5rem;min-height:0;overflow:visible;box-shadow:none;border:none;' + docBaseStyles;
+                pp.style.cssText = 'display:block!important;width:900px!important;height:auto!important;overflow:visible!important;padding:0!important;margin:0!important;background:white!important;';
+                doc.style.cssText = docFullStyles + docBaseStyles;
             }
 
             // Forzar texto oscuro en elementos con texto blanco/claro (EXCEPTO .paci-header)
@@ -5262,7 +5266,7 @@ table{border-collapse:collapse}
                 margin:       [12, 12, 12, 12],
                 filename:     'PACI_' + nombreEstudiante + '.pdf',
                 image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: (mobileSaved && mobileSaved.isMob) ? 1.5 : 2, useCORS: true, letterRendering: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0, windowWidth: 1100 },
+                html2canvas:  { scale: (mobileSaved && mobileSaved.isMob) ? 1.5 : 2, useCORS: true, letterRendering: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0, windowWidth: 900 },
                 jsPDF:        { unit: 'mm', format: 'letter', orientation: 'portrait' },
                 pagebreak:    { mode: ['css', 'legacy'], before: ['.html2pdf__page-break'], avoid: ['.evitar-corte', 'tr', '.paci-header', 'h3', 'h4'] }
             };
