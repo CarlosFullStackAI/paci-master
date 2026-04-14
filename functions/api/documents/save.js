@@ -1,5 +1,6 @@
 import { getUser } from '../auth-helper.js';
 import { encrypt } from '../crypto-helper.js';
+import { checkPermission } from '../rbac-helper.js';
 
 export async function onRequestPost(context) {
   const { request, env } = context;
@@ -8,6 +9,10 @@ export async function onRequestPost(context) {
   try {
     const user = await getUser(request, env);
     if (!user) return new Response(JSON.stringify({ ok: false, error: 'No autorizado.' }), { status: 401, headers });
+
+    // Solo educador_diferencial, teacher y admin pueden crear/editar PACI
+    const denied = checkPermission(user.role, 'paci:create');
+    if (denied) return denied;
 
     const body = await request.json();
     const { student, modules, trimester, team } = body;

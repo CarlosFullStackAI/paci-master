@@ -15,7 +15,20 @@ export async function getUser(request, env) {
   const sessionData = await env.PACI_USERS.get(`session:${token}`);
   if (!sessionData) return null;
 
-  return JSON.parse(sessionData);
+  const session = JSON.parse(sessionData);
+
+  // Si la sesion no tiene rol, obtenerlo desde KV del usuario
+  if (!session.role) {
+    const userData = await env.PACI_USERS.get(`user:${session.email}`);
+    if (userData) {
+      const user = JSON.parse(userData);
+      session.role = user.role || 'teacher';
+    } else {
+      session.role = 'teacher';
+    }
+  }
+
+  return session;
 }
 
 function getCookieValue(cookieStr, name) {

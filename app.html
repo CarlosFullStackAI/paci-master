@@ -1193,6 +1193,12 @@ table{border-collapse:collapse}
         // GUARDAR PACI EN LA NUBE (D1)
         // ==========================================
         async function guardarPACI() {
+            // Verificar permiso de edicion en frontend
+            if (!PACI_CAN_EDIT) {
+              alert('No tienes permisos para guardar. Tu rol (' + PACI_ROLE + ') solo permite lectura.');
+              return;
+            }
+
             const btn = document.getElementById('btn-guardar');
             const originalHTML = btn.innerHTML;
             btn.disabled = true;
@@ -1350,6 +1356,32 @@ table{border-collapse:collapse}
                 };
                 reader.readAsDataURL(file);
             }
+        }
+
+        // ==========================================
+        // RBAC - CONTROL DE ACCESO POR ROL
+        // ==========================================
+        const PACI_USER = JSON.parse(localStorage.getItem('paci_user') || '{}');
+        const PACI_ROLE = PACI_USER.role || 'teacher';
+        const PACI_CAN_EDIT = ['admin', 'teacher', 'educador_diferencial'].includes(PACI_ROLE);
+        const PACI_CAN_APPROVE = ['admin', 'utp'].includes(PACI_ROLE);
+
+        // Si el usuario no puede editar, deshabilitar boton guardar
+        if (!PACI_CAN_EDIT) {
+          document.addEventListener('DOMContentLoaded', () => {
+            const btnGuardar = document.getElementById('btn-guardar');
+            if (btnGuardar) {
+              btnGuardar.disabled = true;
+              btnGuardar.classList.remove('bg-emerald-500', 'hover:bg-emerald-600');
+              btnGuardar.classList.add('bg-slate-400', 'cursor-not-allowed');
+              btnGuardar.title = 'No tienes permisos para editar. Tu rol: ' + PACI_ROLE;
+            }
+            // Deshabilitar todos los inputs del formulario
+            document.querySelectorAll('#control-panel input, #control-panel select, #control-panel textarea').forEach(el => {
+              el.disabled = true;
+              el.classList.add('opacity-60');
+            });
+          });
         }
 
         // ==========================================

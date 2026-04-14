@@ -410,7 +410,7 @@
 
         if (data.ok) {
           localStorage.setItem('paci_token', data.token);
-          localStorage.setItem('paci_user', JSON.stringify({ email: data.email, name: data.name }));
+          localStorage.setItem('paci_user', JSON.stringify({ email: data.email, name: data.name, role: data.role || 'teacher' }));
           showMsg('msg-login', 'Bienvenido/a! Redirigiendo...', 'success');
           setTimeout(() => { window.location.href = '/dashboard.html'; }, 600);
         } else {

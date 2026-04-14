@@ -1,4 +1,5 @@
 import { getUser } from '../auth-helper.js';
+import { canReadAllDocuments, isSubjectRestricted } from '../rbac-helper.js';
 
 export async function onRequestPost(context) {
   const { request, env } = context;
@@ -10,18 +11,42 @@ export async function onRequestPost(context) {
 
     const body = await request.json();
     const studentId = body.studentId;
+    const role = user.role || 'teacher';
 
     let docs;
-    if (studentId) {
+
+    // utp, admin y coordinator ven todos los documentos
+    // profesor_asignatura ve solo los de su asignatura (filtro en frontend por ahora)
+    // teacher y educador_diferencial ven solo los propios
+    const seeAll = canReadAllDocuments(role);
+
+    if (studentId && seeAll) {
       docs = await env.DB.prepare(
-        `SELECT d.*, s.name as student_name, s.diagnosis, s.work_level as student_work_level
+        `SELECT d.*, d.approval_status, d.approved_by, d.approved_at,
+                s.name as student_name, s.diagnosis, s.work_level as student_work_level
+         FROM documents d JOIN students s ON d.student_id = s.id
+         WHERE d.student_id = ?
+         ORDER BY d.created_at DESC`
+      ).bind(studentId).all();
+    } else if (studentId) {
+      docs = await env.DB.prepare(
+        `SELECT d.*, d.approval_status, d.approved_by, d.approved_at,
+                s.name as student_name, s.diagnosis, s.work_level as student_work_level
          FROM documents d JOIN students s ON d.student_id = s.id
          WHERE d.user_email = ? AND d.student_id = ?
          ORDER BY d.created_at DESC`
       ).bind(user.email, studentId).all();
+    } else if (seeAll) {
+      docs = await env.DB.prepare(
+        `SELECT d.*, d.approval_status, d.approved_by, d.approved_at,
+                s.name as student_name, s.diagnosis, s.work_level as student_work_level
+         FROM documents d JOIN students s ON d.student_id = s.id
+         ORDER BY d.created_at DESC`
+      ).all();
     } else {
       docs = await env.DB.prepare(
-        `SELECT d.*, s.name as student_name, s.diagnosis, s.work_level as student_work_level
+        `SELECT d.*, d.approval_status, d.approved_by, d.approved_at,
+                s.name as student_name, s.diagnosis, s.work_level as student_work_level
          FROM documents d JOIN students s ON d.student_id = s.id
          WHERE d.user_email = ?
          ORDER BY d.created_at DESC`
@@ -30,7 +55,8 @@ export async function onRequestPost(context) {
 
     return new Response(JSON.stringify({
       ok: true,
-      documents: docs.results || []
+      documents: docs.results || [],
+      userRole: role
     }), { status: 200, headers });
 
   } catch (e) {

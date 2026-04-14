@@ -1,4 +1,5 @@
 import { getUser } from '../auth-helper.js';
+import { VALID_ROLES, checkPermission } from '../rbac-helper.js';
 
 // Endpoint para asignar roles. Solo el admin puede usarlo.
 // POST /api/admin/set-role { email, role }
@@ -11,17 +12,15 @@ export async function onRequestPost(context) {
     if (!user) return new Response(JSON.stringify({ ok: false, error: 'No autorizado.' }), { status: 401, headers });
 
     // Solo admin o la cuenta maestra
-    const callerData = await env.PACI_USERS.get(`user:${user.email}`);
-    const caller = callerData ? JSON.parse(callerData) : {};
-    if (caller.role !== 'admin' && user.email !== 'carlos.fullstack.ai@gmail.com') {
-      return new Response(JSON.stringify({ ok: false, error: 'Solo administradores.' }), { status: 403, headers });
+    const denied = checkPermission(user.role, 'admin:set-role');
+    if (denied && user.email !== 'carlos.fullstack.ai@gmail.com') {
+      return denied;
     }
 
     const { email, role } = await request.json();
-    const VALID_ROLES = ['admin', 'coordinator', 'teacher'];
 
     if (!email || !role || !VALID_ROLES.includes(role)) {
-      return new Response(JSON.stringify({ ok: false, error: 'Email y rol valido requeridos (admin, coordinator, teacher).' }), { status: 400, headers });
+      return new Response(JSON.stringify({ ok: false, error: `Email y rol valido requeridos (${VALID_ROLES.join(', ')}).` }), { status: 400, headers });
     }
 
     // Actualizar rol del usuario en KV

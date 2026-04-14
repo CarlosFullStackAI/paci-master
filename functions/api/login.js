@@ -49,10 +49,14 @@ export async function onRequestPost(context) {
     // Crear token de sesion
     const token = crypto.randomUUID() + '-' + crypto.randomUUID();
 
-    // Guardar sesion en KV (expira en 24 horas)
+    // Obtener rol del usuario (default: teacher)
+    const userRole = user.role || 'teacher';
+
+    // Guardar sesion en KV (expira en 24 horas) - incluye rol
     await env.PACI_USERS.put(`session:${token}`, JSON.stringify({
       email: user.email,
-      name: user.name
+      name: user.name,
+      role: userRole
     }), { expirationTtl: 86400 });
 
     // Configurar httpOnly cookie (no accesible desde JS = inmune a XSS)
@@ -62,7 +66,8 @@ export async function onRequestPost(context) {
       ok: true,
       token,
       email: user.email,
-      name: user.name
+      name: user.name,
+      role: userRole
     }), {
       status: 200,
       headers: {

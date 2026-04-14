@@ -136,7 +136,20 @@
   <script>
     const TOKEN = localStorage.getItem('paci_token');
     const USER = JSON.parse(localStorage.getItem('paci_user') || '{}');
-    document.getElementById('user-name').textContent = USER.name || USER.email || '';
+    const USER_ROLE = USER.role || 'teacher';
+    // Roles con permisos CRUD completos sobre PACI
+    const CAN_CREATE = ['admin', 'teacher', 'educador_diferencial'].includes(USER_ROLE);
+    const CAN_DELETE = CAN_CREATE;
+    const CAN_APPROVE = ['admin', 'utp'].includes(USER_ROLE);
+    const CAN_MANAGE_STUDENTS = ['admin', 'teacher', 'educador_diferencial'].includes(USER_ROLE);
+
+    document.getElementById('user-name').textContent = (USER.name || USER.email || '') + ' (' + USER_ROLE + ')';
+
+    // Ocultar boton "Nuevo PACI" si no tiene permiso de creacion
+    if (!CAN_CREATE) {
+      const newPaciBtn = document.querySelector('.topbar-actions a[href="/app.html"]');
+      if (newPaciBtn) newPaciBtn.style.display = 'none';
+    }
 
     // Reglas de reevaluacion
     const REEVAL_RULES = {
@@ -256,9 +269,9 @@
               <div style="display:flex;gap:0.5rem;align-items:center;">
                 <span class="badge">${sDocs.length} PACI${sDocs.length !== 1 ? 's' : ''}</span>
                 <span class="badge">${s.unique_oas_count || 0} OAs</span>
-                <button class="btn btn-red btn-sm" onclick="event.stopPropagation(); deleteStudent(${s.id}, '${esc(s.name).replace(/'/g, "\\'")}')" title="Eliminar estudiante" style="padding:0.25rem 0.5rem;font-size:0.6rem;">
+                ${CAN_DELETE ? `<button class="btn btn-red btn-sm" onclick="event.stopPropagation(); deleteStudent(${s.id}, '${esc(s.name).replace(/'/g, "\\'")}')" title="Eliminar estudiante" style="padding:0.25rem 0.5rem;font-size:0.6rem;">
                   <i class="fa-solid fa-trash"></i>
-                </button>
+                </button>` : ''}
                 <i class="fa-solid fa-chevron-down" id="chevron-${s.id}" style="transition:transform 0.2s;font-size:0.75rem;"></i>
               </div>
             </div>
@@ -440,9 +453,9 @@
             <textarea placeholder="Notas adicionales sobre el estudiante..." onchange="saveField(${id},'observations',this.value)">${esc(s.observations || '')}</textarea>
           </div>
         </div>
-        <div style="margin-top:1rem;display:flex;gap:0.5rem;">
+        ${CAN_CREATE ? `<div style="margin-top:1rem;display:flex;gap:0.5rem;">
           <a href="/app.html?student=${id}" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> Nuevo PACI</a>
-        </div>`;
+        </div>` : ''}`;
 
       document.getElementById('tab-profile-' + id).innerHTML = html;
     }
@@ -620,11 +633,22 @@
               </div>
               ${oaCodes.length ? '<div style="display:flex;flex-wrap:wrap;gap:0.2rem;margin-top:0.375rem;">' + oaCodes.slice(0, 10).map(c => '<span class="oa-chip" style="background:' + mainColor + '18;color:' + mainColor + ';">' + esc(c) + '</span>').join('') + (oaCodes.length > 10 ? '<span class="oa-chip" style="background:#f1f5f9;color:#64748b;">+' + (oaCodes.length - 10) + ' mas</span>' : '') + '</div>' : ''}
             </div>
-            <div style="display:flex;gap:0.375rem;flex-shrink:0;">
+            <div style="display:flex;gap:0.375rem;flex-shrink:0;flex-wrap:wrap;align-items:center;">
+              ${d.approval_status === 'approved' ? '<span style="background:#d1fae5;color:#065f46;font-size:0.6rem;font-weight:700;padding:0.2rem 0.5rem;border-radius:1rem;"><i class="fa-solid fa-check-circle"></i> Aprobado</span>' : d.approval_status === 'rejected' ? '<span style="background:#fef2f2;color:#dc2626;font-size:0.6rem;font-weight:700;padding:0.2rem 0.5rem;border-radius:1rem;"><i class="fa-solid fa-times-circle"></i> Rechazado</span>' : '<span style="background:#fef3c7;color:#92400e;font-size:0.6rem;font-weight:700;padding:0.2rem 0.5rem;border-radius:1rem;"><i class="fa-solid fa-clock"></i> Pendiente</span>'}
               <a href="/app.html?doc=${d.id}" class="btn btn-primary btn-sm" title="Abrir y editar"><i class="fa-solid fa-eye"></i> Ver</a>
               <a href="/app.html?doc=${d.id}&action=pdf" class="btn btn-green btn-sm" title="Descargar PDF"><i class="fa-solid fa-download"></i> PDF</a>
               <a href="/app.html?doc=${d.id}&action=print" class="btn btn-amber btn-sm" title="Imprimir"><i class="fa-solid fa-print"></i></a>
-              <button class="btn btn-red btn-sm" onclick="deleteDoc(${d.id}, ${id})" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
+              ${CAN_APPROVE && d.approval_status !== 'approved' ? '<button class="btn btn-green btn-sm" onclick="approveDoc(' + d.id + ', ' + id + ')" title="Aprobar PACI"><i class="fa-solid fa-check"></i> Aprobar</button>' : ''}
+              ${CAN_APPROVE && d.approval_status !== 'rejected' ? '<button class="btn btn-slate btn-sm" onclick="rejectDoc(' + d.id + ', ' + id + ')" title="Rechazar" style="padding:0.25rem 0.5rem;"><i class="fa-solid fa-times"></i></button>' : ''}
+              ${CAN_DELETE ? '<button class="btn btn-red btn-sm" onclick="deleteDoc(' + d.id + ', ' + id + ')" title="Eliminar"><i class="fa-solid fa-trash"></i></button>' : ''}
+              <button class="btn btn-slate btn-sm" onclick="toggleComments(' + d.id + ')" title="Comentarios"><i class="fa-solid fa-comment"></i></button>
+            </div>
+            <div id="comments-${d.id}" style="display:none;margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid #e2e8f0;width:100%;">
+              <div id="comments-list-${d.id}" style="margin-bottom:0.5rem;"></div>
+              <div style="display:flex;gap:0.375rem;">
+                <input type="text" id="comment-input-${d.id}" placeholder="Agregar comentario..." style="flex:1;border:1.5px solid #e2e8f0;border-radius:0.5rem;padding:0.375rem 0.625rem;font-size:0.75rem;font-family:'Inter',sans-serif;">
+                <button class="btn btn-primary btn-sm" onclick="addComment(${d.id})"><i class="fa-solid fa-paper-plane"></i></button>
+              </div>
             </div>
           </div>
         </div>`;
@@ -736,6 +760,90 @@
 
       btn.disabled = false;
       btn.innerHTML = '<i class="fa-solid fa-check"></i> Cambiar';
+    }
+
+    // ==========================================
+    // APROBACION / RECHAZO (UTP)
+    // ==========================================
+    async function approveDoc(docId, studentId) {
+      if (!confirm('Aprobar este documento PACI?')) return;
+      const res = await api('/api/documents/approve', { documentId: docId, action: 'approve' });
+      if (res.ok) {
+        loadedStudents[studentId] = false;
+        loadStudentDetail(studentId);
+      } else {
+        alert('Error: ' + (res.error || 'No se pudo aprobar'));
+      }
+    }
+
+    async function rejectDoc(docId, studentId) {
+      if (!confirm('Rechazar este documento PACI?')) return;
+      const res = await api('/api/documents/approve', { documentId: docId, action: 'reject' });
+      if (res.ok) {
+        loadedStudents[studentId] = false;
+        loadStudentDetail(studentId);
+      } else {
+        alert('Error: ' + (res.error || 'No se pudo rechazar'));
+      }
+    }
+
+    // ==========================================
+    // COMENTARIOS
+    // ==========================================
+    async function toggleComments(docId) {
+      const container = document.getElementById('comments-' + docId);
+      if (!container) return;
+      const isVisible = container.style.display !== 'none';
+      container.style.display = isVisible ? 'none' : 'block';
+      if (!isVisible) loadComments(docId);
+    }
+
+    async function loadComments(docId) {
+      const listEl = document.getElementById('comments-list-' + docId);
+      if (!listEl) return;
+      listEl.innerHTML = '<div class="loading" style="padding:0.5rem;"><i class="fa-solid fa-spinner"></i></div>';
+
+      const res = await api('/api/documents/comments', { action: 'list', documentId: docId });
+      if (!res.ok) { listEl.innerHTML = '<p style="color:#ef4444;font-size:0.7rem;">Error al cargar comentarios</p>'; return; }
+
+      const comments = res.comments || [];
+      if (!comments.length) {
+        listEl.innerHTML = '<p style="color:#94a3b8;font-size:0.7rem;text-align:center;">Sin comentarios aun.</p>';
+        return;
+      }
+
+      listEl.innerHTML = comments.map(c => `
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:0.5rem;padding:0.5rem 0.75rem;margin-bottom:0.375rem;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.25rem;">
+            <span style="font-size:0.65rem;font-weight:700;color:#1e3a8a;">${esc(c.user_email)}</span>
+            <span style="font-size:0.55rem;color:#94a3b8;"><span style="background:#e2e8f0;padding:0.1rem 0.375rem;border-radius:0.25rem;font-weight:600;">${esc(c.user_role)}</span> &middot; ${formatDate(c.created_at)}</span>
+          </div>
+          <p style="font-size:0.75rem;color:#334155;margin:0;">${esc(c.comment_text)}</p>
+        </div>
+      `).join('');
+    }
+
+    async function addComment(docId) {
+      const input = document.getElementById('comment-input-' + docId);
+      if (!input || !input.value.trim()) return;
+
+      const res = await api('/api/documents/comments', { action: 'add', documentId: docId, text: input.value.trim() });
+      if (res.ok) {
+        input.value = '';
+        loadComments(docId);
+      } else {
+        alert('Error: ' + (res.error || 'No se pudo agregar comentario'));
+      }
+    }
+
+    // ==========================================
+    // CONTROL VISUAL POR ROL
+    // ==========================================
+    // Ocultar "Nuevo PACI" en ficha del estudiante si no tiene permisos
+    function renderProfileRoleGuards() {
+      if (!CAN_CREATE) {
+        document.querySelectorAll('a[href^="/app.html?student="]').forEach(el => el.style.display = 'none');
+      }
     }
 
     // Init
