@@ -104,6 +104,30 @@
       .container { padding: 1rem; }
       .topbar { padding: 0.75rem 1rem; flex-wrap: wrap; gap: 0.5rem; }
     }
+
+    /* Tablet-first: touch targets y fuentes */
+    * { touch-action: manipulation; }
+
+    .btn { min-height: 44px; min-width: 44px; font-size: 0.8rem; }
+    .btn-sm { min-height: 40px; min-width: 40px; font-size: 0.75rem; padding: 0.5rem 0.875rem; }
+    .tab { min-height: 48px; font-size: 0.75rem; }
+
+    .profile-field input,
+    .profile-field select,
+    .profile-field textarea {
+      min-height: 44px; font-size: 0.85rem; padding: 0.625rem;
+    }
+    .profile-field label { font-size: 0.7rem; margin-bottom: 0.375rem; }
+
+    .student-card-header { min-height: 56px; padding: 0.875rem 1.25rem; }
+    .student-card-header h3 { font-size: 1rem; }
+
+    .oa-table select { min-height: 36px; }
+
+    @media (min-width: 768px) and (max-width: 1024px) {
+      .container { max-width: 100%; padding: 1rem; }
+      .stats { grid-template-columns: repeat(3, 1fr); }
+    }
   </style>
 </head>
 <body>

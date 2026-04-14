@@ -211,6 +211,17 @@
       margin-bottom: 1rem;
     }
     .back-link:hover { text-decoration: underline; }
+
+    /* Tablet-first: touch targets */
+    * { touch-action: manipulation; }
+    .form-input { min-height: 48px; font-size: 1rem; }
+    .form-btn { min-height: 48px; font-size: 1rem; }
+    .tab-btn { min-height: 48px; }
+    .card { max-width: 420px; }
+
+    @media (max-width: 768px) {
+      .card { margin: 1rem; max-width: 100%; border-radius: 1.25rem; }
+    }
   </style>
 </head>
 <body>
