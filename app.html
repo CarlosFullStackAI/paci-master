@@ -26,6 +26,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <!-- Librería para descargar a PDF nativo -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="/nee-templates.js"></script>
 
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Merriweather:wght@300;400;700;900&display=swap" rel="stylesheet">
     <style>/* === RESET MÍNIMO + TAILWIND UTILITIES (sin preflight agresivo) === */
@@ -912,7 +913,16 @@ table{border-collapse:collapse}
                     </div>
 
                     <label class="text-[10px] font-bold text-slate-500 uppercase">Diagnóstico (Decreto 170)</label>
-                    <select id="in-diag" class="w-full border p-2.5 rounded-lg text-sm font-bold text-blue-800 outline-none" onchange="updatePreview()"></select>
+                    <select id="in-diag" class="w-full border p-2.5 rounded-lg text-sm font-bold text-blue-800 outline-none" onchange="updatePreview(); showNEEStrategies()"></select>
+
+                    <!-- Panel de estrategias NEE sugeridas -->
+                    <div id="nee-strategies-panel" style="display:none;" class="mt-2 p-3 bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-200 rounded-xl">
+                      <div class="flex items-center justify-between mb-2">
+                        <span class="text-[10px] font-black text-purple-700 uppercase"><i class="fa-solid fa-lightbulb text-amber-500"></i> Estrategias Sugeridas (DUA)</span>
+                        <button onclick="document.getElementById('nee-strategies-panel').style.display='none'" class="text-purple-400 hover:text-purple-600 text-xs"><i class="fa-solid fa-times"></i></button>
+                      </div>
+                      <div id="nee-strategies-content" class="text-xs text-slate-700 space-y-2"></div>
+                    </div>
 
                     <div class="grid grid-cols-2 gap-3">
                         <div>
@@ -1387,6 +1397,67 @@ table{border-collapse:collapse}
               el.classList.add('opacity-60');
             });
           });
+        }
+
+        // ==========================================
+        // PLANTILLAS NEE - Mostrar estrategias al seleccionar diagnostico
+        // ==========================================
+        function showNEEStrategies() {
+          const panel = document.getElementById('nee-strategies-panel');
+          const content = document.getElementById('nee-strategies-content');
+          if (!panel || !content) return;
+
+          const diagId = document.getElementById('in-diag')?.value;
+          if (!diagId || !window.NEE_TEMPLATES || !window.NEE_TEMPLATES[diagId]) {
+            panel.style.display = 'none';
+            return;
+          }
+
+          const template = window.NEE_TEMPLATES[diagId];
+          const dua = template.estrategias_dua;
+
+          let html = '<p class="text-[10px] text-purple-600 font-bold mb-1">' + template.nombre + ' (' + template.tipo + ')</p>';
+          html += '<p class="text-[10px] text-slate-500 mb-2">' + template.descripcion + '</p>';
+
+          // Estrategias DUA por principio
+          const principios = {
+            representacion: { label: 'Representacion', icon: 'fa-eye', color: '#2563eb' },
+            accion_expresion: { label: 'Accion y Expresion', icon: 'fa-hand', color: '#059669' },
+            implicacion: { label: 'Implicacion', icon: 'fa-heart', color: '#dc2626' }
+          };
+
+          for (const [key, config] of Object.entries(principios)) {
+            if (dua[key] && dua[key].length) {
+              html += '<div class="mb-2"><span class="text-[9px] font-black uppercase" style="color:' + config.color + ';"><i class="fa-solid ' + config.icon + '"></i> ' + config.label + '</span>';
+              html += '<ul class="ml-3 mt-0.5 space-y-0.5">';
+              dua[key].forEach(s => {
+                html += '<li class="text-[10px] text-slate-600 flex items-start gap-1"><i class="fa-solid fa-check text-[8px] mt-0.5" style="color:' + config.color + ';"></i>' + s + '</li>';
+              });
+              html += '</ul></div>';
+            }
+          }
+
+          // Adecuaciones de acceso y evaluacion
+          if (template.adecuaciones_acceso && template.adecuaciones_acceso.length) {
+            html += '<div class="mb-2"><span class="text-[9px] font-black uppercase text-amber-600"><i class="fa-solid fa-universal-access"></i> Adecuaciones de Acceso</span>';
+            html += '<ul class="ml-3 mt-0.5 space-y-0.5">';
+            template.adecuaciones_acceso.forEach(s => {
+              html += '<li class="text-[10px] text-slate-600 flex items-start gap-1"><i class="fa-solid fa-arrow-right text-[7px] mt-1 text-amber-500"></i>' + s + '</li>';
+            });
+            html += '</ul></div>';
+          }
+
+          if (template.adecuaciones_evaluacion && template.adecuaciones_evaluacion.length) {
+            html += '<div><span class="text-[9px] font-black uppercase text-teal-600"><i class="fa-solid fa-clipboard-check"></i> Adecuaciones de Evaluacion</span>';
+            html += '<ul class="ml-3 mt-0.5 space-y-0.5">';
+            template.adecuaciones_evaluacion.forEach(s => {
+              html += '<li class="text-[10px] text-slate-600 flex items-start gap-1"><i class="fa-solid fa-arrow-right text-[7px] mt-1 text-teal-500"></i>' + s + '</li>';
+            });
+            html += '</ul></div>';
+          }
+
+          content.innerHTML = html;
+          panel.style.display = 'block';
         }
 
         // ==========================================
