@@ -3706,11 +3706,12 @@ table{border-collapse:collapse}
             <option value="pueblos">Pueblos Originarios</option>`;
 
         // Opciones de nucleos para parvularia (NT1/NT2)
+        // Parvularia: Ambitos → Nucleos. Los del ambito Desarrollo Personal y Social son OAT (transversales)
         const ASIG_OPTIONS_PARVULARIA = `
-            <option value="">Seleccione Núcleo...</option>
-            <optgroup label="Ámbito: Desarrollo Personal y Social">
-                <option value="oat">Identidad y Autonomía / Convivencia y Ciudadanía</option>
-                <option value="ef">Corporalidad y Movimiento</option>
+            <option value="">Seleccione Ámbito / Núcleo...</option>
+            <optgroup label="Ámbito: Desarrollo Personal y Social (OAT - Transversales)">
+                <option value="oat">⟡ Identidad y Autonomía / Convivencia y Ciudadanía (OAT)</option>
+                <option value="ef">⟡ Corporalidad y Movimiento (OAT)</option>
             </optgroup>
             <optgroup label="Ámbito: Comunicación Integral">
                 <option value="lenguaje">Lenguaje Verbal</option>
@@ -3758,8 +3759,8 @@ table{border-collapse:collapse}
             const lblOAs = document.getElementById('lbl-oas-disponibles');
 
             if (isParvularia) {
-                if (sectionTitle) sectionTitle.innerHTML = '<i class="fa-solid fa-bullseye"></i> Núcleos de Aprendizaje del Nivel de Trabajo';
-                if (accTitle) accTitle.textContent = '3. Núcleos y Objetivos de Aprendizaje';
+                if (sectionTitle) sectionTitle.innerHTML = '<i class="fa-solid fa-bullseye"></i> Ámbitos y Núcleos de Aprendizaje — Nivel de Trabajo';
+                if (accTitle) accTitle.textContent = '3. Objetivos de Aprendizaje (OA) y Transversales (OAT)';
                 if (lblOAs) lblOAs.textContent = 'Objetivos de Aprendizaje del Núcleo:';
             } else {
                 if (sectionTitle) sectionTitle.innerHTML = '<i class="fa-solid fa-bullseye"></i> OAs Oficiales del Nivel de Trabajo';
@@ -3839,6 +3840,22 @@ table{border-collapse:collapse}
             if (data) {
                 const u = data.unidades.find(u => u.id === uid);
                 if (u) oas = u.oas;
+            }
+
+            // Banner OAT para nucleos transversales en parvularia
+            const isParvularia = (document.getElementById('in-nivel-trabajo').value === 'nt1' || document.getElementById('in-nivel-trabajo').value === 'nt2');
+            const isOAT = isParvularia && (asig === 'oat' || asig === 'ef');
+            if (isOAT) {
+                const oatBanner = document.createElement('div');
+                oatBanner.style.cssText = 'background:#eff6ff;border:1px solid #bfdbfe;border-radius:0.75rem;padding:0.75rem;margin-bottom:0.75rem;';
+                oatBanner.innerHTML = `
+                    <p style="font-size:10px;font-weight:800;color:#1e40af;text-transform:uppercase;margin-bottom:0.25rem;">
+                        <i class="fa-solid fa-arrows-spin" style="color:#3b82f6;"></i> Objetivos de Aprendizaje Transversales (OAT)
+                    </p>
+                    <p style="font-size:10px;color:#1e3a5f;">
+                        Estos objetivos pertenecen al ámbito <strong>Desarrollo Personal y Social</strong> y se trabajan de forma <strong>transversal y permanente</strong>, integrados con los OA de los otros núcleos. No se planifican en una hora específica.
+                    </p>`;
+                list.appendChild(oatBanner);
             }
 
             // Identificar OAs ya trabajados previamente
