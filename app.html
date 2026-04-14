@@ -2801,31 +2801,33 @@ table{border-collapse:collapse}
         };
 
         // [MEJORA 7] Colores por asignatura para Gantt (solo hex, sin clases Tailwind dinámicas)
+        // Colores segun estandar MINEDUC (textos escolares oficiales)
+        // Lenguaje=Rojo, Matematica=Azul, Ciencias=Verde, Historia=Naranja, Ingles=Morado
         const ASIG_COLORS = {
-            // Educacion Basica
-            'Lenguaje y Comunicación': { hex: '#2563eb' },
-            'Matemática': { hex: '#dc2626' },
-            'Ciencias Naturales': { hex: '#059669' },
-            'Historia, Geografía y Cs. Sociales': { hex: '#d97706' },
-            'Idioma Extranjero Inglés': { hex: '#9333ea' },
-            'Artes Visuales': { hex: '#db2777' },
-            'Música': { hex: '#4f46e5' },
-            'Educación Física y Salud': { hex: '#ea580c' },
-            'Tecnología': { hex: '#0891b2' },
-            'Orientación': { hex: '#0d9488' },
-            'Religión': { hex: '#7c3aed' },
-            'Objetivos Transversales (OAT)': { hex: '#475569' },
-            'Pueblos Originarios': { hex: '#4d7c0f' },
-            // Parvularia (Nucleos)
-            'Identidad y Autonomía / Convivencia y Ciudadanía': { hex: '#475569' },
-            'Corporalidad y Movimiento': { hex: '#ea580c' },
-            'Lenguaje Verbal': { hex: '#2563eb' },
-            'Lenguajes Artísticos': { hex: '#db2777' },
-            'Exploración del Entorno Natural': { hex: '#059669' },
-            'Comprensión del Entorno Sociocultural': { hex: '#d97706' },
-            'Pensamiento Matemático': { hex: '#dc2626' },
-            'Inglés': { hex: '#9333ea' },
-            'default': { hex: '#2563eb' }
+            // Educacion Basica - Colores oficiales MINEDUC
+            'Lenguaje y Comunicación': { hex: '#dc2626' },  // Rojo (Leo Primero)
+            'Matemática': { hex: '#2563eb' },               // Azul (Sumo Primero)
+            'Ciencias Naturales': { hex: '#16a34a' },        // Verde
+            'Historia, Geografía y Cs. Sociales': { hex: '#ea580c' }, // Naranja
+            'Idioma Extranjero Inglés': { hex: '#7c3aed' },  // Morado
+            'Artes Visuales': { hex: '#eab308' },            // Amarillo
+            'Música': { hex: '#c026d3' },                    // Fucsia
+            'Educación Física y Salud': { hex: '#0891b2' },  // Celeste
+            'Tecnología': { hex: '#64748b' },                // Gris
+            'Orientación': { hex: '#0d9488' },               // Teal
+            'Religión': { hex: '#a16207' },                  // Cafe/Dorado
+            'Objetivos Transversales (OAT)': { hex: '#475569' }, // Gris oscuro
+            'Pueblos Originarios': { hex: '#4d7c0f' },       // Verde oliva
+            // Parvularia (Nucleos) - Colores adaptados para articulacion con Basica
+            '⟡ Identidad y Autonomía / Convivencia y Ciudadanía (OAT)': { hex: '#475569' }, // Gris (transversal)
+            '⟡ Corporalidad y Movimiento (OAT)': { hex: '#0891b2' },  // Celeste (→ Ed. Fisica)
+            'Lenguaje Verbal': { hex: '#dc2626' },           // Rojo (→ Lenguaje)
+            'Lenguajes Artísticos': { hex: '#eab308' },      // Amarillo (→ Artes)
+            'Exploración del Entorno Natural': { hex: '#16a34a' }, // Verde (→ Ciencias)
+            'Comprensión del Entorno Sociocultural': { hex: '#ea580c' }, // Naranja (→ Historia)
+            'Pensamiento Matemático': { hex: '#2563eb' },    // Azul (→ Matematica)
+            'Inglés': { hex: '#7c3aed' },                    // Morado (→ Ingles)
+            'default': { hex: '#64748b' }
         };
 
         function getAsigColor(asigName) {
@@ -4450,12 +4452,12 @@ table{border-collapse:collapse}
 
                 const asigTitle = document.createElement('h4');
                 asigTitle.className = 'text-sm font-black uppercase tracking-widest mb-6 pb-2';
-                asigTitle.style.cssText = 'color:#0a2080;border-bottom:3px solid #1240c4';
+                asigTitle.style.cssText = `color:${color.hex};border-bottom:3px solid ${color.hex}`;
                 const ntVal = document.getElementById('in-nivel-trabajo')?.value || '';
                 const docIsParvularia = (ntVal === 'nt1' || ntVal === 'nt2');
                 const asigLabel = docIsParvularia ? 'Núcleo' : 'Asignatura';
                 const asigIcon = docIsParvularia ? 'fa-seedling' : 'fa-book-open';
-                asigTitle.innerHTML = `<i class="fa-solid ${asigIcon} mr-2" style="color:#1240c4"></i>${asigLabel}: ${asig}`;
+                asigTitle.innerHTML = `<i class="fa-solid ${asigIcon} mr-2" style="color:${color.hex}"></i>${asigLabel}: ${asig}`;
                 asigGroup.appendChild(asigTitle);
 
                 const modulosContainer = document.createElement('div');
