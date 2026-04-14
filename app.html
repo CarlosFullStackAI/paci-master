@@ -1280,6 +1280,11 @@ table{border-collapse:collapse}
                 if (data.ok) {
                     btn.innerHTML = '<i class="fa-solid fa-check"></i> Guardado!';
                     btn.style.background = '#059669';
+                    // Limpiar estado de autosave
+                    autosave.dirty = false;
+                    autosave.lastDocumentId = data.documentId || null;
+                    // Limpiar borrador local
+                    try { localStorage.removeItem(autosave.getStorageKey()); } catch(e) {}
                     setTimeout(() => {
                         btn.innerHTML = originalHTML;
                         btn.style.background = '';
@@ -2831,6 +2836,198 @@ table{border-collapse:collapse}
             modulos: [],
             bufferOAs: []
         };
+
+        // ==========================================
+        // SISTEMA DE AUTOGUARDADO
+        // ==========================================
+        const autosave = {
+          dirty: false,
+          timer: null,
+          syncInterval: null,
+          lastDocumentId: null,
+          DEBOUNCE_MS: 2000,
+          SYNC_INTERVAL_MS: 60000,
+          STORAGE_PREFIX: 'paci_autosave_',
+
+          // Obtener clave unica para localStorage
+          getStorageKey() {
+            const name = document.getElementById('in-nombre')?.value || 'nuevo';
+            const trim = document.getElementById('in-duracion')?.selectedOptions[0]?.text || '';
+            return this.STORAGE_PREFIX + name.replace(/\s+/g, '_') + '_' + trim.replace(/\s+/g, '_');
+          },
+
+          // Recoger datos actuales del formulario para autosave
+          collectFormData() {
+            const studentName = document.getElementById('in-nombre')?.value || '';
+            if (!studentName) return null;
+
+            return {
+              student: {
+                name: studentName,
+                school: document.getElementById('in-escuela')?.value || '',
+                birthDate: document.getElementById('in-fnac')?.value || '',
+                age: parseInt(document.getElementById('in-edad')?.value) || 0,
+                diagnosis: document.getElementById('in-diag')?.selectedOptions[0]?.text || '',
+                diagnosisId: document.getElementById('in-diag')?.value || '',
+                realLevel: document.getElementById('in-nivel-real')?.selectedOptions[0]?.text || '',
+                workLevel: document.getElementById('in-nivel-trabajo')?.selectedOptions[0]?.text || ''
+              },
+              team: state.equipo.map(m => ({ rol: m.rol, nom: m.nom })),
+              modules: state.modulos,
+              trimester: document.getElementById('in-duracion')?.selectedOptions[0]?.text || '',
+              documentId: this.lastDocumentId
+            };
+          },
+
+          // Guardar en localStorage (rapido, cada 2 segundos)
+          saveToLocal() {
+            if (!PACI_CAN_EDIT) return;
+            const data = this.collectFormData();
+            if (!data) return;
+            try {
+              localStorage.setItem(this.getStorageKey(), JSON.stringify({
+                data,
+                timestamp: Date.now()
+              }));
+            } catch (e) { /* localStorage lleno - ignorar */ }
+          },
+
+          // Sync con backend (cada 60 segundos si hay cambios)
+          async syncToBackend() {
+            if (!PACI_CAN_EDIT || !this.dirty) return;
+            const data = this.collectFormData();
+            if (!data || !data.student.name) return;
+
+            try {
+              const token = localStorage.getItem('paci_token');
+              const res = await fetch('/api/documents/autosave', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ...data, _token: token })
+              });
+              const result = await res.json();
+              if (result.ok) {
+                this.dirty = false;
+                this.lastDocumentId = result.documentId;
+                this.showIndicator('saved');
+              } else {
+                this.showIndicator('error');
+              }
+            } catch (e) {
+              this.showIndicator('offline');
+            }
+          },
+
+          // Indicador visual
+          showIndicator(status) {
+            let indicator = document.getElementById('autosave-indicator');
+            if (!indicator) {
+              indicator = document.createElement('div');
+              indicator.id = 'autosave-indicator';
+              indicator.style.cssText = 'position:fixed;bottom:1rem;right:1rem;padding:0.5rem 1rem;border-radius:0.5rem;font-size:0.7rem;font-weight:700;font-family:Inter,sans-serif;z-index:9999;transition:opacity 0.3s;pointer-events:none;';
+              document.body.appendChild(indicator);
+            }
+            if (status === 'saved') {
+              indicator.style.background = '#d1fae5';
+              indicator.style.color = '#065f46';
+              indicator.innerHTML = '<i class="fa-solid fa-check-circle"></i> Autoguardado';
+            } else if (status === 'saving') {
+              indicator.style.background = '#dbeafe';
+              indicator.style.color = '#1e40af';
+              indicator.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
+            } else if (status === 'error') {
+              indicator.style.background = '#fef2f2';
+              indicator.style.color = '#dc2626';
+              indicator.innerHTML = '<i class="fa-solid fa-exclamation-circle"></i> Error al guardar';
+            } else if (status === 'offline') {
+              indicator.style.background = '#fef3c7';
+              indicator.style.color = '#92400e';
+              indicator.innerHTML = '<i class="fa-solid fa-wifi-slash"></i> Sin conexion (guardado local)';
+            }
+            indicator.style.opacity = '1';
+            setTimeout(() => { indicator.style.opacity = '0'; }, 3000);
+          },
+
+          // Marcar como sucio (hubo un cambio)
+          markDirty() {
+            if (!PACI_CAN_EDIT) return;
+            this.dirty = true;
+            // Debounce para localStorage
+            clearTimeout(this.timer);
+            this.timer = setTimeout(() => this.saveToLocal(), this.DEBOUNCE_MS);
+          },
+
+          // Verificar si hay datos guardados para restaurar
+          checkRecovery() {
+            const key = this.getStorageKey();
+            const saved = localStorage.getItem(key);
+            if (!saved) return;
+            try {
+              const { data, timestamp } = JSON.parse(saved);
+              const minutes = Math.round((Date.now() - timestamp) / 60000);
+              if (minutes > 1440) { localStorage.removeItem(key); return; } // mas de 24h, borrar
+              if (data && data.student && data.student.name && confirm(
+                'Se encontro un borrador autoguardado de "' + data.student.name + '" (hace ' + minutes + ' minutos).\n\nDeseas restaurarlo?'
+              )) {
+                this.restoreData(data);
+              }
+            } catch (e) { localStorage.removeItem(key); }
+          },
+
+          // Restaurar datos del autoguardado
+          restoreData(data) {
+            if (data.student) {
+              const s = data.student;
+              if (s.name) document.getElementById('in-nombre').value = s.name;
+              if (s.school) document.getElementById('in-escuela').value = s.school;
+              if (s.birthDate) document.getElementById('in-fnac').value = s.birthDate;
+              if (s.age) document.getElementById('in-edad').value = s.age;
+            }
+            if (data.modules && data.modules.length) {
+              state.modulos = data.modules;
+            }
+            if (data.team && data.team.length) {
+              data.team.forEach((t, i) => {
+                if (state.equipo[i]) state.equipo[i].nom = t.nom;
+              });
+            }
+            this.lastDocumentId = data.documentId || null;
+          },
+
+          // Inicializar sistema de autosave
+          init() {
+            if (!PACI_CAN_EDIT) return;
+
+            // Escuchar cambios en todo el panel de control
+            const panel = document.getElementById('control-panel');
+            if (panel) {
+              panel.addEventListener('input', () => this.markDirty());
+              panel.addEventListener('change', () => this.markDirty());
+            }
+
+            // Sync con backend cada 60 segundos
+            this.syncInterval = setInterval(() => this.syncToBackend(), this.SYNC_INTERVAL_MS);
+
+            // Guardar antes de cerrar la pagina
+            window.addEventListener('beforeunload', (e) => {
+              if (this.dirty) {
+                this.saveToLocal();
+                e.preventDefault();
+                e.returnValue = 'Tienes cambios sin guardar.';
+              }
+            });
+
+            // Verificar si hay datos para restaurar (con un pequeno delay)
+            setTimeout(() => this.checkRecovery(), 1000);
+          }
+        };
+
+        // Inicializar autosave cuando el DOM este listo
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', () => autosave.init());
+        } else {
+          autosave.init();
+        }
 
         // [MEJORA 7] Colores por asignatura para Gantt (solo hex, sin clases Tailwind dinámicas)
         // Colores segun estandar MINEDUC (textos escolares oficiales)
