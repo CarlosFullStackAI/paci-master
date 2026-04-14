@@ -1072,7 +1072,7 @@ table{border-collapse:collapse}
                         <div class="flex items-center gap-2 text-[10px]" id="hint-asig">
                             <i class="fa-solid fa-check w-3 text-center" style="color:#10b981;display:none"></i>
                             <i class="fa-solid fa-xmark w-3 text-center" style="color:#f87171"></i>
-                            <span style="color:#64748b">Asignatura seleccionada</span>
+                            <span id="hint-asig-text" style="color:#64748b">Asignatura seleccionada</span>
                         </div>
                         <div class="flex items-center gap-2 text-[10px]" id="hint-oas">
                             <i class="fa-solid fa-check w-3 text-center" style="color:#10b981;display:none"></i>
@@ -3758,14 +3758,18 @@ table{border-collapse:collapse}
             const accTitle = document.querySelector('#acc-curr').previousElementSibling.querySelector('span');
             const lblOAs = document.getElementById('lbl-oas-disponibles');
 
+            const hintAsig = document.getElementById('hint-asig-text');
+
             if (isParvularia) {
                 if (sectionTitle) sectionTitle.innerHTML = '<i class="fa-solid fa-bullseye"></i> Ámbitos y Núcleos de Aprendizaje — Nivel de Trabajo';
                 if (accTitle) accTitle.textContent = '3. Objetivos de Aprendizaje (OA) y Transversales (OAT)';
                 if (lblOAs) lblOAs.textContent = 'Objetivos de Aprendizaje del Núcleo:';
+                if (hintAsig) hintAsig.textContent = 'Ámbito / Núcleo seleccionado';
             } else {
                 if (sectionTitle) sectionTitle.innerHTML = '<i class="fa-solid fa-bullseye"></i> OAs Oficiales del Nivel de Trabajo';
                 if (accTitle) accTitle.textContent = '3. Objetivos de Aprendizaje (OAs)';
                 if (lblOAs) lblOAs.textContent = 'OAs Reales Disponibles:';
+                if (hintAsig) hintAsig.textContent = 'Asignatura seleccionada';
             }
         }
 
@@ -4246,7 +4250,11 @@ table{border-collapse:collapse}
             if (numClases > 40) numClases = 40;
 
             if (!aE.value || state.bufferOAs.length === 0 || !dE.value) {
-                alert("Faltan datos curriculares. Seleccione Asignatura, Fecha de Inicio y al menos un OA de cualquier Unidad/Eje.");
+                const ntCurr = document.getElementById('in-nivel-trabajo')?.value || '';
+                const alertMsg = (ntCurr === 'nt1' || ntCurr === 'nt2')
+                    ? 'Faltan datos curriculares. Seleccione Ámbito/Núcleo, Fecha de Inicio y al menos un OA.'
+                    : 'Faltan datos curriculares. Seleccione Asignatura, Fecha de Inicio y al menos un OA de cualquier Unidad/Eje.';
+                alert(alertMsg);
                 return;
             }
 
@@ -4353,7 +4361,11 @@ table{border-collapse:collapse}
                 const asigTitle = document.createElement('h4');
                 asigTitle.className = 'text-sm font-black uppercase tracking-widest mb-6 pb-2';
                 asigTitle.style.cssText = 'color:#0a2080;border-bottom:3px solid #1240c4';
-                asigTitle.innerHTML = `<i class="fa-solid fa-book-open mr-2" style="color:#1240c4"></i>Asignatura: ${asig}`;
+                const ntVal = document.getElementById('in-nivel-trabajo')?.value || '';
+                const docIsParvularia = (ntVal === 'nt1' || ntVal === 'nt2');
+                const asigLabel = docIsParvularia ? 'Núcleo' : 'Asignatura';
+                const asigIcon = docIsParvularia ? 'fa-seedling' : 'fa-book-open';
+                asigTitle.innerHTML = `<i class="fa-solid ${asigIcon} mr-2" style="color:#1240c4"></i>${asigLabel}: ${asig}`;
                 asigGroup.appendChild(asigTitle);
 
                 const modulosContainer = document.createElement('div');
@@ -4531,7 +4543,10 @@ table{border-collapse:collapse}
             const g = document.getElementById('gantt');
             if(!g) return;
             const ms = ['Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-            let h = `<thead><tr class="bg-slate-900 text-white"><th class="border border-slate-700 p-2 w-1/3 text-[9px] uppercase font-black" rowspan="2">Asignatura / Objetivos</th><th colspan="3" class="border border-slate-700 text-[9px] font-black uppercase">1er Trimestre</th><th colspan="3" class="border border-slate-700 text-[9px] font-black uppercase">2do Trimestre</th><th colspan="4" class="border border-slate-700 text-[9px] font-black uppercase">3er Trimestre</th></tr>`;
+            const ganttNt = document.getElementById('in-nivel-trabajo')?.value || '';
+            const ganttIsParvularia = (ganttNt === 'nt1' || ganttNt === 'nt2');
+            const ganttColLabel = ganttIsParvularia ? 'Núcleo / Objetivos' : 'Asignatura / Objetivos';
+            let h = `<thead><tr class="bg-slate-900 text-white"><th class="border border-slate-700 p-2 w-1/3 text-[9px] uppercase font-black" rowspan="2">${ganttColLabel}</th><th colspan="3" class="border border-slate-700 text-[9px] font-black uppercase">1er Trimestre</th><th colspan="3" class="border border-slate-700 text-[9px] font-black uppercase">2do Trimestre</th><th colspan="4" class="border border-slate-700 text-[9px] font-black uppercase">3er Trimestre</th></tr>`;
             h += `<tr class="bg-slate-800 text-slate-300">${ms.map(m => `<th class="border border-slate-700 p-1 w-8 text-[9px] font-black uppercase">${m}</th>`).join('')}</tr></thead><tbody id="gantt-body"></tbody>`;
             g.innerHTML = h;
             updateGantt();
@@ -4617,7 +4632,16 @@ table{border-collapse:collapse}
         function updateLegal() {
             const laws = ["Ley N° 20.845", "Ley N° 20.422", "Decreto N° 170", "Decreto N° 83"];
             const lE = document.getElementById('out-legal');
-            if(lE) lE.innerHTML = `<strong>Fundamentación Técnico-Jurídica:</strong> El presente PACI se rige bajo los principios de inclusión y equidad establecidos en la ${laws.join(', ')}. Su objetivo es garantizar la trayectoria educativa del estudiante mediante ajustes significativos en los objetivos de aprendizaje (OA) del <strong>Nivel de Trabajo</strong> seleccionado, asegurando el acceso y progreso curricular ante sus necesidades educativas especiales transitorias o permanentes según el Decreto N° 170.`;
+            if(!lE) return;
+
+            const ntLegal = document.getElementById('in-nivel-trabajo')?.value || '';
+            const legalIsParvularia = (ntLegal === 'nt1' || ntLegal === 'nt2');
+
+            if (legalIsParvularia) {
+                lE.innerHTML = `<strong>Fundamentación Técnico-Jurídica:</strong> El presente PACI se rige bajo los principios de inclusión y equidad establecidos en la ${laws.join(', ')} y las Bases Curriculares de la Educación Parvularia (Decreto N° 481/2018). Su objetivo es garantizar la trayectoria educativa del/la estudiante mediante ajustes significativos en los <strong>Objetivos de Aprendizaje (OA)</strong> de los Núcleos y <strong>Objetivos de Aprendizaje Transversales (OAT)</strong> del ámbito Desarrollo Personal y Social, asegurando el acceso y progreso curricular ante sus necesidades educativas especiales transitorias o permanentes según el Decreto N° 170.`;
+            } else {
+                lE.innerHTML = `<strong>Fundamentación Técnico-Jurídica:</strong> El presente PACI se rige bajo los principios de inclusión y equidad establecidos en la ${laws.join(', ')}. Su objetivo es garantizar la trayectoria educativa del estudiante mediante ajustes significativos en los objetivos de aprendizaje (OA) del <strong>Nivel de Trabajo</strong> seleccionado, asegurando el acceso y progreso curricular ante sus necesidades educativas especiales transitorias o permanentes según el Decreto N° 170.`;
+            }
         }
 
         // Calendario escolar trimestral Chile 2026
