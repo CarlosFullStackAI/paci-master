@@ -1099,6 +1099,16 @@ table{border-collapse:collapse}
                         </div>
                     </div>
 
+                    <!-- Botones de IA -->
+                    <div class="flex gap-2 mt-3">
+                      <button onclick="aiAdaptOAs()" class="flex-1 bg-purple-600 hover:bg-purple-500 text-white p-3 rounded-xl font-bold transition active:scale-95 shadow-lg text-[10px] uppercase" title="Usar IA para adaptar los OAs seleccionados al nivel del estudiante">
+                        <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Adaptar OAs con IA
+                      </button>
+                      <button onclick="aiDUAStrategies()" class="flex-1 bg-teal-600 hover:bg-teal-500 text-white p-3 rounded-xl font-bold transition active:scale-95 shadow-lg text-[10px] uppercase" title="Generar estrategias DUA basadas en barreras de aprendizaje">
+                        <i class="fa-solid fa-brain mr-1"></i> Estrategias DUA
+                      </button>
+                    </div>
+
                     <button id="btn-generar" onclick="addModulo()" class="w-full bg-slate-900 text-white p-4 rounded-xl font-black hover:bg-slate-800 transition active:scale-95 shadow-xl uppercase text-xs mt-4 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100">
                         <i class="fa-solid fa-magic mr-1"></i> Generar Planificación Automática
                     </button>
@@ -5191,6 +5201,189 @@ table{border-collapse:collapse}
                 restaurar();
                 alert('Error al generar PDF. Intente usar la opcion Imprimir (Ctrl+P) como alternativa.');
             });
+        }
+
+        // ==========================================
+        // INTELIGENCIA ARTIFICIAL (Groq API)
+        // ==========================================
+
+        // Adaptar OAs seleccionados con IA
+        async function aiAdaptOAs() {
+          if (!state.bufferOAs.length) {
+            alert('Primero selecciona al menos un Objetivo de Aprendizaje (OA) para adaptar.');
+            return;
+          }
+
+          const diagSel = document.getElementById('in-diag');
+          const diagName = diagSel?.options[diagSel.selectedIndex]?.text || '';
+          const diagId = diagSel?.value || '';
+          const studentLevel = document.getElementById('in-nivel-real')?.options[document.getElementById('in-nivel-real').selectedIndex]?.text || '';
+          const targetLevel = document.getElementById('in-nivel-trabajo')?.options[document.getElementById('in-nivel-trabajo').selectedIndex]?.text || '';
+
+          // Crear modal de resultados
+          let modal = document.getElementById('ai-modal');
+          if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'ai-modal';
+            modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,0.6);backdrop-filter:blur(4px);z-index:10000;display:flex;align-items:center;justify-content:center;padding:1rem;';
+            document.body.appendChild(modal);
+          }
+          modal.style.display = 'flex';
+          modal.innerHTML = '<div style="background:#fff;border-radius:1.25rem;padding:2rem;width:95%;max-width:600px;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);"><div style="text-align:center;padding:2rem;"><i class="fa-solid fa-spinner fa-spin" style="font-size:2rem;color:#7c3aed;"></i><p style="font-size:0.8rem;color:#64748b;margin-top:0.75rem;font-weight:600;">Consultando IA para adaptar ' + state.bufferOAs.length + ' OA(s)...</p></div></div>';
+
+          // Adaptar el primer OA del buffer (para no sobrecargar)
+          const oa = state.bufferOAs[0];
+          const token = localStorage.getItem('paci_token');
+
+          try {
+            const res = await fetch('/api/ai/adapt-oa', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                _token: token,
+                oaCode: oa.code,
+                oaText: oa.text,
+                studentLevel,
+                targetLevel,
+                diagnosisId: diagId,
+                diagnosisName: diagName
+              })
+            });
+            const data = await res.json();
+
+            if (!data.ok) {
+              modal.querySelector('div').innerHTML = '<h3 style="font-size:1rem;font-weight:800;color:#dc2626;margin-bottom:0.5rem;"><i class="fa-solid fa-exclamation-triangle"></i> Error</h3><p style="font-size:0.8rem;color:#64748b;">' + (data.error || 'Error desconocido') + '</p><button onclick="document.getElementById(\'ai-modal\').style.display=\'none\'" style="margin-top:1rem;background:#64748b;color:#fff;border:none;padding:0.5rem 1.5rem;border-radius:0.5rem;font-weight:700;cursor:pointer;">Cerrar</button>';
+              return;
+            }
+
+            const a = data.adaptations;
+            let resultHtml = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;"><h3 style="font-size:1rem;font-weight:800;color:#7c3aed;"><i class="fa-solid fa-wand-magic-sparkles"></i> Adaptaciones sugeridas por IA</h3><button onclick="document.getElementById(\'ai-modal\').style.display=\'none\'" style="background:none;border:none;font-size:1.25rem;color:#94a3b8;cursor:pointer;"><i class="fa-solid fa-times"></i></button></div>';
+            resultHtml += '<p style="font-size:0.7rem;color:#94a3b8;margin-bottom:1rem;">Modelo: ' + (data.model || 'Groq') + ' | Consultas restantes hoy: ' + data.remaining + '</p>';
+
+            if (a.adaptaciones) {
+              a.adaptaciones.forEach(ad => {
+                const typeColors = { simplificacion: '#2563eb', graduacion: '#059669', priorizacion: '#d97706', eliminacion: '#dc2626' };
+                const color = typeColors[ad.tipo] || '#64748b';
+                resultHtml += '<div style="border:2px solid ' + color + '33;border-radius:0.75rem;padding:1rem;margin-bottom:0.75rem;border-left:4px solid ' + color + ';">';
+                resultHtml += '<span style="background:' + color + ';color:#fff;font-size:0.6rem;font-weight:800;padding:0.2rem 0.5rem;border-radius:1rem;text-transform:uppercase;">' + ad.tipo + '</span>';
+                resultHtml += '<p style="font-size:0.8rem;color:#1a1a2e;margin-top:0.5rem;font-weight:600;">' + (ad.oa_adaptado || '') + '</p>';
+                resultHtml += '<p style="font-size:0.7rem;color:#64748b;margin-top:0.25rem;font-style:italic;">' + (ad.justificacion || '') + '</p>';
+                resultHtml += '</div>';
+              });
+            }
+
+            if (a.estrategias_apoyo && a.estrategias_apoyo.length) {
+              resultHtml += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:0.75rem;padding:1rem;margin-bottom:0.75rem;">';
+              resultHtml += '<span style="font-size:0.7rem;font-weight:800;color:#065f46;"><i class="fa-solid fa-lightbulb text-amber-500"></i> Estrategias de Apoyo</span><ul style="margin-top:0.5rem;padding-left:1rem;">';
+              a.estrategias_apoyo.forEach(s => { resultHtml += '<li style="font-size:0.75rem;color:#334155;margin-bottom:0.25rem;">' + s + '</li>'; });
+              resultHtml += '</ul></div>';
+            }
+
+            if (a.raw) {
+              resultHtml += '<pre style="background:#f1f5f9;padding:1rem;border-radius:0.5rem;font-size:0.7rem;white-space:pre-wrap;overflow-x:auto;">' + a.raw + '</pre>';
+            }
+
+            modal.querySelector('div').innerHTML = resultHtml;
+
+          } catch (e) {
+            modal.querySelector('div').innerHTML = '<h3 style="color:#dc2626;font-weight:800;">Error de conexion</h3><p style="font-size:0.8rem;color:#64748b;margin-top:0.5rem;">' + e.message + '</p><button onclick="document.getElementById(\'ai-modal\').style.display=\'none\'" style="margin-top:1rem;background:#64748b;color:#fff;border:none;padding:0.5rem 1.5rem;border-radius:0.5rem;font-weight:700;cursor:pointer;">Cerrar</button>';
+          }
+        }
+
+        // Generar estrategias DUA con IA
+        async function aiDUAStrategies() {
+          const diagSel = document.getElementById('in-diag');
+          const diagName = diagSel?.options[diagSel.selectedIndex]?.text || '';
+          const diagId = diagSel?.value || '';
+          const asigSel = document.getElementById('in-asig');
+          const subject = asigSel?.options[asigSel.selectedIndex]?.text || '';
+          const level = document.getElementById('in-nivel-trabajo')?.options[document.getElementById('in-nivel-trabajo').selectedIndex]?.text || '';
+
+          // Pedir barreras al usuario
+          const barriersInput = prompt('Describe las barreras de aprendizaje del estudiante (separa con comas):\n\nEjemplos: dificultad para mantener atencion, problemas de comprension lectora, baja motivacion');
+          if (!barriersInput || !barriersInput.trim()) return;
+
+          const barriers = barriersInput.split(',').map(b => b.trim()).filter(Boolean);
+
+          // Crear modal
+          let modal = document.getElementById('ai-modal');
+          if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'ai-modal';
+            modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,0.6);backdrop-filter:blur(4px);z-index:10000;display:flex;align-items:center;justify-content:center;padding:1rem;';
+            document.body.appendChild(modal);
+          }
+          modal.style.display = 'flex';
+          modal.innerHTML = '<div style="background:#fff;border-radius:1.25rem;padding:2rem;width:95%;max-width:600px;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);"><div style="text-align:center;padding:2rem;"><i class="fa-solid fa-spinner fa-spin" style="font-size:2rem;color:#0d9488;"></i><p style="font-size:0.8rem;color:#64748b;margin-top:0.75rem;font-weight:600;">Generando estrategias DUA...</p></div></div>';
+
+          const token = localStorage.getItem('paci_token');
+
+          try {
+            const res = await fetch('/api/ai/dua-strategies', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                _token: token,
+                barriers,
+                diagnosisId: diagId,
+                diagnosisName: diagName,
+                subject,
+                level
+              })
+            });
+            const data = await res.json();
+
+            if (!data.ok) {
+              modal.querySelector('div').innerHTML = '<h3 style="font-size:1rem;font-weight:800;color:#dc2626;"><i class="fa-solid fa-exclamation-triangle"></i> Error</h3><p style="font-size:0.8rem;color:#64748b;">' + (data.error || 'Error desconocido') + '</p><button onclick="document.getElementById(\'ai-modal\').style.display=\'none\'" style="margin-top:1rem;background:#64748b;color:#fff;border:none;padding:0.5rem 1.5rem;border-radius:0.5rem;font-weight:700;cursor:pointer;">Cerrar</button>';
+              return;
+            }
+
+            const s = data.strategies;
+            let resultHtml = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;"><h3 style="font-size:1rem;font-weight:800;color:#0d9488;"><i class="fa-solid fa-brain"></i> Estrategias DUA generadas por IA</h3><button onclick="document.getElementById(\'ai-modal\').style.display=\'none\'" style="background:none;border:none;font-size:1.25rem;color:#94a3b8;cursor:pointer;"><i class="fa-solid fa-times"></i></button></div>';
+            resultHtml += '<p style="font-size:0.7rem;color:#94a3b8;margin-bottom:1rem;">Consultas restantes hoy: ' + data.remaining + '</p>';
+
+            const principios = [
+              { key: 'representacion', label: 'Representacion', icon: 'fa-eye', color: '#2563eb' },
+              { key: 'accion_expresion', label: 'Accion y Expresion', icon: 'fa-hand', color: '#059669' },
+              { key: 'implicacion', label: 'Implicacion', icon: 'fa-heart', color: '#dc2626' }
+            ];
+
+            principios.forEach(p => {
+              const strategies = s[p.key];
+              if (!strategies || !strategies.length) return;
+              resultHtml += '<div style="border:2px solid ' + p.color + '33;border-radius:0.75rem;margin-bottom:0.75rem;overflow:hidden;">';
+              resultHtml += '<div style="background:' + p.color + ';color:#fff;padding:0.625rem 1rem;font-size:0.75rem;font-weight:800;"><i class="fa-solid ' + p.icon + '"></i> ' + p.label + '</div>';
+              resultHtml += '<div style="padding:0.75rem;">';
+              strategies.forEach(st => {
+                resultHtml += '<div style="margin-bottom:0.625rem;padding:0.5rem;background:#f8fafc;border-radius:0.5rem;">';
+                resultHtml += '<p style="font-size:0.8rem;font-weight:700;color:#1a1a2e;">' + (st.estrategia || '') + '</p>';
+                if (st.materiales && st.materiales.length) {
+                  resultHtml += '<p style="font-size:0.65rem;color:#64748b;margin-top:0.25rem;"><strong>Materiales:</strong> ' + st.materiales.join(', ') + '</p>';
+                }
+                if (st.aplicacion) {
+                  resultHtml += '<p style="font-size:0.65rem;color:#475569;margin-top:0.25rem;font-style:italic;">' + st.aplicacion + '</p>';
+                }
+                resultHtml += '</div>';
+              });
+              resultHtml += '</div></div>';
+            });
+
+            if (s.recomendaciones_generales && s.recomendaciones_generales.length) {
+              resultHtml += '<div style="background:#fefce8;border:1px solid #fde68a;border-radius:0.75rem;padding:1rem;">';
+              resultHtml += '<span style="font-size:0.7rem;font-weight:800;color:#92400e;"><i class="fa-solid fa-star text-amber-500"></i> Recomendaciones Generales</span><ul style="margin-top:0.5rem;padding-left:1rem;">';
+              s.recomendaciones_generales.forEach(r => { resultHtml += '<li style="font-size:0.75rem;color:#334155;margin-bottom:0.25rem;">' + r + '</li>'; });
+              resultHtml += '</ul></div>';
+            }
+
+            if (s.raw) {
+              resultHtml += '<pre style="background:#f1f5f9;padding:1rem;border-radius:0.5rem;font-size:0.7rem;white-space:pre-wrap;">' + s.raw + '</pre>';
+            }
+
+            modal.querySelector('div').innerHTML = resultHtml;
+
+          } catch (e) {
+            modal.querySelector('div').innerHTML = '<h3 style="color:#dc2626;font-weight:800;">Error de conexion</h3><p style="font-size:0.8rem;color:#64748b;margin-top:0.5rem;">' + e.message + '</p><button onclick="document.getElementById(\'ai-modal\').style.display=\'none\'" style="margin-top:1rem;background:#64748b;color:#fff;border:none;padding:0.5rem 1.5rem;border-radius:0.5rem;font-weight:700;cursor:pointer;">Cerrar</button>';
+          }
         }
 
         // ==========================================
