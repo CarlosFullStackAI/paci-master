@@ -3269,11 +3269,11 @@ table{border-collapse:collapse}
             await waitForReflow();
 
             var opt = {
-                margin: [12, 8, 12, 8],
+                margin: [10, 15, 10, 15],
                 filename: 'PACI_' + nombre + '.pdf',
-                image: { type: 'png' },
-                html2canvas: { scale: (mobileSaved && mobileSaved.isMob) ? 1.5 : 2, useCORS: true, letterRendering: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0, windowWidth: 1200 },
-                jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: (mobileSaved && mobileSaved.isMob) ? 1.5 : 2, useCORS: true, letterRendering: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0, windowWidth: 800 },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
                 pagebreak: { mode: ['css', 'legacy'], before: ['.html2pdf__page-break'], avoid: ['.evitar-corte', 'tr', '.paci-header', 'h3', 'h4'] }
             };
 
@@ -3337,15 +3337,18 @@ table{border-collapse:collapse}
             // Propiedades criticas que SIEMPRE deben estar en el documento
             const docBaseStyles = 'color:#1a1a2e;font-family:Merriweather,Georgia,Charter,serif;font-size:12pt;line-height:1.5;background-color:#fff;';
 
+            // Estilos A4: ancho exacto y padding interno para centrar contenido
+            const docA4Styles = 'width:210mm;min-height:297mm;padding:20mm;box-sizing:border-box;';
+
             if (isMobile()) {
                 // Mostrar preview si estaba oculto
                 pp.classList.remove('mobile-hidden');
-                pp.style.cssText = 'width:900px!important;height:auto!important;overflow:visible!important;padding:2rem!important;position:fixed!important;left:0!important;top:0!important;z-index:9999!important;opacity:0!important;background:white!important;';
-                doc.style.cssText = 'width:800px!important;padding:3.5rem!important;min-height:0!important;' + docBaseStyles;
+                pp.style.cssText = 'width:900px!important;height:auto!important;overflow:visible!important;padding:0!important;position:fixed!important;left:0!important;top:0!important;z-index:9999!important;opacity:0!important;background:white!important;';
+                doc.style.cssText = docA4Styles + docBaseStyles;
             } else {
                 // Desktop: desbloquear overflow y altura fija del preview
-                pp.style.cssText = 'display:block!important;width:100%!important;height:auto!important;overflow:visible!important;padding:2rem!important;background:#e2e8f0;';
-                doc.style.cssText = 'max-width:56rem;margin:0 auto;padding:3.5rem;box-shadow:none;border:1px solid #cbd5e1;min-height:0;' + docBaseStyles;
+                pp.style.cssText = 'display:block!important;width:100%!important;height:auto!important;overflow:visible!important;padding:0!important;background:white;';
+                doc.style.cssText = docA4Styles + 'margin:0 auto;box-shadow:none;border:none;' + docBaseStyles;
             }
 
             // Forzar texto oscuro en elementos con texto blanco/claro (EXCEPTO .paci-header)
@@ -5264,11 +5267,11 @@ table{border-collapse:collapse}
             await waitForReflow();
 
             var opt = {
-                margin:       [12, 8, 12, 8],
+                margin:       [10, 15, 10, 15],
                 filename:     'PACI_' + nombreEstudiante + '.pdf',
-                image:        { type: 'png' },
-                html2canvas:  { scale: (mobileSaved && mobileSaved.isMob) ? 1.5 : 2, useCORS: true, letterRendering: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0, windowWidth: 1200 },
-                jsPDF:        { unit: 'mm', format: 'letter', orientation: 'portrait' },
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: (mobileSaved && mobileSaved.isMob) ? 1.5 : 2, useCORS: true, letterRendering: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0, windowWidth: 800 },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
                 pagebreak:    { mode: ['css', 'legacy'], before: ['.html2pdf__page-break'], avoid: ['.evitar-corte', 'tr', '.paci-header', 'h3', 'h4'] }
             };
 
