@@ -1,0 +1,17 @@
+{
+  "name": "proyecto-paci",
+  "pages_build_output_dir": "./",
+  "kv_namespaces": [
+    {
+      "binding": "PACI_USERS",
+      "id": "2267d7e543e240fa877bfb632da0371a"
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "paci-db",
+      "database_id": "0c979ec1-9d81-4653-809b-4d7058a7a5f2"
+    }
+  ]
+}

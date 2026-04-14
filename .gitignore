@@ -1,7 +1,18 @@
 node_modules/
 .claude/
+.wrangler/
 *.docx
 styles.css
 input.css
 tailwind.config.js
 package-lock.json
+# Archivos temporales de extraccion de OAs
+lenguaje_raw.txt
+lenguaje_7_8_raw.txt
+matematica_raw.txt
+matematica_7_8_raw.txt
+nt_lenguaje_raw.txt
+nt_matematica_raw.txt
+build-oas.js
+parse-oas.js
+extract-oas.js

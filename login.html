@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PACI Master - Iniciar Sesion</title>
+  <link rel="icon" href="/favicon.svg?v=2" type="image/svg+xml">
+  <link rel="shortcut icon" href="/favicon.png?v=2" type="image/png">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #0f172a 100%);
+      padding: 1rem;
+    }
+    .card {
+      background: #fff;
+      border-radius: 1.5rem;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.5);
+      width: 100%;
+      max-width: 420px;
+      overflow: hidden;
+    }
+    .card-header {
+      background: #0f172a;
+      padding: 2rem 2rem 1.5rem;
+      text-align: center;
+      color: #fff;
+    }
+    .card-header h1 {
+      font-size: 2.25rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: -0.05em;
+      font-style: italic;
+      line-height: 1;
+    }
+    .card-header .subtitle {
+      font-size: 0.65rem;
+      color: #60a5fa;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      margin-top: 0.5rem;
+    }
+    .card-header .desc {
+      font-size: 0.75rem;
+      color: #94a3b8;
+      margin-top: 0.75rem;
+    }
+    .bar { width: 3rem; height: 3px; background: #2563eb; margin: 0.75rem auto 0; border-radius: 4px; }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      border-bottom: 2px solid #e2e8f0;
+    }
+    .tab {
+      flex: 1;
+      padding: 0.875rem;
+      text-align: center;
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      color: #94a3b8;
+      border-bottom: 3px solid transparent;
+      transition: all 0.2s;
+      background: none;
+      border-top: none;
+      border-left: none;
+      border-right: none;
+    }
+    .tab:hover { color: #1e3a8a; }
+    .tab.active {
+      color: #1e3a8a;
+      border-bottom-color: #2563eb;
+    }
+
+    /* Forms */
+    .form-body { padding: 1.5rem 2rem 2rem; }
+    .form-section { display: none; }
+    .form-section.active { display: block; }
+    .field { margin-bottom: 1rem; }
+    .field label {
+      display: block;
+      font-size: 0.7rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #475569;
+      margin-bottom: 0.375rem;
+    }
+    .field .input-wrap {
+      display: flex;
+      align-items: center;
+      border: 2px solid #e2e8f0;
+      border-radius: 0.625rem;
+      padding: 0 0.75rem;
+      transition: border-color 0.2s;
+    }
+    .field .input-wrap:focus-within { border-color: #2563eb; }
+    .field .input-wrap i { color: #94a3b8; font-size: 0.875rem; margin-right: 0.625rem; }
+    .field .input-wrap input {
+      flex: 1;
+      border: none;
+      outline: none;
+      padding: 0.75rem 0;
+      font-size: 0.875rem;
+      font-family: 'Inter', sans-serif;
+      color: #0f172a;
+    }
+    .field .input-wrap input::placeholder { color: #cbd5e1; }
+    .field .input-wrap .toggle-pass {
+      cursor: pointer;
+      color: #94a3b8;
+      padding: 0.25rem;
+      background: none;
+      border: none;
+      font-size: 0.875rem;
+    }
+    .field .input-wrap .toggle-pass:hover { color: #475569; }
+
+    .btn {
+      width: 100%;
+      padding: 0.875rem;
+      border: none;
+      border-radius: 0.625rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.875rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #1e3a8a, #2563eb);
+      color: #fff;
+      box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
+    }
+    .btn-primary:hover { box-shadow: 0 6px 20px rgba(37, 99, 235, 0.6); transform: translateY(-1px); }
+    .btn-primary:active { transform: scale(0.98); }
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none !important;
+      box-shadow: none !important;
+    }
+
+    .link-forgot {
+      display: block;
+      text-align: right;
+      font-size: 0.75rem;
+      color: #2563eb;
+      text-decoration: none;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      cursor: pointer;
+    }
+    .link-forgot:hover { text-decoration: underline; }
+
+    .msg {
+      padding: 0.75rem 1rem;
+      border-radius: 0.5rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      display: none;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .msg.error { display: flex; background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+    .msg.success { display: flex; background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+    .msg.info { display: flex; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+
+    .spinner { display: none; width: 1rem; height: 1rem; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .footer-text {
+      text-align: center;
+      font-size: 0.7rem;
+      color: #94a3b8;
+      padding: 0 2rem 1.5rem;
+    }
+
+    /* Forgot password view */
+    #forgot-view { display: none; }
+    #forgot-view.active { display: block; }
+    #auth-tabs { display: flex; }
+    #auth-forms { display: block; }
+    .back-link {
+      font-size: 0.8rem;
+      color: #2563eb;
+      cursor: pointer;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      margin-bottom: 1rem;
+    }
+    .back-link:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="card-header">
+      <h1>PACI Master</h1>
+      <div class="bar"></div>
+      <p class="subtitle">Plan de Adecuacion Curricular Individual</p>
+      <p class="desc">Plataforma para docentes de educacion diferencial</p>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs" id="auth-tabs">
+      <button class="tab active" onclick="showTab('login')">Iniciar Sesion</button>
+      <button class="tab" onclick="showTab('register')">Registrarse</button>
+    </div>
+
+    <!-- Auth Forms -->
+    <div id="auth-forms">
+      <!-- Login -->
+      <div class="form-body form-section active" id="form-login">
+        <div class="msg" id="msg-login"></div>
+        <div class="field">
+          <label>Correo electronico</label>
+          <div class="input-wrap">
+            <i class="fa-solid fa-envelope"></i>
+            <input type="email" id="login-email" placeholder="tu@correo.com" autocomplete="email">
+          </div>
+        </div>
+        <div class="field">
+          <label>Contrasena</label>
+          <div class="input-wrap">
+            <i class="fa-solid fa-lock"></i>
+            <input type="password" id="login-pass" placeholder="Tu contrasena" autocomplete="current-password">
+            <button class="toggle-pass" onclick="togglePassword('login-pass', this)"><i class="fa-solid fa-eye"></i></button>
+          </div>
+        </div>
+        <a class="link-forgot" onclick="showForgot()">Olvidaste tu contrasena?</a>
+        <button class="btn btn-primary" id="btn-login" onclick="handleLogin()">
+          <span class="spinner" id="spin-login"></span>
+          <i class="fa-solid fa-right-to-bracket"></i> Iniciar Sesion
+        </button>
+      </div>
+
+      <!-- Register -->
+      <div class="form-body form-section" id="form-register">
+        <div class="msg" id="msg-register"></div>
+        <div class="field">
+          <label>Nombre completo</label>
+          <div class="input-wrap">
+            <i class="fa-solid fa-user"></i>
+            <input type="text" id="reg-name" placeholder="Tu nombre" autocomplete="name">
+          </div>
+        </div>
+        <div class="field">
+          <label>Correo electronico</label>
+          <div class="input-wrap">
+            <i class="fa-solid fa-envelope"></i>
+            <input type="email" id="reg-email" placeholder="tu@correo.com" autocomplete="email">
+          </div>
+        </div>
+        <div class="field">
+          <label>Contrasena</label>
+          <div class="input-wrap">
+            <i class="fa-solid fa-lock"></i>
+            <input type="password" id="reg-pass" placeholder="Min 8 chars, 1 mayuscula, 1 numero" autocomplete="new-password">
+            <button class="toggle-pass" onclick="togglePassword('reg-pass', this)"><i class="fa-solid fa-eye"></i></button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Confirmar contrasena</label>
+          <div class="input-wrap">
+            <i class="fa-solid fa-lock"></i>
+            <input type="password" id="reg-pass2" placeholder="Repite tu contrasena" autocomplete="new-password">
+          </div>
+        </div>
+        <button class="btn btn-primary" id="btn-register" onclick="handleRegister()" style="margin-top: 0.5rem;">
+          <span class="spinner" id="spin-register"></span>
+          <i class="fa-solid fa-user-plus"></i> Crear Cuenta
+        </button>
+      </div>
+    </div>
+
+    <!-- Forgot Password -->
+    <div id="forgot-view">
+      <div class="form-body">
+        <span class="back-link" onclick="hideForgot()"><i class="fa-solid fa-arrow-left"></i> Volver</span>
+        <div class="msg" id="msg-forgot"></div>
+        <p style="font-size:0.85rem;color:#475569;margin-bottom:1rem;">Ingresa tu correo y te enviaremos instrucciones para recuperar tu contrasena.</p>
+        <div class="field">
+          <label>Correo electronico</label>
+          <div class="input-wrap">
+            <i class="fa-solid fa-envelope"></i>
+            <input type="email" id="forgot-email" placeholder="tu@correo.com">
+          </div>
+        </div>
+        <button class="btn btn-primary" id="btn-forgot" onclick="handleForgot()">
+          <span class="spinner" id="spin-forgot"></span>
+          <i class="fa-solid fa-paper-plane"></i> Enviar Instrucciones
+        </button>
+      </div>
+    </div>
+
+    <p class="footer-text">Escuela Luis Cruz Martinez &middot; Programa de Integracion Escolar</p>
+  </div>
+
+  <script>
+    // Si ya tiene sesion activa, ir directo a la app
+    (function() {
+      const token = localStorage.getItem('paci_token');
+      if (token) {
+        fetch('/api/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token })
+        }).then(r => r.json()).then(data => {
+          if (data.ok) window.location.href = '/dashboard.html';
+        }).catch(() => {});
+      }
+    })();
+
+    // Tabs
+    function showTab(tab) {
+      document.querySelectorAll('.tab').forEach((t, i) => {
+        t.classList.toggle('active', (tab === 'login' && i === 0) || (tab === 'register' && i === 1));
+      });
+      document.getElementById('form-login').classList.toggle('active', tab === 'login');
+      document.getElementById('form-register').classList.toggle('active', tab === 'register');
+      clearMessages();
+    }
+
+    // Forgot password view
+    function showForgot() {
+      document.getElementById('auth-tabs').style.display = 'none';
+      document.getElementById('auth-forms').style.display = 'none';
+      document.getElementById('forgot-view').classList.add('active');
+      clearMessages();
+    }
+    function hideForgot() {
+      document.getElementById('auth-tabs').style.display = 'flex';
+      document.getElementById('auth-forms').style.display = 'block';
+      document.getElementById('forgot-view').classList.remove('active');
+      clearMessages();
+    }
+
+    // Toggle password visibility
+    function togglePassword(inputId, btn) {
+      const input = document.getElementById(inputId);
+      const icon = btn.querySelector('i');
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'fa-solid fa-eye-slash';
+      } else {
+        input.type = 'password';
+        icon.className = 'fa-solid fa-eye';
+      }
+    }
+
+    // Messages
+    function showMsg(id, text, type) {
+      const el = document.getElementById(id);
+      el.className = 'msg ' + type;
+      el.innerHTML = '<i class="fa-solid fa-' + (type === 'error' ? 'circle-exclamation' : type === 'success' ? 'circle-check' : 'circle-info') + '"></i>' + text;
+    }
+    function clearMessages() {
+      document.querySelectorAll('.msg').forEach(m => { m.className = 'msg'; m.innerHTML = ''; });
+    }
+
+    // Loading state
+    function setLoading(btnId, spinId, loading) {
+      const btn = document.getElementById(btnId);
+      const spin = document.getElementById(spinId);
+      btn.disabled = loading;
+      spin.style.display = loading ? 'inline-block' : 'none';
+    }
+
+    // Login
+    async function handleLogin() {
+      const email = document.getElementById('login-email').value.trim().toLowerCase();
+      const pass = document.getElementById('login-pass').value;
+
+      if (!email || !pass) {
+        showMsg('msg-login', 'Completa todos los campos.', 'error');
+        return;
+      }
+
+      setLoading('btn-login', 'spin-login', true);
+      clearMessages();
+
+      try {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password: pass })
+        });
+        const data = await res.json();
+
+        if (data.ok) {
+          localStorage.setItem('paci_token', data.token);
+          localStorage.setItem('paci_user', JSON.stringify({ email: data.email, name: data.name }));
+          showMsg('msg-login', 'Bienvenido/a! Redirigiendo...', 'success');
+          setTimeout(() => { window.location.href = '/dashboard.html'; }, 600);
+        } else {
+          showMsg('msg-login', data.error || 'Credenciales incorrectas.', 'error');
+        }
+      } catch (e) {
+        showMsg('msg-login', 'Error de conexion. Intenta de nuevo.', 'error');
+      }
+
+      setLoading('btn-login', 'spin-login', false);
+    }
+
+    // Register
+    async function handleRegister() {
+      const name = document.getElementById('reg-name').value.trim();
+      const email = document.getElementById('reg-email').value.trim().toLowerCase();
+      const pass = document.getElementById('reg-pass').value;
+      const pass2 = document.getElementById('reg-pass2').value;
+
+      if (!name || !email || !pass || !pass2) {
+        showMsg('msg-register', 'Completa todos los campos.', 'error');
+        return;
+      }
+      if (pass.length < 8) {
+        showMsg('msg-register', 'La contrasena debe tener al menos 8 caracteres.', 'error');
+        return;
+      }
+      if (!/[A-Z]/.test(pass) || !/[0-9]/.test(pass)) {
+        showMsg('msg-register', 'La contrasena debe incluir al menos 1 mayuscula y 1 numero.', 'error');
+        return;
+      }
+      if (pass !== pass2) {
+        showMsg('msg-register', 'Las contrasenas no coinciden.', 'error');
+        return;
+      }
+
+      setLoading('btn-register', 'spin-register', true);
+      clearMessages();
+
+      try {
+        const res = await fetch('/api/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, password: pass })
+        });
+        const data = await res.json();
+
+        if (data.ok) {
+          showMsg('msg-register', 'Cuenta creada! Ahora inicia sesion.', 'success');
+          setTimeout(() => { showTab('login'); }, 1500);
+        } else {
+          showMsg('msg-register', data.error || 'Error al registrar.', 'error');
+        }
+      } catch (e) {
+        showMsg('msg-register', 'Error de conexion. Intenta de nuevo.', 'error');
+      }
+
+      setLoading('btn-register', 'spin-register', false);
+    }
+
+    // Forgot password
+    async function handleForgot() {
+      const email = document.getElementById('forgot-email').value.trim().toLowerCase();
+
+      if (!email) {
+        showMsg('msg-forgot', 'Ingresa tu correo electronico.', 'error');
+        return;
+      }
+
+      setLoading('btn-forgot', 'spin-forgot', true);
+      clearMessages();
+
+      try {
+        const res = await fetch('/api/forgot-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+        showMsg('msg-forgot', data.message || 'Si el correo existe, recibiras instrucciones.', 'info');
+      } catch (e) {
+        showMsg('msg-forgot', 'Si el correo existe, recibiras instrucciones.', 'info');
+      }
+
+      setLoading('btn-forgot', 'spin-forgot', false);
+    }
+
+    // Enter key submits forms
+    document.addEventListener('keydown', function(e) {
+      if (e.key !== 'Enter') return;
+      if (document.getElementById('form-login').classList.contains('active')) handleLogin();
+      else if (document.getElementById('form-register').classList.contains('active')) handleRegister();
+      else if (document.getElementById('forgot-view').classList.contains('active')) handleForgot();
+    });
+  </script>
+</body>
+</html>

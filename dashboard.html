@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PACI Master - Mis Documentos</title>
+  <link rel="icon" href="/favicon.svg?v=2" type="image/svg+xml">
+  <link rel="shortcut icon" href="/favicon.png?v=2" type="image/png">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+  <script>
+    var token = localStorage.getItem('paci_token');
+    if (!token) window.location.href = '/login.html';
+  </script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: #f1f5f9; color: #0f172a; min-height: 100vh; }
+    .topbar { background: #0f172a; color: #fff; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 50; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+    .topbar h1 { font-size: 1.25rem; font-weight: 900; text-transform: uppercase; letter-spacing: -0.03em; font-style: italic; }
+    .topbar .subtitle { font-size: 0.6rem; color: #60a5fa; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em; }
+    .topbar-actions { display: flex; gap: 0.5rem; align-items: center; }
+    .topbar-user { font-size: 0.75rem; color: #94a3b8; margin-right: 0.75rem; }
+    .btn { padding: 0.5rem 1rem; border: none; border-radius: 0.5rem; font-family: 'Inter', sans-serif; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 0.375rem; text-decoration: none; }
+    .btn-primary { background: #2563eb; color: #fff; }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-sm { padding: 0.375rem 0.75rem; font-size: 0.7rem; }
+    .btn-red { background: #ef4444; color: #fff; }
+    .btn-red:hover { background: #dc2626; }
+    .btn-green { background: #10b981; color: #fff; }
+    .btn-green:hover { background: #059669; }
+    .btn-amber { background: #f59e0b; color: #fff; }
+    .btn-amber:hover { background: #d97706; }
+    .btn-slate { background: #64748b; color: #fff; }
+    .btn-slate:hover { background: #475569; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 1.5rem; }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+    .stat-card { background: #fff; border-radius: 1rem; padding: 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,0.08); border: 1px solid #e2e8f0; }
+    .stat-card .label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #64748b; }
+    .stat-card .value { font-size: 2rem; font-weight: 900; color: #0f172a; margin-top: 0.25rem; }
+    .stat-card .icon { float: right; font-size: 1.5rem; opacity: 0.2; }
+    .section-title { font-size: 0.8rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: #475569; margin-bottom: 1rem; }
+
+    /* Student cards */
+    .student-card { background: #fff; border-radius: 1rem; border: 2px solid #e2e8f0; overflow: hidden; transition: all 0.2s; margin-bottom: 1rem; }
+    .student-card:hover { border-color: #93c5fd; }
+    .student-card-header { background: linear-gradient(135deg, #091845, #1240c4); color: #fff; padding: 1rem 1.25rem; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+    .student-card-header h3 { font-size: 0.9rem; font-weight: 800; }
+    .badge { background: rgba(255,255,255,0.2); padding: 0.2rem 0.6rem; border-radius: 1rem; font-size: 0.6rem; font-weight: 700; }
+    .student-card-body { display: none; }
+    .student-card-body.open { display: block; }
+
+    /* Tabs inside student card */
+    .tabs { display: flex; border-bottom: 2px solid #e2e8f0; background: #f8fafc; }
+    .tab { flex: 1; padding: 0.75rem; text-align: center; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; cursor: pointer; color: #94a3b8; border-bottom: 2px solid transparent; transition: all 0.2s; background: none; border-top: none; border-left: none; border-right: none; letter-spacing: 0.03em; }
+    .tab:hover { color: #1e3a8a; }
+    .tab.active { color: #1e3a8a; border-bottom-color: #2563eb; background: #fff; }
+    .tab-content { display: none; padding: 1.25rem; }
+    .tab-content.active { display: block; }
+
+    /* Profile form */
+    .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    .profile-field { }
+    .profile-field label { display: block; font-size: 0.6rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: #475569; margin-bottom: 0.25rem; }
+    .profile-field input, .profile-field select, .profile-field textarea {
+      width: 100%; border: 1.5px solid #e2e8f0; border-radius: 0.5rem; padding: 0.5rem 0.625rem;
+      font-size: 0.8rem; font-family: 'Inter', sans-serif; color: #0f172a; outline: none; transition: border-color 0.2s;
+    }
+    .profile-field input:focus, .profile-field select:focus, .profile-field textarea:focus { border-color: #2563eb; }
+    .profile-field textarea { resize: vertical; min-height: 60px; }
+    .profile-field .auto-tag { background: #dbeafe; color: #1e40af; font-size: 0.55rem; font-weight: 700; padding: 1px 5px; border-radius: 4px; margin-left: 4px; }
+    .profile-field .manual-tag { background: #fef3c7; color: #92400e; font-size: 0.55rem; font-weight: 700; padding: 1px 5px; border-radius: 4px; margin-left: 4px; }
+    .profile-full { grid-column: 1 / -1; }
+    .profile-section { grid-column: 1 / -1; font-size: 0.7rem; font-weight: 800; color: #1e3a8a; text-transform: uppercase; padding: 0.5rem 0 0.25rem; border-bottom: 1px solid #e2e8f0; margin-top: 0.5rem; }
+
+    /* Reeval alert */
+    .reeval-alert { padding: 0.75rem; border-radius: 0.5rem; font-size: 0.75rem; margin-bottom: 0.75rem; display: flex; align-items: flex-start; gap: 0.5rem; }
+    .reeval-alert.warning { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
+    .reeval-alert.danger { background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; }
+    .reeval-alert.info { background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8; }
+
+    /* OA table */
+    .oa-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+    .oa-table th { background: #f1f5f9; padding: 0.5rem; text-align: left; font-size: 0.6rem; font-weight: 800; text-transform: uppercase; color: #475569; border-bottom: 2px solid #e2e8f0; }
+    .oa-table td { padding: 0.5rem; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
+    .oa-chip { display: inline-block; padding: 0.125rem 0.5rem; border-radius: 1rem; font-size: 0.6rem; font-weight: 700; margin: 0.125rem; }
+
+    /* Doc list */
+    .doc-item { display: flex; justify-content: space-between; align-items: center; padding: 0.625rem; border-radius: 0.5rem; background: #f8fafc; margin-bottom: 0.5rem; border: 1px solid #e2e8f0; }
+    .doc-item-info { flex: 1; }
+    .doc-item-info .title { font-size: 0.75rem; font-weight: 700; }
+    .doc-item-info .meta { font-size: 0.65rem; color: #64748b; margin-top: 0.125rem; }
+    .doc-item-oas { display: flex; flex-wrap: wrap; gap: 0.25rem; margin-top: 0.375rem; }
+
+    .empty-state { text-align: center; padding: 2rem; color: #94a3b8; }
+    .empty-state i { font-size: 2.5rem; margin-bottom: 0.75rem; display: block; }
+    .loading { text-align: center; padding: 2rem; color: #94a3b8; }
+    .loading i { animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .save-status { font-size: 0.7rem; color: #10b981; font-weight: 600; margin-left: 0.5rem; display: none; }
+
+    @media (max-width: 640px) {
+      .stats { grid-template-columns: 1fr 1fr; }
+      .profile-grid { grid-template-columns: 1fr; }
+      .container { padding: 1rem; }
+      .topbar { padding: 0.75rem 1rem; flex-wrap: wrap; gap: 0.5rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div>
+      <h1>PACI Master</h1>
+      <p class="subtitle">Mis Documentos</p>
+    </div>
+    <div class="topbar-actions">
+      <span class="topbar-user" id="user-name"></span>
+      <button class="btn btn-amber btn-sm" onclick="showChangePassword()" title="Cambiar contrasena"><i class="fa-solid fa-key"></i></button>
+      <a href="/app.html" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Nuevo PACI</a>
+      <button class="btn btn-slate" onclick="cerrarSesion()"><i class="fa-solid fa-right-from-bracket"></i></button>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="stats">
+      <div class="stat-card"><i class="fa-solid fa-users icon"></i><div class="label">Estudiantes</div><div class="value" id="stat-students">-</div></div>
+      <div class="stat-card"><i class="fa-solid fa-file-lines icon"></i><div class="label">Documentos PACI</div><div class="value" id="stat-docs">-</div></div>
+      <div class="stat-card"><i class="fa-solid fa-bullseye icon"></i><div class="label">OAs Trabajados</div><div class="value" id="stat-oas">-</div></div>
+    </div>
+
+    <p class="section-title"><i class="fa-solid fa-graduation-cap"></i> Mis Estudiantes</p>
+    <div id="students-container">
+      <div class="loading"><i class="fa-solid fa-spinner"></i> Cargando...</div>
+    </div>
+  </div>
+
+  <script>
+    const TOKEN = localStorage.getItem('paci_token');
+    const USER = JSON.parse(localStorage.getItem('paci_user') || '{}');
+    document.getElementById('user-name').textContent = USER.name || USER.email || '';
+
+    // Reglas de reevaluacion
+    const REEVAL_RULES = {
+      'tel_e': { type: 'NEET', period: 2, note: 'Si continua un 3er ano, se considera "Nuevo Ingreso" y requiere FUDEI completo.' },
+      'tel_m': { type: 'NEET', period: 2, note: 'Si continua un 3er ano, se considera "Nuevo Ingreso" y requiere FUDEI completo.' },
+      'dea': { type: 'NEET', period: 2, note: 'Si continua un 3er ano, se considera "Nuevo Ingreso" y requiere FUDEI completo.' },
+      'tda': { type: 'NEET', period: 2, note: 'Si continua un 3er ano, se considera "Nuevo Ingreso" y requiere FUDEI completo.' },
+      'fil': { type: 'NEET', period: 2, note: 'Si continua un 3er ano, se considera "Nuevo Ingreso" y requiere FUDEI completo.' },
+      'di_l': { type: 'NEEP', period: 2, note: 'Aunque es NEEP, se rige por plazo de 2 anos para monitorear funcionamiento adaptativo.' },
+      'di_m': { type: 'NEEP', period: 2, note: 'Aunque es NEEP, se rige por plazo de 2 anos para monitorear funcionamiento adaptativo.' },
+      'di_s': { type: 'NEEP', period: 5, note: 'Reevaluacion cada 3 a 5 anos segun evolucion del estudiante.' },
+      'tea': { type: 'NEEP', period: 2, note: 'Requiere confirmacion diagnostica en este periodo segun cartillas 2025-2026.' },
+      'dv': { type: 'NEEP', period: 5, note: 'Reevaluacion cada 3 a 5 anos segun evolucion.' },
+      'da': { type: 'NEEP', period: 5, note: 'Reevaluacion cada 3 a 5 anos segun evolucion.' },
+      'disc_mot': { type: 'NEEP', period: 5, note: 'Reevaluacion cada 3 a 5 anos segun evolucion.' },
+      'rgd': { type: 'NEEP', period: 2, note: 'Requiere confirmacion diagnostica cada 2 anos.' },
+      'sordoceg': { type: 'NEEP', period: 2, note: 'Requiere confirmacion diagnostica cada 2 anos.' }
+    };
+
+    const ASIG_COLORS = {
+      'lenguaje': '#2563eb', 'matematica': '#dc2626', 'ciencias': '#059669',
+      'historia': '#d97706', 'ingles': '#9333ea', 'artes': '#db2777',
+      'musica': '#4f46e5', 'ef': '#ea580c', 'tecnologia': '#0891b2',
+      'orientacion': '#0d9488', 'religion': '#7c3aed', 'oat': '#475569', 'pueblos': '#4d7c0f'
+    };
+
+    async function api(endpoint, data = {}) {
+      data._token = TOKEN;
+      const res = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+      return res.json();
+    }
+
+    function cerrarSesion() {
+      api('/api/logout', { token: TOKEN }).catch(() => {});
+      localStorage.removeItem('paci_token');
+      localStorage.removeItem('paci_user');
+      window.location.href = '/login.html';
+    }
+
+    function esc(str) { return str ? String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') : ''; }
+    function formatDate(d) { if (!d) return '-'; try { return new Date(d).toLocaleDateString('es-CL'); } catch(e) { return d; } }
+
+    // ==========================================
+    // MAIN LOAD
+    // ==========================================
+    async function loadDashboard() {
+      try {
+        const [studentsRes, docsRes] = await Promise.all([
+          api('/api/students/list'),
+          api('/api/documents/list')
+        ]);
+        if (!studentsRes.ok) { if (studentsRes.error === 'No autorizado.') { window.location.href = '/login.html'; return; } throw new Error(studentsRes.error); }
+
+        const students = studentsRes.students || [];
+        const docs = docsRes.documents || [];
+
+        document.getElementById('stat-students').textContent = students.length;
+        document.getElementById('stat-docs').textContent = docs.length;
+        document.getElementById('stat-oas').textContent = students.reduce((s, st) => s + (st.unique_oas_count || 0), 0);
+
+        renderStudents(students, docs);
+      } catch (e) {
+        document.getElementById('students-container').innerHTML = '<div class="empty-state"><i class="fa-solid fa-circle-exclamation"></i><p>' + esc(e.message) + '</p></div>';
+      }
+    }
+
+    function renderStudents(students, docs) {
+      const c = document.getElementById('students-container');
+      if (!students.length) {
+        c.innerHTML = '<div class="empty-state"><i class="fa-solid fa-user-plus"></i><p>Aun no tienes estudiantes. <a href="/app.html" class="btn btn-primary btn-sm" style="margin-left:0.5rem;"><i class="fa-solid fa-plus"></i> Crear PACI</a></p></div>';
+        return;
+      }
+
+      // Agrupar estudiantes por curso (real_level)
+      const grouped = {};
+      students.forEach(s => {
+        const curso = s.real_level || 'Sin curso asignado';
+        if (!grouped[curso]) grouped[curso] = [];
+        grouped[curso].push(s);
+      });
+
+      // Ordenar cursos logicamente
+      const courseOrder = ['NT1','NT2','1° Basico','2° Basico','3° Basico','4° Basico','5° Basico','6° Basico','7° Basico','8° Basico','1° Medio','2° Medio','3° Medio','4° Medio'];
+      const sortedCourses = Object.keys(grouped).sort((a, b) => {
+        const ia = courseOrder.findIndex(c => a.includes(c));
+        const ib = courseOrder.findIndex(c => b.includes(c));
+        if (ia === -1 && ib === -1) return a.localeCompare(b);
+        if (ia === -1) return 1;
+        if (ib === -1) return -1;
+        return ia - ib;
+      });
+
+      let html = '';
+
+      sortedCourses.forEach(curso => {
+        const courseStudents = grouped[curso];
+        html += `
+        <div style="margin-bottom:1.5rem;">
+          <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.75rem;">
+            <div style="background:linear-gradient(135deg,#091845,#1240c4);color:#fff;padding:0.375rem 1rem;border-radius:2rem;font-size:0.7rem;font-weight:800;letter-spacing:0.05em;">
+              <i class="fa-solid fa-graduation-cap" style="margin-right:0.375rem;"></i>${esc(curso)}
+            </div>
+            <span style="font-size:0.65rem;color:#94a3b8;font-weight:600;">${courseStudents.length} estudiante${courseStudents.length !== 1 ? 's' : ''}</span>
+          </div>`;
+
+        courseStudents.forEach(s => {
+          const sDocs = docs.filter(d => d.student_id === s.id);
+          const neeType = s.nee_type || (REEVAL_RULES[s.diagnosis_id] ? REEVAL_RULES[s.diagnosis_id].type : '');
+
+          html += `
+          <div class="student-card" id="card-${s.id}">
+            <div class="student-card-header" onclick="toggleCard(${s.id})">
+              <div>
+                <h3><i class="fa-solid fa-user-graduate" style="margin-right:0.375rem;opacity:0.7;"></i>${esc(s.name)}</h3>
+                <span style="font-size:0.65rem;opacity:0.8;">${esc(s.diagnosis || 'Sin diagnostico')} ${neeType ? '(' + neeType + ')' : ''}</span>
+              </div>
+              <div style="display:flex;gap:0.5rem;align-items:center;">
+                <span class="badge">${sDocs.length} PACI${sDocs.length !== 1 ? 's' : ''}</span>
+                <span class="badge">${s.unique_oas_count || 0} OAs</span>
+                <button class="btn btn-red btn-sm" onclick="event.stopPropagation(); deleteStudent(${s.id}, '${esc(s.name).replace(/'/g, "\\'")}')" title="Eliminar estudiante" style="padding:0.25rem 0.5rem;font-size:0.6rem;">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+                <i class="fa-solid fa-chevron-down" id="chevron-${s.id}" style="transition:transform 0.2s;font-size:0.75rem;"></i>
+              </div>
+            </div>
+            <div class="student-card-body" id="body-${s.id}">
+              <div class="tabs">
+                <button class="tab active" onclick="showTab(${s.id}, 'profile')"><i class="fa-solid fa-id-card"></i> Ficha</button>
+                <button class="tab" onclick="showTab(${s.id}, 'oas')"><i class="fa-solid fa-bullseye"></i> OAs</button>
+                <button class="tab" onclick="showTab(${s.id}, 'docs')"><i class="fa-solid fa-file-lines"></i> Documentos</button>
+              </div>
+              <div class="tab-content active" id="tab-profile-${s.id}">
+                <div class="loading"><i class="fa-solid fa-spinner"></i> Cargando ficha...</div>
+              </div>
+              <div class="tab-content" id="tab-oas-${s.id}"></div>
+              <div class="tab-content" id="tab-docs-${s.id}"></div>
+            </div>
+          </div>`;
+        });
+
+        html += '</div>';
+      });
+
+      c.innerHTML = html;
+    }
+
+    function toggleCard(id) {
+      const body = document.getElementById('body-' + id);
+      const chevron = document.getElementById('chevron-' + id);
+      const isOpen = body.classList.contains('open');
+      body.classList.toggle('open');
+      chevron.style.transform = isOpen ? '' : 'rotate(180deg)';
+      if (!isOpen) loadStudentDetail(id);
+    }
+
+    function showTab(studentId, tabName) {
+      const card = document.getElementById('card-' + studentId);
+      card.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      card.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      // Activate correct tab button
+      const tabs = card.querySelectorAll('.tab');
+      const tabMap = { profile: 0, oas: 1, docs: 2 };
+      if (tabs[tabMap[tabName]]) tabs[tabMap[tabName]].classList.add('active');
+      const content = document.getElementById('tab-' + tabName + '-' + studentId);
+      if (content) content.classList.add('active');
+    }
+
+    // ==========================================
+    // STUDENT DETAIL
+    // ==========================================
+    const loadedStudents = {};
+
+    async function loadStudentDetail(id) {
+      if (loadedStudents[id]) return;
+      loadedStudents[id] = true;
+
+      try {
+        const res = await api('/api/students/get', { studentId: id });
+        if (!res.ok) throw new Error(res.error);
+
+        renderProfile(id, res.student);
+        renderOAsTab(id, res.oas, res.student);
+        renderDocsTab(id, res.documents);
+      } catch (e) {
+        document.getElementById('tab-profile-' + id).innerHTML = '<p style="color:#ef4444;padding:1rem;">' + esc(e.message) + '</p>';
+      }
+    }
+
+    // ==========================================
+    // PROFILE TAB
+    // ==========================================
+    function renderProfile(id, s) {
+      const rule = REEVAL_RULES[s.diagnosis_id] || {};
+      const neeType = s.nee_type || rule.type || '';
+
+      // Calcular alerta de reevaluacion
+      let reevalAlert = '';
+      if (s.last_evaluation_date && rule.period) {
+        const lastDate = new Date(s.last_evaluation_date);
+        const nextDate = new Date(lastDate);
+        nextDate.setFullYear(nextDate.getFullYear() + rule.period);
+        const now = new Date();
+        const monthsLeft = (nextDate - now) / (1000 * 60 * 60 * 24 * 30);
+
+        if (monthsLeft < 0) {
+          reevalAlert = '<div class="reeval-alert danger"><i class="fa-solid fa-triangle-exclamation"></i><div><strong>Reevaluacion vencida.</strong> La reevaluacion debia realizarse antes del ' + formatDate(nextDate.toISOString()) + '. ' + (rule.note || '') + '</div></div>';
+        } else if (monthsLeft < 6) {
+          reevalAlert = '<div class="reeval-alert warning"><i class="fa-solid fa-clock"></i><div><strong>Reevaluacion proxima.</strong> Quedan aprox. ' + Math.ceil(monthsLeft) + ' mes(es). Fecha limite: ' + formatDate(nextDate.toISOString()) + '. ' + (rule.note || '') + '</div></div>';
+        } else {
+          reevalAlert = '<div class="reeval-alert info"><i class="fa-solid fa-circle-info"></i><div>Proxima reevaluacion: ' + formatDate(nextDate.toISOString()) + ' (cada ' + rule.period + ' anos). ' + (rule.note || '') + '</div></div>';
+        }
+      } else if (rule.period) {
+        reevalAlert = '<div class="reeval-alert info"><i class="fa-solid fa-circle-info"></i><div>Periodicidad de reevaluacion: <strong>cada ' + rule.period + ' ano(s)</strong>. ' + (rule.note || '') + ' Ingresa la fecha del ultimo diagnostico para activar alertas automaticas.</div></div>';
+      }
+
+      const html = `
+        ${reevalAlert}
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;">
+          <span style="font-size:0.7rem;font-weight:800;color:#1e3a8a;text-transform:uppercase;">Ficha del Estudiante</span>
+          <span class="save-status" id="save-status-${id}"><i class="fa-solid fa-check"></i> Guardado</span>
+        </div>
+        <div class="profile-grid">
+          <div class="profile-section"><i class="fa-solid fa-user"></i> Datos Personales <span class="auto-tag">Auto</span></div>
+
+          <div class="profile-field">
+            <label>Nombre Completo <span class="auto-tag">Auto</span></label>
+            <input type="text" value="${esc(s.name)}" onchange="saveField(${id},'name',this.value)">
+          </div>
+          <div class="profile-field">
+            <label>RUT <span class="manual-tag">Manual</span></label>
+            <input type="text" value="${esc(s.rut || '')}" placeholder="12.345.678-9" onchange="saveField(${id},'rut',this.value)">
+          </div>
+          <div class="profile-field">
+            <label>Fecha de Nacimiento <span class="auto-tag">Auto</span></label>
+            <input type="date" value="${esc(s.birth_date || '')}" onchange="saveField(${id},'birth_date',this.value)">
+          </div>
+          <div class="profile-field">
+            <label>Edad <span class="auto-tag">Auto</span></label>
+            <input type="number" value="${s.age || ''}" onchange="saveField(${id},'age',parseInt(this.value)||0)">
+          </div>
+          <div class="profile-field">
+            <label>Apoderado <span class="manual-tag">Manual</span></label>
+            <input type="text" value="${esc(s.guardian || '')}" placeholder="Nombre del apoderado" onchange="saveField(${id},'guardian',this.value)">
+          </div>
+          <div class="profile-field">
+            <label>Establecimiento <span class="auto-tag">Auto</span></label>
+            <input type="text" value="${esc(s.school || '')}" onchange="saveField(${id},'school',this.value)">
+          </div>
+
+          <div class="profile-section"><i class="fa-solid fa-graduation-cap"></i> Datos Academicos <span class="auto-tag">Auto</span></div>
+
+          <div class="profile-field">
+            <label>Curso / Nivel Real <span class="auto-tag">Auto</span></label>
+            <input type="text" value="${esc(s.real_level || '')}" onchange="saveField(${id},'real_level',this.value)">
+          </div>
+          <div class="profile-field">
+            <label>Nivel de Trabajo <span class="auto-tag">Auto</span></label>
+            <input type="text" value="${esc(s.work_level || '')}" onchange="saveField(${id},'work_level',this.value)">
+          </div>
+
+          <div class="profile-section"><i class="fa-solid fa-stethoscope"></i> Diagnostico y Reevaluacion</div>
+
+          <div class="profile-field">
+            <label>Diagnostico <span class="auto-tag">Auto</span></label>
+            <input type="text" value="${esc(s.diagnosis || '')}" onchange="saveField(${id},'diagnosis',this.value)">
+          </div>
+          <div class="profile-field">
+            <label>Tipo de NEE <span class="auto-tag">Auto</span></label>
+            <select onchange="saveField(${id},'nee_type',this.value)">
+              <option value="" ${!neeType ? 'selected' : ''}>Sin clasificar</option>
+              <option value="NEET" ${neeType === 'NEET' ? 'selected' : ''}>NEET (Transitoria)</option>
+              <option value="NEEP" ${neeType === 'NEEP' ? 'selected' : ''}>NEEP (Permanente)</option>
+            </select>
+          </div>
+          <div class="profile-field">
+            <label>Fecha Ultimo Diagnostico <span class="manual-tag">Manual</span></label>
+            <input type="date" id="diag-date-${id}" value="${esc(s.diagnosis_date || '')}" onchange="onDiagDateChange(${id}, '${esc(s.diagnosis_id || '')}', this.value)">
+          </div>
+          <div class="profile-field">
+            <label>Fecha Ultima Reevaluacion <span class="manual-tag">Manual</span></label>
+            <input type="date" id="reeval-date-${id}" value="${esc(s.last_evaluation_date || '')}" onchange="onReevalDateChange(${id}, '${esc(s.diagnosis_id || '')}', this.value)">
+          </div>
+          <div class="profile-field">
+            <label>Fecha Proxima Reevaluacion <span style="background:#d1fae5;color:#065f46;font-size:0.55rem;font-weight:700;padding:1px 5px;border-radius:4px;margin-left:4px;">Auto-sugerida</span></label>
+            <input type="date" id="next-reeval-${id}" value="${esc(s.next_evaluation_date || '')}" onchange="saveField(${id},'next_evaluation_date',this.value)">
+          </div>
+          <div class="profile-field">
+            <label>Periodicidad de Reevaluacion <span style="background:#d1fae5;color:#065f46;font-size:0.55rem;font-weight:700;padding:1px 5px;border-radius:4px;margin-left:4px;">Auto</span></label>
+            <select id="period-${id}" onchange="saveField(${id},'evaluation_periodicity',this.value)">
+              <option value="" ${!s.evaluation_periodicity ? 'selected' : ''}>Segun diagnostico</option>
+              <option value="2 anos" ${s.evaluation_periodicity === '2 anos' ? 'selected' : ''}>Cada 2 anos</option>
+              <option value="3 anos" ${s.evaluation_periodicity === '3 anos' ? 'selected' : ''}>Cada 3 anos</option>
+              <option value="5 anos" ${s.evaluation_periodicity === '5 anos' ? 'selected' : ''}>Cada 5 anos</option>
+            </select>
+          </div>
+
+          <div class="profile-section"><i class="fa-solid fa-note-sticky"></i> Observaciones</div>
+
+          <div class="profile-field profile-full">
+            <label>Observaciones <span class="manual-tag">Manual</span></label>
+            <textarea placeholder="Notas adicionales sobre el estudiante..." onchange="saveField(${id},'observations',this.value)">${esc(s.observations || '')}</textarea>
+          </div>
+        </div>
+        <div style="margin-top:1rem;display:flex;gap:0.5rem;">
+          <a href="/app.html?student=${id}" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> Nuevo PACI</a>
+        </div>`;
+
+      document.getElementById('tab-profile-' + id).innerHTML = html;
+    }
+
+    // Save individual field
+    async function saveField(studentId, field, value) {
+      const data = {};
+      data[field] = value;
+      const res = await api('/api/students/update', { studentId, data });
+      const status = document.getElementById('save-status-' + studentId);
+      if (status) {
+        status.style.display = 'inline';
+        status.innerHTML = res.ok ? '<i class="fa-solid fa-check"></i> Guardado' : '<i class="fa-solid fa-xmark" style="color:#ef4444;"></i> Error';
+        setTimeout(() => { status.style.display = 'none'; }, 2000);
+      }
+    }
+
+    // ==========================================
+    // AUTO-CALCULO DE REEVALUACION
+    // ==========================================
+    function calcNextReeval(dateStr, diagId) {
+      if (!dateStr) return null;
+      const rule = REEVAL_RULES[diagId];
+      if (!rule) return null;
+      const d = new Date(dateStr);
+      d.setFullYear(d.getFullYear() + rule.period);
+      return d.toISOString().split('T')[0];
+    }
+
+    function suggestReeval(studentId, diagId, fromDate) {
+      const nextDate = calcNextReeval(fromDate, diagId);
+      if (!nextDate) return;
+
+      const rule = REEVAL_RULES[diagId] || {};
+      const periodStr = rule.period + ' anos';
+
+      // Llenar fecha proxima reevaluacion
+      const nextInput = document.getElementById('next-reeval-' + studentId);
+      if (nextInput && !nextInput.value) {
+        nextInput.value = nextDate;
+        saveField(studentId, 'next_evaluation_date', nextDate);
+      }
+
+      // Llenar periodicidad
+      const periodSelect = document.getElementById('period-' + studentId);
+      if (periodSelect && !periodSelect.value) {
+        periodSelect.value = periodStr;
+        saveField(studentId, 'evaluation_periodicity', periodStr);
+      }
+
+      // Mostrar alerta informativa
+      const formattedNext = new Date(nextDate).toLocaleDateString('es-CL');
+      const typeLabel = rule.type === 'NEET' ? 'Transitoria (NEET)' : 'Permanente (NEEP)';
+      const alertMsg = `Segun normativa 2026 para ${typeLabel}:\n\n` +
+        `- Periodicidad: Cada ${rule.period} ano(s)\n` +
+        `- Proxima reevaluacion sugerida: ${formattedNext}\n\n` +
+        (rule.note ? `Nota: ${rule.note}` : '');
+
+      alert(alertMsg);
+    }
+
+    // Cuando cambia la fecha de diagnostico
+    function onDiagDateChange(studentId, diagId, value) {
+      saveField(studentId, 'diagnosis_date', value);
+      if (value && diagId) {
+        suggestReeval(studentId, diagId, value);
+      }
+    }
+
+    // Cuando cambia la fecha de ultima reevaluacion
+    function onReevalDateChange(studentId, diagId, value) {
+      saveField(studentId, 'last_evaluation_date', value);
+
+      // Recalcular proxima reevaluacion desde esta fecha
+      if (value && diagId) {
+        const nextDate = calcNextReeval(value, diagId);
+        if (nextDate) {
+          const nextInput = document.getElementById('next-reeval-' + studentId);
+          if (nextInput) {
+            nextInput.value = nextDate;
+            saveField(studentId, 'next_evaluation_date', nextDate);
+          }
+        }
+      }
+
+      // Refrescar alerta visual
+      loadedStudents[studentId] = false;
+      loadStudentDetail(studentId);
+    }
+
+    // ==========================================
+    // OAs TAB
+    // ==========================================
+    function renderOAsTab(id, oas, student) {
+      const c = document.getElementById('tab-oas-' + id);
+      if (!oas || !oas.length) {
+        c.innerHTML = '<div class="empty-state"><i class="fa-solid fa-bullseye"></i><p>Sin OAs registrados. Crea un PACI para comenzar.</p></div>';
+        return;
+      }
+
+      // Group by subject
+      const grouped = {};
+      oas.forEach(oa => {
+        if (!grouped[oa.subject_key]) grouped[oa.subject_key] = { name: oa.subject, level: oa.level, oas: [] };
+        grouped[oa.subject_key].oas.push(oa);
+      });
+
+      let html = '<div style="margin-bottom:0.75rem;font-size:0.7rem;color:#475569;"><strong>' + oas.length + '</strong> OA(s) unicos trabajados en <strong>' + Object.keys(grouped).length + '</strong> asignatura(s).</div>';
+
+      for (const [key, data] of Object.entries(grouped)) {
+        const color = ASIG_COLORS[key] || '#64748b';
+        html += `
+        <div style="margin-bottom:1rem;border:1px solid ${color}33;border-radius:0.75rem;overflow:hidden;">
+          <div style="background:${color};color:#fff;padding:0.625rem 1rem;font-size:0.75rem;font-weight:800;display:flex;justify-content:space-between;">
+            <span>${esc(data.name)}</span>
+            <span style="opacity:0.8;">${data.oas.length} OA(s) &middot; ${esc(data.level)}</span>
+          </div>
+          <table class="oa-table">
+            <thead><tr><th>OA</th><th>Descripcion</th><th>Trimestre</th><th>Eje</th></tr></thead>
+            <tbody>
+              ${data.oas.map(oa => `
+                <tr>
+                  <td><span class="oa-chip" style="background:${color}18;color:${color};">${esc(oa.oa_code)}</span></td>
+                  <td style="font-size:0.7rem;">${esc(oa.oa_text.replace(oa.oa_code + ': ', '').substring(0, 120))}...</td>
+                  <td><span class="oa-chip" style="background:#f1f5f9;color:#475569;">${esc(oa.trimester)}</span></td>
+                  <td style="font-size:0.65rem;color:#64748b;">${esc(oa.unit_name)}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>`;
+      }
+
+      c.innerHTML = html;
+    }
+
+    // ==========================================
+    // DOCS TAB
+    // ==========================================
+    function renderDocsTab(id, docs) {
+      const c = document.getElementById('tab-docs-' + id);
+      if (!docs || !docs.length) {
+        c.innerHTML = '<div class="empty-state"><i class="fa-solid fa-file-lines"></i><p>Sin documentos. <a href="/app.html?student=' + id + '" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> Crear PACI</a></p></div>';
+        return;
+      }
+
+      c.innerHTML = docs.map(d => {
+        // Contar modulos dentro del documento
+        let modCount = 0;
+        let oaCodes = [];
+        try {
+          const parsed = JSON.parse(d.document_json);
+          const mods = parsed.modules || (parsed.module ? [parsed.module] : []);
+          modCount = mods.length;
+          mods.forEach(m => { if (m.oas) oaCodes.push(...m.oas.map(o => o.code)); });
+        } catch(e) {}
+
+        // Colores de asignaturas
+        const subjectKeys = (d.subject_key || '').split(',');
+        const mainColor = ASIG_COLORS[subjectKeys[0]] || '#1e3a8a';
+
+        return `
+        <div style="border:2px solid #e2e8f0;border-radius:0.75rem;margin-bottom:0.75rem;overflow:hidden;border-left:4px solid ${mainColor};">
+          <div style="padding:1rem;display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:0.5rem;">
+            <div style="flex:1;min-width:200px;">
+              <div style="font-size:0.85rem;font-weight:800;color:#0f172a;margin-bottom:0.25rem;">
+                <i class="fa-solid fa-file-lines" style="color:${mainColor};margin-right:0.25rem;"></i>
+                PACI - ${esc(d.trimester || 'Sin trimestre')}
+              </div>
+              <div style="font-size:0.7rem;color:#64748b;margin-bottom:0.375rem;">
+                ${esc(d.subject || 'Sin asignatura')} &middot; ${esc(d.work_level || '')} &middot; ${d.num_classes || 0} clases
+              </div>
+              <div style="font-size:0.65rem;color:#94a3b8;">
+                ${formatDate(d.date_start)} a ${formatDate(d.date_end)} &middot; Creado ${formatDate(d.created_at)}
+                ${modCount > 1 ? ' &middot; <strong>' + modCount + ' asignaturas</strong>' : ''}
+              </div>
+              ${oaCodes.length ? '<div style="display:flex;flex-wrap:wrap;gap:0.2rem;margin-top:0.375rem;">' + oaCodes.slice(0, 10).map(c => '<span class="oa-chip" style="background:' + mainColor + '18;color:' + mainColor + ';">' + esc(c) + '</span>').join('') + (oaCodes.length > 10 ? '<span class="oa-chip" style="background:#f1f5f9;color:#64748b;">+' + (oaCodes.length - 10) + ' mas</span>' : '') + '</div>' : ''}
+            </div>
+            <div style="display:flex;gap:0.375rem;flex-shrink:0;">
+              <a href="/app.html?doc=${d.id}" class="btn btn-primary btn-sm" title="Abrir y editar"><i class="fa-solid fa-eye"></i> Ver</a>
+              <a href="/app.html?doc=${d.id}&action=pdf" class="btn btn-green btn-sm" title="Descargar PDF"><i class="fa-solid fa-download"></i> PDF</a>
+              <a href="/app.html?doc=${d.id}&action=print" class="btn btn-amber btn-sm" title="Imprimir"><i class="fa-solid fa-print"></i></a>
+              <button class="btn btn-red btn-sm" onclick="deleteDoc(${d.id}, ${id})" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
+            </div>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    async function deleteDoc(docId, studentId) {
+      if (!confirm('Eliminar este documento PACI?')) return;
+      const res = await api('/api/documents/delete', { documentId: docId });
+      if (res.ok) {
+        loadedStudents[studentId] = false;
+        loadStudentDetail(studentId);
+        loadDashboard();
+      } else {
+        alert('Error: ' + (res.error || 'No se pudo eliminar'));
+      }
+    }
+
+    // ==========================================
+    // ELIMINAR ESTUDIANTE
+    // ==========================================
+    async function deleteStudent(studentId, studentName) {
+      if (!confirm('Eliminar al estudiante "' + studentName + '"?\n\nEsto eliminara TODOS sus documentos PACI, OAs y datos.\n\nEsta accion NO se puede deshacer.')) return;
+      if (!confirm('CONFIRMAR: Realmente quieres eliminar a "' + studentName + '" y todos sus datos?')) return;
+
+      const res = await api('/api/students/delete', { studentId });
+      if (res.ok) {
+        loadedStudents = {};
+        loadDashboard();
+      } else {
+        alert('Error: ' + (res.error || 'No se pudo eliminar'));
+      }
+    }
+
+    // ==========================================
+    // CAMBIAR CONTRASENA
+    // ==========================================
+    function showChangePassword() {
+      var overlay = document.getElementById('password-modal');
+      if (overlay) { overlay.style.display = 'flex'; return; }
+
+      overlay = document.createElement('div');
+      overlay.id = 'password-modal';
+      overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,0.4);backdrop-filter:blur(4px);z-index:10000;display:flex;align-items:center;justify-content:center;';
+      overlay.innerHTML = `
+        <div style="background:#fff;border-radius:1.25rem;padding:2rem;width:90%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,0.2);">
+          <h3 style="font-size:1rem;font-weight:800;color:#0f172a;margin-bottom:0.25rem;"><i class="fa-solid fa-key" style="color:#f59e0b;margin-right:0.375rem;"></i>Cambiar Contrasena</h3>
+          <p style="font-size:0.7rem;color:#64748b;margin-bottom:1rem;">Min 8 caracteres, 1 mayuscula, 1 numero</p>
+          <div id="pw-msg" style="display:none;padding:0.5rem;border-radius:0.5rem;font-size:0.75rem;margin-bottom:0.75rem;"></div>
+          <div style="margin-bottom:0.75rem;">
+            <label style="font-size:0.65rem;font-weight:700;color:#475569;text-transform:uppercase;display:block;margin-bottom:0.25rem;">Contrasena actual</label>
+            <input type="password" id="pw-current" style="width:100%;border:1.5px solid #e2e8f0;border-radius:0.5rem;padding:0.5rem 0.75rem;font-size:0.85rem;outline:none;" placeholder="Tu contrasena actual">
+          </div>
+          <div style="margin-bottom:0.75rem;">
+            <label style="font-size:0.65rem;font-weight:700;color:#475569;text-transform:uppercase;display:block;margin-bottom:0.25rem;">Nueva contrasena</label>
+            <input type="password" id="pw-new" style="width:100%;border:1.5px solid #e2e8f0;border-radius:0.5rem;padding:0.5rem 0.75rem;font-size:0.85rem;outline:none;" placeholder="Min 8 chars, 1 mayuscula, 1 numero">
+          </div>
+          <div style="margin-bottom:1rem;">
+            <label style="font-size:0.65rem;font-weight:700;color:#475569;text-transform:uppercase;display:block;margin-bottom:0.25rem;">Confirmar nueva</label>
+            <input type="password" id="pw-confirm" style="width:100%;border:1.5px solid #e2e8f0;border-radius:0.5rem;padding:0.5rem 0.75rem;font-size:0.85rem;outline:none;" placeholder="Repite la nueva contrasena">
+          </div>
+          <div style="display:flex;gap:0.5rem;">
+            <button onclick="executeChangePassword()" class="btn btn-primary" style="flex:1;justify-content:center;" id="pw-submit">
+              <i class="fa-solid fa-check"></i> Cambiar
+            </button>
+            <button onclick="document.getElementById('password-modal').style.display='none'" class="btn btn-slate" style="flex:0.5;justify-content:center;">
+              Cancelar
+            </button>
+          </div>
+        </div>`;
+      document.body.appendChild(overlay);
+      overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.style.display = 'none'; });
+    }
+
+    async function executeChangePassword() {
+      var current = document.getElementById('pw-current').value;
+      var newPw = document.getElementById('pw-new').value;
+      var confirm = document.getElementById('pw-confirm').value;
+      var msg = document.getElementById('pw-msg');
+      var btn = document.getElementById('pw-submit');
+
+      function showPwMsg(text, type) {
+        msg.style.display = 'block';
+        msg.style.background = type === 'error' ? '#fef2f2' : '#f0fdf4';
+        msg.style.color = type === 'error' ? '#dc2626' : '#16a34a';
+        msg.style.border = '1px solid ' + (type === 'error' ? '#fecaca' : '#bbf7d0');
+        msg.textContent = text;
+      }
+
+      if (!current || !newPw || !confirm) { showPwMsg('Completa todos los campos.', 'error'); return; }
+      if (newPw.length < 8) { showPwMsg('Minimo 8 caracteres.', 'error'); return; }
+      if (!/[A-Z]/.test(newPw) || !/[0-9]/.test(newPw)) { showPwMsg('Necesitas 1 mayuscula y 1 numero.', 'error'); return; }
+      if (newPw !== confirm) { showPwMsg('Las contrasenas no coinciden.', 'error'); return; }
+
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Cambiando...';
+
+      var res = await api('/api/change-password', { currentPassword: current, newPassword: newPw });
+
+      if (res.ok) {
+        showPwMsg('Contrasena actualizada correctamente!', 'success');
+        document.getElementById('pw-current').value = '';
+        document.getElementById('pw-new').value = '';
+        document.getElementById('pw-confirm').value = '';
+        setTimeout(function() { document.getElementById('password-modal').style.display = 'none'; }, 1500);
+      } else {
+        showPwMsg(res.error || 'Error al cambiar contrasena.', 'error');
+      }
+
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-check"></i> Cambiar';
+    }
+
+    // Init
+    loadDashboard();
+  </script>
+</body>
+</html>

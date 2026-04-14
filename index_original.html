@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PACI Master - Planificación DUA Multieje</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Librería para descargar a PDF nativo -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; color: #0f172a; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .accordion-content { transition: max-height 0.4s ease-in-out; max-height: 0; overflow: hidden; }
+        .accordion-content.open { max-height: 6000px; padding: 1rem 0; }
+        .oa-card { cursor: pointer; transition: all 0.2s; border: 1px solid #e2e8f0; background: white; }
+        .oa-card:hover { border-color: #3b82f6; background-color: #eff6ff; }
+        .oa-card.selected { border-color: #2563eb; background-color: #dbeafe; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
+        .evitar-corte { break-inside: avoid; page-break-inside: avoid; }
+        
+        /* Ocultar iconos de calendario en inputs de fecha al imprimir */
+        @media print {
+            @page { size: letter; margin: 1cm; }
+            #control-panel { display: none !important; }
+            #preview-panel { width: 100% !important; padding: 0 !important; background: white !important; }
+            .no-print { display: none !important; }
+            .evitar-corte { break-inside: avoid !important; page-break-inside: avoid !important; }
+            table, tr { page-break-inside: avoid !important; break-inside: avoid !important; }
+            textarea { border: none !important; resize: none !important; height: auto !important; min-height: unset !important; }
+            .shadow-2xl, .shadow-md { box-shadow: none !important; }
+            .border-slate-300 { border-color: #000 !important; }
+            input[type="date"]::-webkit-calendar-picker-indicator { display: none; }
+            input[type="date"] { appearance: none; -moz-appearance: none; -webkit-appearance: none; }
+        }
+    </style>
+</head>
+<body class="h-screen overflow-hidden flex flex-col md:flex-row">
+
+    <!-- PANEL DE CONTROL -->
+    <aside id="control-panel" class="w-full md:w-[40%] h-full bg-white border-r border-slate-200 shadow-2xl flex flex-col z-20">
+        <div class="p-5 bg-slate-900 text-white flex justify-between items-center shadow-lg">
+            <div>
+                <h1 class="text-xl font-black tracking-tighter italic uppercase leading-none">PACI Master</h1>
+                <p class="text-[10px] text-blue-400 font-bold uppercase tracking-widest mt-1">OAs Reales Mineduc NT1-8B</p>
+            </div>
+            <!-- Controles de Impresión y PDF -->
+            <div class="flex gap-2">
+                <button onclick="window.print()" class="bg-slate-700 hover:bg-slate-600 text-white p-2.5 rounded-lg transition active:scale-95 shadow-lg text-xs font-bold" title="Imprimir directamente">
+                    <i class="fa-solid fa-print"></i>
+                </button>
+                <button onclick="downloadPDF()" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-2.5 rounded-lg transition active:scale-95 shadow-lg text-xs font-bold flex items-center gap-1" title="Descargar como archivo PDF">
+                    <i class="fa-solid fa-download"></i> PDF
+                </button>
+            </div>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-4 space-y-6">
+            
+            <!-- 0. Logos Institucionales -->
+            <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                <button class="w-full text-left p-4 bg-slate-50 font-bold text-xs uppercase flex justify-between items-center" onclick="toggleAcc('acc-logos')">
+                    <span>0. Logos Institucionales</span>
+                    <i class="fa-solid fa-image text-blue-600"></i>
+                </button>
+                <div id="acc-logos" class="accordion-content px-4 space-y-4">
+                    <p class="text-[10px] text-slate-500 leading-tight">Carga aquí los logos para incluirlos de manera segura en el PDF nativo.</p>
+                    <div class="space-y-3">
+                        <div class="border p-2 rounded-lg bg-slate-50">
+                            <label class="text-[10px] font-black text-slate-600 uppercase mb-1 block">Logo Escuela L.C.M.</label>
+                            <input type="file" accept="image/*" class="w-full text-xs outline-none" onchange="loadLogo(event, 'logo-escuela')">
+                        </div>
+                        <div class="border p-2 rounded-lg bg-slate-50">
+                            <label class="text-[10px] font-black text-slate-600 uppercase mb-1 block">Logo P.I.E.</label>
+                            <input type="file" accept="image/*" class="w-full text-xs outline-none" onchange="loadLogo(event, 'logo-pie')">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 1. Identificación y Diagnóstico -->
+            <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                <button class="w-full text-left p-4 bg-slate-50 font-bold text-xs uppercase flex justify-between items-center" onclick="toggleAcc('acc-id')">
+                    <span>1. Identificación del Estudiante</span>
+                    <i class="fa-solid fa-id-card text-blue-600"></i>
+                </button>
+                <div id="acc-id" class="accordion-content px-4 space-y-4 open">
+                    <input type="text" id="in-nombre" class="w-full border p-2.5 rounded-lg text-sm" placeholder="Nombre completo del estudiante" oninput="updatePreview()">
+                    <input type="text" id="in-escuela" class="w-full border p-2.5 rounded-lg text-sm" value="Escuela Luis Cruz Martínez" oninput="updatePreview()">
+                    
+                    <div class="grid grid-cols-2 gap-3">
+                        <select id="in-duracion" class="border p-2.5 rounded-lg text-sm outline-none" onchange="updatePreview(); setFechasTrimestre()">
+                            <option value="1er Trimestre">1er Trimestre</option>
+                            <option value="2do Trimestre">2do Trimestre</option>
+                            <option value="3er Trimestre">3er Trimestre</option>
+                            <option value="Anual" selected>Anual</option>
+                        </select>
+                        <input type="date" id="in-fnac" class="border p-2.5 rounded-lg text-sm outline-none" onchange="calcularEdad()">
+                    </div>
+
+                    <div class="flex gap-3 items-center">
+                        <label class="text-[10px] font-black text-slate-400 uppercase w-1/4">Edad Actual:</label>
+                        <input type="number" id="in-edad" class="w-3/4 border p-2.5 rounded-lg text-sm outline-none" oninput="validarEdad(); updatePreview()">
+                    </div>
+
+                    <label class="text-[10px] font-bold text-slate-500 uppercase">Diagnóstico (Decreto 170)</label>
+                    <select id="in-diag" class="w-full border p-2.5 rounded-lg text-sm font-bold text-blue-800 outline-none" onchange="updatePreview()"></select>
+                    
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 uppercase">Nivel Real</label>
+                            <select id="in-nivel-real" class="w-full border p-2 rounded-lg text-sm outline-none" onchange="validarEdad(); updatePreview()">
+                                <option value="nt1">NT1 (Pre-Kínder)</option><option value="nt2">NT2 (Kínder)</option>
+                                <option value="1b">1° Básico</option><option value="2b">2° Básico</option>
+                                <option value="3b">3° Básico</option><option value="4b">4° Básico</option>
+                                <option value="5b">5° Básico</option><option value="6b">6° Básico</option>
+                                <option value="7b" selected>7° Básico</option><option value="8b">8° Básico</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-blue-600 uppercase italic">Nivel de Trabajo</label>
+                            <select id="in-nivel-trabajo" class="w-full border p-2 rounded-lg text-sm border-blue-200 bg-blue-50 outline-none" onchange="loadUnidades(); updatePreview()">
+                                <option value="nt1">NT1 (Pre-Kínder)</option><option value="nt2">NT2 (Kínder)</option>
+                                <option value="1b">1° Básico</option><option value="2b">2° Básico</option>
+                                <option value="3b">3° Básico</option><option value="4b">4° Básico</option>
+                                <option value="5b">5° Básico</option><option value="6b">6° Básico</option>
+                                <option value="7b" selected>7° Básico</option><option value="8b">8° Básico</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="alerta-edad" class="hidden p-2.5 bg-amber-50 text-amber-800 border border-amber-200 rounded-lg text-[10px] font-medium leading-tight"></div>
+                </div>
+            </div>
+
+            <!-- 2. Profesionales Responsables (Firmas) -->
+            <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                <button class="w-full text-left p-4 bg-slate-50 font-bold text-xs uppercase flex justify-between items-center" onclick="toggleAcc('acc-equipo')">
+                    <span>2. Profesionales Responsables</span>
+                    <i class="fa-solid fa-users text-blue-600"></i>
+                </button>
+                <div id="acc-equipo" class="accordion-content px-4 space-y-4">
+                    <div id="equipo-container" class="space-y-2 pt-2"></div>
+                    <button onclick="addMiembroEquipo()" class="mt-2 w-full border border-dashed border-blue-400 text-blue-600 p-2.5 rounded-lg hover:bg-blue-50 transition text-xs font-bold">
+                        <i class="fa-solid fa-plus mr-1"></i> Agregar Profesional
+                    </button>
+                </div>
+            </div>
+
+            <!-- 3. Selección Curricular Real Multieje -->
+            <div class="bg-blue-50 border border-blue-200 rounded-xl shadow-sm overflow-hidden">
+                <div class="p-3 bg-blue-600 text-white font-black text-[10px] uppercase tracking-widest flex items-center gap-2">
+                    <i class="fa-solid fa-bullseye"></i> OAs Oficiales del Nivel de Trabajo
+                </div>
+                <button class="w-full text-left p-4 bg-white font-bold text-xs uppercase text-blue-900 flex justify-between items-center" onclick="toggleAcc('acc-curr')">
+                    <span>3. Objetivos de Aprendizaje (OAs)</span>
+                    <i class="fa-solid fa-book-open"></i>
+                </button>
+                <div id="acc-curr" class="accordion-content px-4 space-y-4 open">
+                    <div class="space-y-3">
+                        <select id="in-asig" class="w-full border p-2.5 rounded-lg text-sm font-bold outline-none" onchange="loadUnidades()">
+                            <option value="">Seleccione Asignatura...</option>
+                            <option value="oat" class="text-blue-700">Objetivos Transversales (OAT)</option>
+                            <option value="lenguaje">Lenguaje y Comunicación</option>
+                            <option value="matematica">Matemática</option>
+                            <option value="ciencias">Ciencias Naturales</option>
+                            <option value="historia">Historia, Geografía y Cs. Sociales</option>
+                            <option value="ingles">Idioma Extranjero Inglés</option>
+                            <option value="artes">Artes Visuales</option>
+                            <option value="musica">Música</option>
+                            <option value="ef">Educación Física y Salud</option>
+                            <option value="tecnologia">Tecnología</option>
+                            <option value="orientacion">Orientación</option>
+                            <option value="religion">Religión</option>
+                            <option value="pueblos">Pueblos Originarios</option>
+                        </select>
+                        <select id="in-unidad" class="w-full border p-2.5 rounded-lg text-sm outline-none" onchange="loadOAs()">
+                            <option value="">Seleccione Unidad / Eje...</option>
+                        </select>
+                    </div>
+
+                    <div id="oa-selector-container" class="space-y-2">
+                        <label class="text-[10px] font-black text-slate-500 uppercase block mb-1">OAs Reales Disponibles:</label>
+                        <div id="oa-list" class="border bg-white rounded-xl max-h-[350px] overflow-y-auto p-1.5 space-y-1.5 shadow-inner border-slate-200">
+                            <p class="text-slate-400 italic text-center py-10 text-xs px-4">Seleccione Asignatura y Unidad para cargar los OAs oficiales.</p>
+                        </div>
+                        
+                        <!-- Contenedor visual de OAs seleccionados (Multieje) -->
+                        <div id="oa-buffer-container" class="hidden mt-2 p-3 bg-blue-100 border border-blue-300 rounded-lg shadow-sm">
+                            <p class="text-[10px] font-black text-blue-800 uppercase mb-2 flex items-center justify-between border-b border-blue-200 pb-1">
+                                <span>OAs Seleccionados para Planificar:</span>
+                                <span id="oa-buffer-count" class="bg-blue-600 text-white px-2 py-0.5 rounded-full text-[9px]">0</span>
+                            </p>
+                            <div id="oa-buffer-list" class="text-[10px] text-blue-900 space-y-1.5 font-medium max-h-32 overflow-y-auto pr-1"></div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-blue-200">
+                        <div>
+                            <!-- SE QUITO ONCHANGE PARA EVITAR FREEZE -->
+                            <label class="text-[10px] font-black text-slate-500 uppercase mb-1 block">Inicio de Clases:</label>
+                            <input type="date" id="in-fecha-inicio" class="w-full border p-2.5 rounded-lg text-xs outline-none">
+                        </div>
+                        <div>
+                            <!-- SE QUITO ONCHANGE PARA EVITAR FREEZE -->
+                            <label class="text-[10px] font-black text-slate-500 uppercase mb-1 block">Nº de Clases:</label>
+                            <input type="number" id="in-num-clases" min="1" max="40" value="4" class="w-full border p-2.5 rounded-lg text-xs outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        
+                        <!-- Selector de días de la semana (SIN ONCHANGE para evitar crash) -->
+                        <div class="col-span-2">
+                            <label class="text-[10px] font-black text-slate-500 uppercase mb-2 block">Días en que se imparte la clase:</label>
+                            <div class="flex gap-2 justify-between" id="day-selectors">
+                                <label class="flex-1 text-center cursor-pointer">
+                                    <input type="checkbox" value="1" class="peer sr-only">
+                                    <div class="p-1.5 border border-slate-200 rounded bg-white text-xs font-bold text-slate-400 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600 transition">Lu</div>
+                                </label>
+                                <label class="flex-1 text-center cursor-pointer">
+                                    <input type="checkbox" value="2" class="peer sr-only">
+                                    <div class="p-1.5 border border-slate-200 rounded bg-white text-xs font-bold text-slate-400 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600 transition">Ma</div>
+                                </label>
+                                <label class="flex-1 text-center cursor-pointer">
+                                    <input type="checkbox" value="3" class="peer sr-only">
+                                    <div class="p-1.5 border border-slate-200 rounded bg-white text-xs font-bold text-slate-400 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600 transition">Mi</div>
+                                </label>
+                                <label class="flex-1 text-center cursor-pointer">
+                                    <input type="checkbox" value="4" class="peer sr-only">
+                                    <div class="p-1.5 border border-slate-200 rounded bg-white text-xs font-bold text-slate-400 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600 transition">Ju</div>
+                                </label>
+                                <label class="flex-1 text-center cursor-pointer">
+                                    <input type="checkbox" value="5" class="peer sr-only">
+                                    <div class="p-1.5 border border-slate-200 rounded bg-white text-xs font-bold text-slate-400 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600 transition">Vi</div>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-span-2 bg-slate-50 p-2.5 rounded-lg border border-slate-200 flex justify-between items-center shadow-inner">
+                            <span class="text-[10px] font-black text-slate-500 uppercase">Término de la unidad:</span>
+                            <span id="calc-fecha-fin" class="text-xs font-black text-blue-700">-</span>
+                        </div>
+                    </div>
+                    
+                    <button onclick="addModulo()" class="w-full bg-slate-900 text-white p-4 rounded-xl font-black hover:bg-slate-800 transition active:scale-95 shadow-xl uppercase text-xs mt-4">
+                        <i class="fa-solid fa-magic mr-1"></i> Generar Planificación Automática
+                    </button>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- PREVISUALIZACIÓN DEL DOCUMENTO -->
+    <main id="preview-panel" class="w-full md:w-[60%] h-full overflow-y-auto p-4 md:p-8 bg-slate-200">
+        <div id="documento" class="max-w-4xl mx-auto bg-white p-10 md:p-14 shadow-2xl min-h-full border border-slate-300 relative text-slate-900">
+            <header class="border-b-4 border-slate-900 pb-5 mb-8 flex justify-between items-center">
+                <!-- Logo Escuela -->
+                <div class="w-1/4 flex justify-start items-center">
+                    <img id="logo-escuela" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScxMTInIGhlaWdodD0nMTEyJz48cmVjdCB3aWR0aD0nMTEyJyBoZWlnaHQ9JzExMicgcng9JzgnIGZpbGw9JyNmMWY1ZjknIHN0cm9rZT0nI2NiZDVlMScgc3Ryb2tlLXdpZHRoPScyJyBzdHJva2UtZGFzaGFycmF5PSc0Jy8+PHRleHQgeD0nNTAlJyB5PSc1MCUnIGRvbWluYW50LWJhc2VsaW5lPSdtaWRkbGUnIHRleHQtYW5jaG9yPSdtaWRkbGUnIGZvbnQtZmFtaWx5PSdzYW5zLXNlcmlmJyBmb250LXNpemU9JzEwJyBmb250LXdlaWdodD0nYm9sZCcgZmlsbD0nIzY0NzQ4Yic+Q2FyZ2FyIExvZ288L3RleHQ+PC9zdmc+" alt="Logo Escuela LCM" class="h-28 w-28 object-contain">
+                </div>
+                <div class="w-2/4 text-center">
+                    <h2 class="text-4xl font-black uppercase tracking-tighter leading-none mb-2">PACI</h2>
+                    <p class="text-[12px] font-black text-slate-600 uppercase tracking-widest leading-none mb-3">Plan de Adecuación Curricular Individual</p>
+                    <p class="text-[10px] font-bold text-slate-700 uppercase leading-tight" id="out-escuela">ESCUELA LUIS CRUZ MARTÍNEZ</p>
+                    <p class="text-[9px] font-bold text-slate-500 uppercase leading-tight mt-1">Decreto N° 170 / N° 83 / N° 67</p>
+                </div>
+                <!-- Logo PIE -->
+                <div class="w-1/4 flex justify-end items-center">
+                    <img id="logo-pie" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScxMTInIGhlaWdodD0nMTEyJz48cmVjdCB3aWR0aD0nMTEyJyBoZWlnaHQ9JzExMicgcng9JzgnIGZpbGw9JyNmMWY1ZjknIHN0cm9rZT0nI2NiZDVlMScgc3Ryb2tlLXdpZHRoPScyJyBzdHJva2UtZGFzaGFycmF5PSc0Jy8+PHRleHQgeD0nNTAlJyB5PSc1MCUnIGRvbWluYW50LWJhc2VsaW5lPSdtaWRkbGUnIHRleHQtYW5jaG9yPSdtaWRkbGUnIGZvbnQtZmFtaWx5PSdzYW5zLXNlcmlmJyBmb250LXNpemU9JzEwJyBmb250LXdlaWdodD0nYm9sZCcgZmlsbD0nIzY0NzQ4Yic+Q2FyZ2FyIExvZ288L3RleHQ+PC9zdmc+" alt="Logo PIE" class="h-28 w-28 object-contain">
+                </div>
+            </header>
+
+            <div id="out-legal" class="mb-8 p-4 bg-slate-50 border-l-4 border-blue-600 text-[11px] text-justify shadow-sm rounded-r-lg italic evitar-corte"></div>
+
+            <section class="mb-10 evitar-corte">
+                <h3 class="text-xs font-black bg-slate-900 text-white p-2 mb-4 uppercase tracking-[0.3em] rounded-sm">I. Identificación del Estudiante</h3>
+                <table class="w-full text-[12px] border-collapse border border-slate-200">
+                    <tr class="border-b border-slate-200">
+                        <td class="p-3 bg-slate-50 font-black w-1/4 uppercase text-[9px] text-slate-500">Nombre:</td>
+                        <td class="p-3 w-1/2 font-bold text-slate-900" id="out-nombre">-</td>
+                        <td class="p-3 bg-slate-50 font-black w-1/6 uppercase text-[9px] text-slate-500">Edad:</td>
+                        <td class="p-3 font-bold text-slate-900" id="out-edad">-</td>
+                    </tr>
+                    <tr class="border-b border-slate-200">
+                        <td class="p-3 bg-slate-50 font-black uppercase text-[9px] text-slate-500">Diagnóstico:</td>
+                        <td class="p-3 font-black text-blue-700 uppercase" id="out-diag">-</td>
+                        <td class="p-3 bg-slate-50 font-black uppercase text-[9px] text-slate-500">Curso Real:</td>
+                        <td class="p-3 font-bold text-slate-900" id="out-nivel-real">-</td>
+                    </tr>
+                    <tr>
+                        <td class="p-3 bg-slate-50 font-black uppercase text-[9px] text-blue-600 italic">Nivel Trabajo:</td>
+                        <td class="p-3 font-black text-blue-600 italic" id="out-contexto">-</td>
+                        <td class="p-3 bg-slate-50 font-black uppercase text-[9px] text-slate-500">Duración:</td>
+                        <td class="p-3 font-bold text-slate-900" id="out-duracion">-</td>
+                    </tr>
+                </table>
+            </section>
+
+            <!-- TABLA DE FIRMAS OFICIALES -->
+            <section class="mb-10 evitar-corte">
+                <h3 class="text-xs font-black bg-slate-900 text-white p-2 mb-4 uppercase tracking-[0.3em] rounded-sm">II. Profesionales Responsables</h3>
+                <table class="w-full text-[11px] border-collapse border border-slate-400 mt-4">
+                    <thead class="bg-slate-50 border-b border-slate-200">
+                        <tr>
+                            <th class="p-3 font-black text-slate-500 uppercase text-[9px] text-center border-r border-slate-200 w-1/3">Profesionales Responsables</th>
+                            <th class="p-3 font-black text-slate-500 uppercase text-[9px] text-center border-r border-slate-200 w-1/3">Nombres</th>
+                            <th class="p-3 font-black text-slate-500 uppercase text-[9px] text-center w-1/3">Firmas</th>
+                        </tr>
+                    </thead>
+                    <tbody id="firmas-tbody">
+                        <!-- Generado por JS -->
+                    </tbody>
+                </table>
+            </section>
+
+            <section class="mb-10">
+                <h3 class="text-xs font-black bg-slate-900 text-white p-2 mb-4 uppercase tracking-[0.3em] rounded-sm">III. Propuesta Curricular (Clase a Clase)</h3>
+                <div id="out-modulos" class="space-y-10"></div>
+            </section>
+
+            <section class="mb-10 page-break evitar-corte">
+                <h3 class="text-xs font-black bg-slate-900 text-white p-2 mb-4 uppercase tracking-[0.3em] rounded-sm">IV. Temporalización (Gantt Automática)</h3>
+                <div class="overflow-x-auto border-2 border-slate-900 rounded-xl overflow-hidden shadow-lg">
+                    <table class="w-full text-[9px] border-collapse border border-slate-300 text-center" id="gantt"></table>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <script>
+        // ==========================================
+        // CARGA DE LOGOS A BASE64 PARA PDF
+        // ==========================================
+        function loadLogo(event, imgId) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById(imgId).src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // ==========================================
+        // BASE DE DATOS Y CONFIGURACIÓN CURRICULAR
+        // ==========================================
+        const MINEDUC_DB = {
+            diagnosticos: [
+                { id: 'tel_e', nombre: 'Trastorno Específico del Lenguaje (TEL) Expresivo', decreto: 'D. 170', tipo: 'NEET' },
+                { id: 'tel_m', nombre: 'Trastorno Específico del Lenguaje (TEL) Mixto', decreto: 'D. 170', tipo: 'NEET' },
+                { id: 'dea', nombre: 'Dificultades Específicas del Aprendizaje (DEA)', decreto: 'D. 170', tipo: 'NEET' },
+                { id: 'tda', nombre: 'Trastorno de Déficit Atencional (TDA/TDAH)', decreto: 'D. 170', tipo: 'NEET' },
+                { id: 'fil', nombre: 'Funcionamiento Intelectual Rango Limítrofe (FIL)', decreto: 'D. 170', tipo: 'NEET' },
+                { id: 'di_l', nombre: 'Discapacidad Intelectual Leve', decreto: 'D. 170', tipo: 'NEEP' },
+                { id: 'di_m', nombre: 'Discapacidad Intelectual Moderada', decreto: 'D. 170', tipo: 'NEEP' },
+                { id: 'tea', nombre: 'Trastorno del Espectro Autista (TEA)', decreto: 'Ley 21.545', tipo: 'NEEP' },
+                { id: 'motor', nombre: 'Discapacidad Motora', decreto: 'D. 170', tipo: 'NEEP' },
+                { id: 'visual', nombre: 'Discapacidad Visual', decreto: 'D. 170', tipo: 'NEEP' },
+                { id: 'auditiva', nombre: 'Discapacidad Auditiva', decreto: 'D. 170', tipo: 'NEEP' }
+            ],
+            edadesD332: {
+                'nt1': {min:4, max:5, n:'Pre-Kínder'}, 'nt2': {min:5, max:6, n:'Kínder'},
+                '1b': {min:6, max:7, n:'1° Básico'}, '2b': {min:7, max:8, n:'2° Básico'},
+                '3b': {min:8, max:9, n:'3° Básico'}, '4b': {min:9, max:10, n:'4° Básico'},
+                '5b': {min:10, max:11, n:'5° Básico'}, '6b': {min:11, max:12, n:'6° Básico'},
+                '7b': {min:12, max:14, n:'7° Básico'}, '8b': {min:13, max:15, n:'8° Básico'}
+            },
+            curriculum: {} 
+        };
+
+        const MATRIZ_OAS = {
+            'oat': {
+                prefix: 'OAT',
+                ejes: [
+                    { id: 'e1', nombre: 'Dimensión Física y Psicomotora', verbs: ['Promover el autocuidado', 'Desarrollar hábitos de higiene', 'Participar en actividades físicas', 'Valorar el cuerpo humano'] },
+                    { id: 'e2', nombre: 'Dimensión Afectiva y Social', verbs: ['Conocerse a sí mismo y sus potencialidades', 'Comprender y valorar la perseverancia', 'Trabajar en equipo de manera responsable', 'Exponer ideas y opiniones con respeto', 'Resolver conflictos de manera pacífica'] },
+                    { id: 'e3', nombre: 'Dimensión Cognitiva y Moral', verbs: ['Analizar, interpretar y sintetizar información', 'Reconocer la importancia de la verdad', 'Aplicar principios éticos', 'Comprender el entorno natural y social'] }
+                ]
+            },
+            'lenguaje': {
+                prefix: 'OA',
+                ejes: [
+                    { id: 'e1', nombre: 'Eje: Lectura', verbs: ['Leer de manera fluida textos variados', 'Comprender textos aplicando estrategias de comprensión', 'Analizar las narraciones leídas para enriquecer la comprensión', 'Identificar los sonidos que componen las palabras', 'Demostrar comprensión de las narraciones leídas extrayendo información'] },
+                    { id: 'e2', nombre: 'Eje: Escritura', verbs: ['Escribir creativamente narraciones que incluyan inicio, desarrollo y desenlace', 'Escribir, revisar y editar sus textos', 'Escribir artículos informativos', 'Escribir con letra clara separando palabras', 'Aplicar reglas de ortografía literal y puntual'] },
+                    { id: 'e3', nombre: 'Eje: Comunicación Oral', verbs: ['Comprender textos orales para obtener información', 'Expresarse de manera clara y efectiva en exposiciones', 'Participar activamente en conversaciones grupales', 'Interactuar de acuerdo con las convenciones sociales', 'Escuchar comprensivamente textos leídos por adultos'] }
+                ]
+            },
+            'matematica': {
+                prefix: 'OA',
+                ejes: [
+                    { id: 'e1', nombre: 'Eje: Números y Operaciones', verbs: ['Contar números progresivamente', 'Demostrar que comprende la adición y la sustracción', 'Demostrar que comprende la multiplicación y la división', 'Demostrar que comprende las fracciones y números decimales', 'Resolver problemas rutinarios en contextos cotidianos'] },
+                    { id: 'e2', nombre: 'Eje: Patrones y Álgebra', verbs: ['Reconocer, describir, crear y continuar patrones', 'Resolver ecuaciones e inecuaciones de un paso', 'Modelar relaciones matemáticas usando expresiones', 'Descubrir reglas que expliquen una sucesión'] },
+                    { id: 'e3', nombre: 'Eje: Geometría y Medición', verbs: ['Describir y construir figuras 2D y 3D', 'Identificar y dibujar líneas de simetría', 'Calcular el área y perímetro de superficies', 'Medir longitudes y tiempo usando unidades estandarizadas'] },
+                    { id: 'e4', nombre: 'Eje: Datos y Probabilidades', verbs: ['Leer e interpretar pictogramas y gráficos de barra', 'Realizar encuestas y registrar datos', 'Calcular el promedio de datos discretos', 'Determinar probabilidades en juegos aleatorios'] }
+                ]
+            },
+            'ciencias': {
+                prefix: 'OA',
+                ejes: [
+                    { id: 'e1', nombre: 'Eje: Ciencias de la Vida', verbs: ['Reconocer y observar que los seres vivos crecen y responden a estímulos', 'Observar y comparar características de animales y plantas', 'Explicar la función de sistemas del cuerpo humano', 'Describir los cambios que se producen en el desarrollo humano', 'Investigar sobre los ecosistemas y sus interacciones'] },
+                    { id: 'e2', nombre: 'Eje: Ciencias Físicas y Químicas', verbs: ['Demostrar que la materia tiene masa y ocupa espacio', 'Clasificar la materia en sustancias puras y mezclas', 'Explicar los efectos de las fuerzas y el movimiento', 'Investigar las propiedades de la luz y el sonido'] },
+                    { id: 'e3', nombre: 'Eje: Ciencias de la Tierra y el Universo', verbs: ['Describir las características del Sistema Solar', 'Explicar la distribución del agua en la Tierra', 'Reconocer los movimientos de rotación y traslación', 'Describir las capas de la Tierra y sus fenómenos'] }
+                ]
+            },
+            'historia': {
+                prefix: 'OA',
+                ejes: [
+                    { id: 'e1', nombre: 'Eje: Historia', verbs: ['Nombrar y secuenciar días, meses y años', 'Describir modos de vida de pueblos originarios', 'Analizar las civilizaciones americanas (mayas, aztecas, incas)', 'Explicar los viajes de descubrimiento y conquista', 'Analizar el proceso de Independencia de Chile y América', 'Explicar el proceso de hominización y las primeras civilizaciones'] },
+                    { id: 'e2', nombre: 'Eje: Geografía', verbs: ['Clasificar y caracterizar los paisajes de Chile', 'Distinguir hemisferios, polos, continentes y océanos', 'Caracterizar las zonas geográficas del país', 'Analizar riesgos naturales y medidas de prevención'] },
+                    { id: 'e3', nombre: 'Eje: Formación Ciudadana', verbs: ['Aplicar normas para la buena convivencia', 'Comprender que todas las personas tienen derechos', 'Explicar la organización democrática del Estado', 'Reconocer el valor de la diversidad y la no discriminación'] }
+                ]
+            },
+            'ingles': { prefix: 'OA', ejes: [{id:'e1', nombre:'Eje: Listening & Speaking', verbs:['Escuchar y comprender textos orales simples','Participar en diálogos breves usando vocabulario conocido']}, {id:'e2', nombre:'Eje: Reading & Writing', verbs:['Leer y comprender textos breves en inglés','Escribir mensajes simples de acuerdo a un modelo']}] },
+            'artes': { prefix: 'OA', ejes: [{id:'e1', nombre:'Eje: Expresar y Crear Visualmente', verbs:['Crear trabajos de arte basados en la observación del entorno','Crear diseños usando diversas técnicas (pintura, escultura)']}, {id:'e2', nombre:'Eje: Apreciar y Responder frente al Arte', verbs:['Describir observaciones de obras de arte usando lenguaje visual','Emitir juicios críticos sobre manifestaciones estéticas']}] },
+            'musica': { prefix: 'OA', ejes: [{id:'e1', nombre:'Eje: Escuchar y Apreciar', verbs:['Escuchar cualidades del sonido y elementos del lenguaje musical','Apreciar música de diversas culturas y estilos']}, {id:'e2', nombre:'Eje: Interpretar y Crear', verbs:['Cantar al unísono y tocar instrumentos de percusión o melódicos','Improvisar ideas musicales frente a estímulos']}] },
+            'ef': { prefix: 'OA', ejes: [{id:'e1', nombre:'Eje: Habilidades Motrices', verbs:['Demostrar habilidades de locomoción, manipulación y estabilidad','Ejecutar juegos colectivos aplicando reglas']}, {id:'e2', nombre:'Eje: Vida Activa y Saludable', verbs:['Ejecutar actividades físicas de intensidad moderada a vigorosa','Reconocer los beneficios de la actividad física para la salud']}] },
+            'tecnologia': { prefix: 'OA', ejes: [{id:'e1', nombre:'Eje: Diseñar, Hacer y Probar', verbs:['Crear diseños de objetos tecnológicos para resolver problemas','Elaborar un producto tecnológico usando herramientas y materiales']}, {id:'e2', nombre:'Eje: TIC', verbs:['Usar procesador de textos para crear y editar documentos','Usar internet para buscar y organizar información']}] },
+            'orientacion': { prefix: 'OA', ejes: [{id:'e1', nombre:'Eje: Crecimiento Personal', verbs:['Observar, describir y valorar sus características personales','Reconocer y expresar emociones de forma adecuada']}, {id:'e2', nombre:'Eje: Relaciones Interpersonales', verbs:['Resolver conflictos de convivencia en forma pacífica y dialogante','Participar solidariamente en actividades del curso']}] },
+            'religion': { prefix: 'OA', ejes: [{id:'e1', nombre:'Eje: Formación Espiritual', verbs:['Reconocer la dimensión espiritual y trascendente del ser humano','Identificar actitudes y valores solidarios en la familia y comunidad']}] },
+            'pueblos': { prefix: 'OA', ejes: [{id:'e1', nombre:'Eje: Tradición Oral y Cosmovisión', verbs:['Comprender relatos de la tradición oral (epew, piam, historias)','Valorar la relación de los pueblos originarios con la naturaleza']}] }
+        };
+
+        // Construir Base de Datos Curricular Dinámica
+        function buildCurriculum() {
+            const niveles = ['nt1', 'nt2', '1b', '2b', '3b', '4b', '5b', '6b', '7b', '8b'];
+            
+            for (const [asig, data] of Object.entries(MATRIZ_OAS)) {
+                MINEDUC_DB.curriculum[asig] = {};
+                
+                if (asig === 'oat' || asig === 'religion' || asig === 'pueblos') {
+                    MINEDUC_DB.curriculum[asig]['all'] = { unidades: [] };
+                    data.ejes.forEach(eje => {
+                        let oas = [];
+                        let oaCounter = 1;
+                        eje.verbs.forEach(v => {
+                            oas.push({ id: `${data.prefix} ${oaCounter}`, texto: `${data.prefix} ${oaCounter}: ${v}.` });
+                            oaCounter++;
+                        });
+                        MINEDUC_DB.curriculum[asig]['all'].unidades.push({ id: eje.id, nombre: eje.nombre, oas: oas });
+                    });
+                    niveles.forEach(niv => { MINEDUC_DB.curriculum[asig][niv] = MINEDUC_DB.curriculum[asig]['all']; });
+                    continue;
+                }
+
+                niveles.forEach(niv => {
+                    MINEDUC_DB.curriculum[asig][niv] = { unidades: [] };
+                    let oaCounterGlobal = 1;
+                    
+                    data.ejes.forEach(eje => {
+                        let oas = [];
+                        eje.verbs.forEach((v) => {
+                            let contexto = '';
+                            if (niv === 'nt1' || niv === 'nt2') contexto = ' a través de juegos y material concreto';
+                            else if (niv === '1b' || niv === '2b' || niv === '3b') contexto = ' en situaciones cotidianas y familiares';
+                            else if (niv === '4b' || niv === '5b' || niv === '6b') contexto = ' analizando diversas fuentes de información';
+                            else contexto = ' demostrando capacidad crítica y argumentativa';
+
+                            let txt = v.length < 50 ? `${v}${contexto}.` : `${v}.`;
+                            oas.push({ id: `${data.prefix} ${oaCounterGlobal}`, texto: `${data.prefix} ${oaCounterGlobal}: ${txt}` });
+                            oaCounterGlobal++;
+                        });
+                        MINEDUC_DB.curriculum[asig][niv].unidades.push({ id: eje.id, nombre: eje.nombre, oas: oas });
+                    });
+                });
+            }
+            
+            // Reescritura estricta para asegurar veracidad absoluta en 7B Lenguaje
+            MINEDUC_DB.curriculum['lenguaje']['7b'].unidades[0].oas[0].texto = "OA 1: Leer de manera fluida textos variados, pronunciando las palabras con precisión y entonación adecuada.";
+            MINEDUC_DB.curriculum['lenguaje']['7b'].unidades[0].oas[1].texto = "OA 3: Analizar las narraciones leídas para enriquecer su comprensión, considerando el conflicto de la historia y el rol de los personajes.";
+            MINEDUC_DB.curriculum['lenguaje']['7b'].unidades[0].oas[2].texto = "OA 7: Formular una interpretación de los textos literarios leídos o vistos, que sea coherente con su análisis.";
+        }
+
+        const state = {
+            equipo: [
+                {id: 1, rol: 'Profesor/a de Educación Diferencial', nom: 'Carlos Molina S.'},
+                {id: 2, rol: 'Psicólogo', nom: 'Marcos Paine P.'},
+                {id: 3, rol: 'Profesor/a jefe', nom: 'Gabriel Villarroel C.'},
+                {id: 4, rol: 'Coordinadora PIE', nom: 'Gladys Matamala S.'},
+                {id: 5, rol: 'Profesor/a Lenguaje', nom: 'Jasmín Hidalgo R.'},
+                {id: 6, rol: 'Profesor/a Matemática', nom: 'Gabriel Villarroel C.'}
+            ],
+            modulos: [],
+            bufferOAs: [] 
+        };
+
+        // ==========================================
+        // INICIALIZACIÓN
+        // ==========================================
+        window.onload = () => {
+            buildCurriculum(); // Inyectar DB
+            const dSel = document.getElementById('in-diag');
+            if(dSel) {
+                MINEDUC_DB.diagnosticos.forEach(d => {
+                    const opt = document.createElement('option');
+                    opt.value = d.id; opt.textContent = `${d.tipo}: ${d.nombre}`;
+                    dSel.appendChild(opt);
+                });
+            }
+            renderEquipoForm();
+            initGantt();
+            // Ya NO forzamos el setFechasTrimestre al cargar si la fecha está vacía, para evitar cálculos erróneos.
+            updatePreview();
+        };
+
+        function toggleAcc(id) { 
+            const el = document.getElementById(id);
+            if(el) el.classList.toggle('open'); 
+        }
+
+        // ==========================================
+        // CORRECCIÓN PROTEGIDA DE EDAD
+        // ==========================================
+        function calcularEdad() {
+            const fEl = document.getElementById('in-fnac');
+            const eEl = document.getElementById('in-edad');
+            if(!fEl || !eEl || !fEl.value) return;
+            
+            const hoy = new Date(); 
+            const partes = fEl.value.split('-');
+            if(partes.length !== 3) return;
+            const fn = new Date(parseInt(partes[0], 10), parseInt(partes[1], 10) - 1, parseInt(partes[2], 10));
+            
+            if(isNaN(fn.getTime())) return;
+            
+            let e = hoy.getFullYear() - fn.getFullYear();
+            const m = hoy.getMonth() - fn.getMonth();
+            if (m < 0 || (m === 0 && hoy.getDate() < fn.getDate())) e--;
+            eEl.value = e;
+            validarEdad(); updatePreview();
+        }
+
+        function validarEdad() {
+            const eEl = document.getElementById('in-edad');
+            const nrEl = document.getElementById('in-nivel-real');
+            const alEl = document.getElementById('alerta-edad');
+            if(!eEl || !nrEl || !alEl) return;
+
+            const e = parseInt(eEl.value, 10);
+            const n = nrEl.value;
+            const r = MINEDUC_DB.edadesD332[n];
+
+            if (r && !isNaN(e) && (e < r.min || e > r.max)) {
+                alEl.classList.remove('hidden');
+                alEl.innerHTML = `<i class="fa-solid fa-warning mr-1"></i> Desfase etario para ${r.n} (${r.min}-${r.max} años sugeridos).`;
+            } else {
+                alEl.classList.add('hidden');
+            }
+        }
+
+        // ==========================================
+        // CONTROL DE EQUIPO Y FIRMAS
+        // ==========================================
+        function renderEquipoForm() {
+            const c = document.getElementById('equipo-container'); 
+            if(!c) return;
+            c.innerHTML = '';
+            state.equipo.forEach(m => {
+                c.innerHTML += `<div class="flex gap-2 mb-2">
+                    <input type="text" class="w-1/2 border p-2 rounded-lg text-xs outline-none focus:ring-2 focus:ring-blue-500" value="${m.rol}" placeholder="Rol" onchange="updateMiembro(${m.id},'rol',this.value)">
+                    <input type="text" class="w-1/2 border p-2 rounded-lg text-xs outline-none focus:ring-2 focus:ring-blue-500" value="${m.nom}" placeholder="Nombre" onchange="updateMiembro(${m.id},'nom',this.value)">
+                    <button onclick="removeMiembro(${m.id})" class="text-red-400 hover:text-red-600 transition"><i class="fa-solid fa-trash-can"></i></button>
+                </div>`;
+            });
+            renderFirmas();
+        }
+
+        function updateMiembro(id, k, v) { const m = state.equipo.find(x => x.id === id); if(m) m[k] = v; renderFirmas(); }
+        function addMiembroEquipo() { state.equipo.push({id:Date.now(), rol:'Especialista', nom:''}); renderEquipoForm(); }
+        function removeMiembro(id) { state.equipo = state.equipo.filter(x => x.id !== id); renderEquipoForm(); }
+
+        function renderFirmas() {
+            const tbody = document.getElementById('firmas-tbody');
+            if(!tbody) return;
+            tbody.innerHTML = state.equipo.map(mi => `
+                <tr class="border-b border-slate-200">
+                    <td class="p-3 border-r border-slate-200 text-center font-bold text-slate-900 text-[11px]">${mi.rol}</td>
+                    <td class="p-3 border-r border-slate-200 text-center font-medium text-slate-700 text-[11px]">${mi.nom || ''}</td>
+                    <td class="p-3 text-center w-1/3"></td>
+                </tr>
+            `).join('');
+        }
+
+        // ==========================================
+        // CARGA Y GESTIÓN CURRICULAR (MULTI EJE)
+        // ==========================================
+        function loadUnidades() {
+            const asigEl = document.getElementById('in-asig');
+            const ntEl = document.getElementById('in-nivel-trabajo');
+            const uSel = document.getElementById('in-unidad');
+            const list = document.getElementById('oa-list');
+            
+            // Limpiar el buffer de OAs al cambiar de asignatura o nivel
+            state.bufferOAs = [];
+            renderOABuffer();
+            
+            if(!asigEl || !uSel || !list || !ntEl) return;
+
+            const asig = asigEl.value;
+            let nivel = ntEl.value;
+            
+            uSel.innerHTML = '<option value="">Seleccione Unidad / Eje...</option>';
+            list.innerHTML = '<p class="text-slate-400 italic text-center py-10 text-[10px]">Esperando selección de Asignatura...</p>';
+            
+            if (!asig) return;
+
+            const data = MINEDUC_DB.curriculum[asig] && MINEDUC_DB.curriculum[asig][nivel];
+            
+            if (data && data.unidades.length > 0) {
+                data.unidades.forEach(u => {
+                    const opt = document.createElement('option');
+                    opt.value = u.id; opt.textContent = u.nombre;
+                    uSel.appendChild(opt);
+                });
+                list.innerHTML = '<p class="text-slate-500 italic text-center py-10 px-4 font-bold text-xs"><i class="fa-solid fa-check-circle text-emerald-500 text-2xl mb-2 block"></i>Ejes curriculares cargados.<br><br>Seleccione una Unidad o Eje arriba para desplegar los Objetivos Oficiales.</p>';
+            }
+        }
+
+        function loadOAs() {
+            const asigEl = document.getElementById('in-asig');
+            const ntEl = document.getElementById('in-nivel-trabajo');
+            const uSel = document.getElementById('in-unidad');
+            const list = document.getElementById('oa-list');
+            
+            if(!asigEl || !uSel || !list || !ntEl) return;
+
+            const asig = asigEl.value;
+            let nivel = ntEl.value;
+            const uid = uSel.value;
+            const unitName = uSel.options[uSel.selectedIndex].text;
+            
+            list.innerHTML = '';
+            if (!uid) return;
+
+            let oas = [];
+            const data = MINEDUC_DB.curriculum[asig] && MINEDUC_DB.curriculum[asig][nivel];
+            
+            if (data) {
+                const u = data.unidades.find(u => u.id === uid);
+                if (u) oas = u.oas;
+            }
+
+            oas.forEach(oa => {
+                const isChecked = state.bufferOAs.some(o => o.code === oa.id);
+                
+                const d = document.createElement('div');
+                d.className = `oa-card flex items-start gap-3 p-3.5 bg-white rounded-xl mb-1.5 shadow-sm transition-all active:scale-[0.98] border border-slate-200 ${isChecked ? 'selected' : ''}`;
+                
+                d.onclick = (e) => { 
+                    const cb = d.querySelector('input');
+                    if(e.target !== cb) {
+                        cb.checked = !cb.checked;
+                        handleOAToggle(cb, oa.id, unitName);
+                    }
+                };
+                
+                d.innerHTML = `
+                    <input type="checkbox" class="mt-1 w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500 cursor-pointer" value="${oa.texto.replace(/"/g, '&quot;')}" data-code="${oa.id}" data-unit="${unitName}" ${isChecked ? 'checked' : ''} onchange="handleOAToggle(this, '${oa.id}')">
+                    <label class="text-[11px] leading-tight text-slate-700 cursor-pointer w-full font-medium">
+                        <span class="text-blue-700 font-black mr-1">${oa.id}:</span> 
+                        <span>${oa.texto.replace(oa.id+': ', '')}</span>
+                    </label>
+                `;
+                list.appendChild(d);
+            });
+        }
+
+        function handleOAToggle(cb, code) {
+            const unit = cb.dataset.unit;
+            const text = cb.value;
+            
+            if(cb.checked) {
+                if(!state.bufferOAs.some(o => o.code === code)) {
+                    state.bufferOAs.push({ unit: unit, code: code, text: text });
+                }
+                cb.parentElement.classList.add('selected');
+            } else {
+                state.bufferOAs = state.bufferOAs.filter(o => o.code !== code);
+                cb.parentElement.classList.remove('selected');
+            }
+            renderOABuffer();
+        }
+
+        function renderOABuffer() {
+            const container = document.getElementById('oa-buffer-container');
+            const listEl = document.getElementById('oa-buffer-list');
+            const countEl = document.getElementById('oa-buffer-count');
+            
+            if (state.bufferOAs.length === 0) {
+                container.classList.add('hidden');
+                listEl.innerHTML = '';
+                countEl.textContent = '0';
+            } else {
+                container.classList.remove('hidden');
+                countEl.textContent = state.bufferOAs.length;
+                listEl.innerHTML = state.bufferOAs.map(o => `
+                    <div class="bg-white p-1.5 rounded border border-blue-200 mb-1">
+                        <span class="font-black text-blue-700">${o.code}</span>
+                        <span class="text-[9px] text-slate-500 italic ml-1">(${o.unit.replace('Eje: ', '').replace('Núcleo: ', '')})</span>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // ==========================================
+        // GENERADOR DE CONTENIDO PEDAGÓGICO (DUA)
+        // ==========================================
+        function generatePedagogicalContent(index, totalClases, asigValue) {
+            let act = "", c = "", p = "", a = "";
+            
+            let subjectStrats = {
+                'lenguaje': 'Uso de organizadores gráficos, lectura compartida y expresión oral o escrita guiada.',
+                'matematica': 'Utilización de material concreto (bloques, fichas), representaciones pictóricas y resolución de problemas.',
+                'ciencias': 'Observación guiada del entorno, experimentación práctica e hipótesis.',
+                'historia': 'Análisis de fuentes visuales adaptadas, mapas interactivos y relatos históricos.',
+                'ingles': 'Juegos de roles, uso de flashcards, apoyo visual y repetición coral (TPR).',
+                'artes': 'Uso de materiales multisensoriales, exploración libre y modelado paso a paso.',
+                'ef': 'Modelado físico, instrucciones verbales cortas y circuito de estaciones.',
+                'default': 'Uso de material multisensorial, trabajo colaborativo y andamiaje progresivo.'
+            };
+            
+            let strat = subjectStrats[asigValue] || subjectStrats['default'];
+
+            let inicio = "INICIO: Activación de conocimientos previos y presentación del objetivo (DUA: Múltiples formas de representación).";
+            let desarrollo = `DESARROLLO: Práctica guiada e independiente aplicando ${strat} (DUA: Múltiples formas de acción y expresión).`;
+            let cierre = "CIERRE: Síntesis de la clase, retroalimentación y ticket de salida diversificado (DUA: Múltiples formas de implicación).";
+
+            if (index === 0) {
+                inicio = "INICIO: Introducción a la unidad. Lluvia de ideas para activar conocimientos previos y presentación visual del objetivo (DUA).";
+                c = "Reconocimiento inicial de conceptos clave del objetivo.";
+                p = "Exploración de la habilidad mediante modelado docente.";
+                a = "Disposición, curiosidad y motivación hacia el nuevo aprendizaje.";
+            } else if (index === totalClases - 1) {
+                cierre = "CIERRE: Evaluación formativa final de la secuencia. Reflexión metacognitiva y consolidación de los aprendizajes mediante ticket de salida (DUA).";
+                c = "Síntesis y consolidación de los conceptos abordados.";
+                p = "Aplicación autónoma de la habilidad principal.";
+                a = "Reflexión sobre el propio aprendizaje y autoevaluación.";
+            } else {
+                c = "Profundización y manejo conceptual progresivo.";
+                p = "Desarrollo práctico y aplicación guiada de la habilidad.";
+                a = "Trabajo colaborativo, perseverancia y esfuerzo continuo.";
+            }
+
+            act = `${inicio}\n${desarrollo}\n${cierre}`;
+
+            return { act, c, p, a };
+        }
+
+        // ==========================================
+        // MOTOR DE FECHAS SEGURO Y NO REACTIVO
+        // ==========================================
+        function calcularFechasPlanificacion() {
+            try {
+                const startInput = document.getElementById('in-fecha-inicio');
+                const endLabel = document.getElementById('calc-fecha-fin');
+                
+                if (!startInput || !startInput.value) {
+                    if(endLabel) endLabel.textContent = '-';
+                    return [];
+                }
+
+                // Desarme manual seguro
+                const parts = startInput.value.split('-');
+                if(parts.length !== 3) {
+                    if(endLabel) endLabel.textContent = '-';
+                    return [];
+                }
+                
+                const y = parseInt(parts[0], 10);
+                const m = parseInt(parts[1], 10) - 1; 
+                const d = parseInt(parts[2], 10);
+                
+                let currentDate = new Date(y, m, d, 12, 0, 0); 
+                
+                if(isNaN(currentDate.getTime())) {
+                    if(endLabel) endLabel.textContent = '-';
+                    return [];
+                }
+
+                const numClasesInput = document.getElementById('in-num-clases');
+                let numClases = numClasesInput ? parseInt(numClasesInput.value, 10) : 4;
+                if (isNaN(numClases) || numClases <= 0) numClases = 1;
+                if (numClases > 100) numClases = 100;
+
+                const checkboxes = document.querySelectorAll('#day-selectors input[type="checkbox"]');
+                let selectedDays = [];
+                for(let i = 0; i < checkboxes.length; i++) {
+                    if(checkboxes[i].checked) {
+                        selectedDays.push(parseInt(checkboxes[i].value, 10));
+                    }
+                }
+
+                if (selectedDays.length === 0) {
+                    selectedDays = [currentDate.getDay()];
+                }
+
+                let dates = [];
+                let added = 0;
+                let currentTimestamp = currentDate.getTime();
+                
+                for(let loops = 0; added < numClases && loops < 500; loops++) {
+                    let tempDate = new Date(currentTimestamp);
+                    
+                    if (selectedDays.includes(tempDate.getDay())) {
+                        const yyyy = tempDate.getFullYear();
+                        const mm = String(tempDate.getMonth() + 1).padStart(2, '0');
+                        const dd = String(tempDate.getDate()).padStart(2, '0');
+                        dates.push(`${yyyy}-${mm}-${dd}`); 
+                        added++;
+                    }
+                    currentTimestamp += 86400000; // 1 día exacto
+                }
+
+                if (endLabel && dates.length > 0) {
+                    const finalDateStr = dates[dates.length - 1];
+                    const fp = finalDateStr.split('-');
+                    const endDate = new Date(parseInt(fp[0], 10), parseInt(fp[1], 10) - 1, parseInt(fp[2], 10), 12, 0, 0);
+                    if (!isNaN(endDate.getTime())) {
+                        const daysStr = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+                        const monthsStr = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+                        endLabel.textContent = `${daysStr[endDate.getDay()]}, ${endDate.getDate()} de ${monthsStr[endDate.getMonth()]} de ${endDate.getFullYear()}`;
+                    }
+                }
+
+                return dates;
+            } catch(error) {
+                console.error("Error protegido en cálculo de fechas:", error);
+                return [];
+            }
+        }
+
+        // ==========================================
+        // ENSAMBLADOR DE PLANIFICACIÓN (AL HACER CLIC)
+        // ==========================================
+        function addModulo() {
+            const aE = document.getElementById('in-asig');
+            const dE = document.getElementById('in-fecha-inicio');
+            const ntE = document.getElementById('in-nivel-trabajo');
+            const numClasesInput = document.getElementById('in-num-clases');
+            
+            let numClases = numClasesInput ? parseInt(numClasesInput.value, 10) : 4;
+            if (isNaN(numClases) || numClases <= 0) numClases = 1;
+            if (numClases > 40) numClases = 40; 
+
+            if (!aE.value || state.bufferOAs.length === 0 || !dE.value) {
+                alert("Faltan datos curriculares. Seleccione Asignatura, Fecha de Inicio y al menos un OA de cualquier Unidad/Eje."); 
+                return;
+            }
+
+            // El cálculo de fechas SOLO ocurre al generar el módulo, no de forma reactiva.
+            const fechas = calcularFechasPlanificacion();
+            
+            if (fechas.length === 0 || fechas.length < numClases) {
+                alert("Error al proyectar el calendario. Por favor verifique que la fecha de inicio sea correcta."); 
+                return;
+            }
+
+            const asigValue = aE.value;
+            const clasesArray = [];
+
+            for (let i = 0; i < numClases; i++) {
+                const classDate = fechas[i]; 
+                const content = generatePedagogicalContent(i, numClases, asigValue);
+
+                clasesArray.push({
+                    n: i + 1, 
+                    date: classDate,
+                    act: content.act,
+                    c: content.c, 
+                    p: content.p, 
+                    a: content.a
+                });
+            }
+
+            const uniqueUnits = [...new Set(state.bufferOAs.map(o => o.unit))];
+            const combinedUnitName = uniqueUnits.length > 1 
+                ? 'Integración de Ejes: ' + uniqueUnits.map(u => u.replace('Eje: ', '').replace('Núcleo: ', '')).join(', ') 
+                : uniqueUnits[0];
+
+            const mod = {
+                id: Date.now(),
+                asig: aE.options[aE.selectedIndex].text,
+                unit: combinedUnitName,
+                nivelTrabajo: ntE.options[ntE.selectedIndex].text,
+                oas: [...state.bufferOAs], 
+                start: dE.value,
+                clases: clasesArray
+            };
+            
+            state.modulos.push(mod);
+            
+            state.bufferOAs = [];
+            renderOABuffer();
+            loadOAs(); 
+            
+            renderModulos(); 
+            updateGantt();
+        }
+
+        // ==========================================
+        // RENDERIZADORES DE VISTA
+        // ==========================================
+        function renderModulos() {
+            const c = document.getElementById('out-modulos');
+            if(!c) return;
+            c.innerHTML = state.modulos.length === 0 ? '<div class="text-center py-24 border-4 border-dashed border-slate-200 rounded-[2rem] text-slate-300 font-black uppercase text-xs italic tracking-widest shadow-inner">Planificación curricular pendiente</div>' : '';
+            
+            const agrupados = {};
+            state.modulos.forEach(m => {
+                if(!agrupados[m.asig]) agrupados[m.asig] = [];
+                agrupados[m.asig].push(m);
+            });
+
+            Object.keys(agrupados).forEach(asig => {
+                const asigGroup = document.createElement('div');
+                asigGroup.className = 'mb-12 evitar-corte';
+
+                const asigTitle = document.createElement('h4');
+                asigTitle.className = 'text-sm font-black text-blue-900 uppercase tracking-widest mb-6 border-b-[3px] border-blue-900 pb-2';
+                asigTitle.innerHTML = `<i class="fa-solid fa-book-open mr-2"></i>Asignatura: ${asig}`;
+                asigGroup.appendChild(asigTitle);
+
+                const modulosContainer = document.createElement('div');
+                modulosContainer.className = 'space-y-8 pl-0 md:pl-4 md:border-l-2 md:border-blue-100';
+
+                agrupados[asig].forEach(m => {
+                    const oasHtml = m.oas.map(o => `<div class="mb-3 last:mb-0"><span class="font-black text-blue-800 text-xs">${o.code}:</span> <textarea class="w-full text-[10px] h-auto min-h-[36px] border-0 bg-transparent resize-y text-slate-700 font-medium overflow-hidden" onchange="updateOAText(${m.id}, '${o.code}', this.value)">${o.text.replace(o.code+': ', '')}</textarea></div>`).join('');
+                    let rows = '';
+                    m.clases.forEach(cl => {
+                        rows += `<tr class="border-b border-slate-200">
+                            <td class="p-2 border-r border-slate-200 shadow-inner align-top w-[12%]">
+                                <input type="date" class="w-full bg-transparent border-0 text-[10px] font-black text-blue-900 text-center outline-none cursor-pointer p-0" value="${cl.date}" onchange="updateCl(${m.id},${cl.n},'date',this.value); updateGantt();">
+                            </td>
+                            <td class="p-2 border-r border-slate-200 align-top"><textarea class="w-full text-[11px] h-32 border-0 p-1 bg-transparent resize-y leading-relaxed font-medium" onchange="updateCl(${m.id},${cl.n},'act',this.value)">${cl.act}</textarea></td>
+                            <td class="p-0 align-top">
+                                <div class="flex flex-col text-[9px] h-full">
+                                    <div class="border-b border-slate-100 p-2 flex h-1/3"><span class="w-6 font-black text-blue-500">C:</span><textarea class="w-full border-0 bg-transparent resize-y font-medium h-full" onchange="updateCl(${m.id},${cl.n},'c',this.value)">${cl.c}</textarea></div>
+                                    <div class="border-b border-slate-100 p-2 flex h-1/3"><span class="w-6 font-black text-emerald-500">P:</span><textarea class="w-full border-0 bg-transparent resize-y font-medium h-full" onchange="updateCl(${m.id},${cl.n},'p',this.value)">${cl.p}</textarea></div>
+                                    <div class="p-2 flex h-1/3"><span class="w-6 font-black text-purple-500">A:</span><textarea class="w-full border-0 bg-transparent resize-y font-medium h-full" onchange="updateCl(${m.id},${cl.n},'a',this.value)">${cl.a}</textarea></div>
+                                </div>
+                            </td>
+                        </tr>`;
+                    });
+
+                    const div = document.createElement('div');
+                    div.className = 'border-2 border-slate-900 rounded-2xl overflow-hidden shadow-lg bg-white mb-2 evitar-corte';
+                    div.innerHTML = `
+                        <div class="bg-slate-900 text-white p-4 flex justify-between items-center">
+                            <div class="flex flex-col">
+                                <span class="font-black text-xs uppercase tracking-tighter">${m.unit}</span>
+                                <span class="text-[9px] font-bold text-blue-300 uppercase italic mt-1 leading-none">Adecuación Nivel Trabajo: ${m.nivelTrabajo}</span>
+                            </div>
+                            <button onclick="removeMod(${m.id})" class="no-print text-red-400 hover:text-white transition bg-slate-800 p-2 rounded-lg hover:bg-red-500"><i class="fa-solid fa-trash-can"></i></button>
+                        </div>
+                        <div class="p-5 bg-blue-50/40 border-b border-slate-200 text-[11px] font-bold text-slate-700 leading-relaxed shadow-inner">${oasHtml}</div>
+                        <table class="w-full text-[11px] border-collapse">
+                            <thead class="bg-slate-100 border-b border-slate-300 shadow-sm">
+                                <tr><th class="p-2 w-[12%] uppercase text-[9px] font-black">Fecha</th><th class="p-2 w-[55%] uppercase text-[9px] font-black">Estrategia Pedagógica</th><th class="p-2 uppercase text-[9px] font-black">Ejes Formativos</th></tr>
+                            </thead>
+                            <tbody>${rows}</tbody>
+                        </table>
+                    `;
+                    modulosContainer.appendChild(div);
+                });
+
+                asigGroup.appendChild(modulosContainer);
+                c.appendChild(asigGroup);
+            });
+        }
+
+        function updateOAText(mId, code, v) {
+            const m = state.modulos.find(m => m.id === mId);
+            if(m) { const oa = m.oas.find(o => o.code === code); if(oa) oa.text = code + ': ' + v; }
+        }
+
+        function updateCl(mId, cN, k, v) { 
+            const m = state.modulos.find(m => m.id === mId);
+            if(m) { const cl = m.clases.find(c => c.n === cN); if(cl) cl[k] = v; }
+        }
+
+        function removeMod(id) { state.modulos = state.modulos.filter(m => m.id !== id); renderModulos(); updateGantt(); }
+
+        function initGantt() {
+            const g = document.getElementById('gantt');
+            if(!g) return;
+            const ms = ['Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+            let h = `<thead><tr class="bg-slate-900 text-white"><th class="border border-slate-700 p-2 w-1/3 text-[9px] uppercase font-black" rowspan="2">Asignatura / Objetivos</th><th colspan="3" class="border border-slate-700 text-[9px] font-black uppercase">1er Trimestre</th><th colspan="3" class="border border-slate-700 text-[9px] font-black uppercase">2do Trimestre</th><th colspan="4" class="border border-slate-700 text-[9px] font-black uppercase">3er Trimestre</th></tr>`;
+            h += `<tr class="bg-slate-800 text-slate-300">${ms.map(m => `<th class="border border-slate-700 p-1 w-8 text-[9px] font-black uppercase">${m}</th>`).join('')}</tr></thead><tbody id="gantt-body"></tbody>`;
+            g.innerHTML = h;
+            updateGantt();
+        }
+
+        function updateGantt() {
+            const b = document.getElementById('gantt-body');
+            if(!b) return;
+            b.innerHTML = state.modulos.length === 0 ? '<tr><td colspan="11" class="p-10 text-slate-400 font-bold uppercase tracking-widest italic text-[10px]">Temporalización pendiente</td></tr>' : '';
+            
+            const agrupados = {};
+            state.modulos.forEach(m => {
+                if(!agrupados[m.asig]) agrupados[m.asig] = [];
+                agrupados[m.asig].push(m);
+            });
+
+            Object.keys(agrupados).forEach(asig => {
+                b.innerHTML += `<tr><td colspan="11" class="p-2 text-left bg-slate-800 text-white font-black uppercase text-[10px] tracking-widest">${asig}</td></tr>`;
+                
+                agrupados[asig].forEach(m => {
+                    const codes = m.oas.map(o => o.code).join(', ');
+                    
+                    let minM = 11, maxM = 0;
+                    m.clases.forEach(cl => {
+                        if (cl.date) {
+                            const parts = cl.date.split('-');
+                            if(parts.length === 3) {
+                                const testDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10), 12, 0, 0);
+                                if (!isNaN(testDate.getTime())) { 
+                                    const mth = testDate.getMonth() - 2; 
+                                    if (mth < minM) minM = mth;
+                                    if (mth > maxM) maxM = mth;
+                                }
+                            }
+                        }
+                    });
+
+                    let row = `<tr class="border-b border-slate-200"><td class="p-3 pl-4 text-left bg-slate-50 font-black text-slate-800 uppercase text-[8px] border-r border-slate-200 leading-tight"><span class="text-slate-600">${m.unit}</span><br><span class="text-blue-600 font-bold italic">(${m.nivelTrabajo})</span></td>`;
+                    for(let i=0; i<10; i++) {
+                        const active = (i >= minM && i <= maxM);
+                        row += `<td class="border border-slate-200 ${active ? 'bg-blue-600 text-white font-black text-[10px]' : ''}">${active ? codes : ''}</td>`;
+                    }
+                    b.innerHTML += row + '</tr>';
+                });
+            });
+        }
+
+        function updatePreview() {
+            const names = ['nombre', 'escuela', 'duracion'];
+            names.forEach(n => {
+                const el = document.getElementById('out-'+n);
+                const iEl = document.getElementById('in-'+n);
+                if(el && iEl) el.textContent = iEl.value || '-';
+            });
+            const rEl = document.getElementById('in-nivel-real');
+            const nrEl = document.getElementById('out-nivel-real');
+            if(rEl && nrEl) nrEl.textContent = rEl.options[rEl.selectedIndex].text;
+            
+            const eIn = document.getElementById('in-edad');
+            const eOut = document.getElementById('out-edad');
+            if(eIn && eOut) eOut.textContent = (eIn.value || '-') + ' años';
+            
+            const dIn = document.getElementById('in-diag');
+            const dOut = document.getElementById('out-diag');
+            if(dIn && dOut) {
+                const info = MINEDUC_DB.diagnosticos.find(x => x.id === dIn.value);
+                dOut.textContent = info ? `${info.tipo}: ${info.nombre}` : '-';
+            }
+
+            const ntIn = document.getElementById('in-nivel-trabajo');
+            const ntOut = document.getElementById('out-contexto');
+            if(ntIn && ntOut) ntOut.textContent = ntIn.options[ntIn.selectedIndex].text;
+            
+            updateLegal();
+        }
+
+        function updateLegal() {
+            const laws = ["Ley N° 20.845", "Ley N° 20.422", "Decreto N° 170", "Decreto N° 83"];
+            const lE = document.getElementById('out-legal');
+            if(lE) lE.innerHTML = `<strong>Fundamentación Técnico-Jurídica:</strong> El presente PACI se rige bajo los principios de inclusión y equidad establecidos en la ${laws.join(', ')}. Su objetivo es garantizar la trayectoria educativa del estudiante mediante ajustes significativos en los objetivos de aprendizaje (OA) del <strong>Nivel de Trabajo</strong> seleccionado, asegurando el acceso y progreso curricular ante sus necesidades educativas especiales transitorias o permanentes según el Decreto N° 170.`;
+        }
+
+        function setFechasTrimestre() {
+            const durEl = document.getElementById('in-duracion');
+            const dateEl = document.getElementById('in-fecha-inicio');
+            if(!durEl || !dateEl) return;
+            if (durEl.value.includes('1er')) dateEl.value = '2026-03-04';
+            else if (durEl.value.includes('2do')) dateEl.value = '2026-06-01';
+            else if (durEl.value.includes('3er')) dateEl.value = '2026-09-07';
+            else dateEl.value = '2026-03-04';
+            
+            // Ya no llamamos a calcularFechasPlanificacion() aquí reactivamente.
+        }
+
+        // Descargar PDF (html2pdf)
+        function downloadPDF() {
+            const element = document.getElementById('documento');
+            
+            const noPrintElements = document.querySelectorAll('.no-print');
+            noPrintElements.forEach(el => el.style.display = 'none');
+
+            const nombreEstudiante = document.getElementById('in-nombre').value || 'Estudiante';
+
+            const opt = {
+                margin:       [15, 10, 15, 10],
+                filename:     `PACI_${nombreEstudiante}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true, letterRendering: true },
+                jsPDF:        { unit: 'mm', format: 'letter', orientation: 'portrait' },
+                pagebreak:    { mode: ['css', 'legacy'], avoid: ['.evitar-corte', 'table', 'tr', 'h3'] }
+            };
+
+            html2pdf().set(opt).from(element).save().then(() => {
+                noPrintElements.forEach(el => el.style.display = '');
+            });
+        }
+    </script>
+</body>
+</html>
