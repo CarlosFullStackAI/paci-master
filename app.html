@@ -5250,37 +5250,49 @@ table{border-collapse:collapse}
             swapped.noPrint.forEach(function(el) { el.style.display = ''; });
         }
 
-        // Descargar PDF (html2pdf)
+        // Descargar PDF (html2pdf) - Usa CLON en contenedor aislado para evitar offsets de capture
         async function downloadPDF() {
             var element = document.getElementById('documento');
             var nombreEstudiante = document.getElementById('in-nombre') ? (document.getElementById('in-nombre').value || 'Estudiante') : 'Estudiante';
 
-            // Preparar layout para captura
+            // Preparar el documento original (fuerza colores para PDF)
             var mobileSaved = prepareForPDF();
             var swapped = swapInputsForPDF(element);
+            await waitForReflow();
 
-            // Esperar a que el navegador repinte los cambios de layout
+            // Clonar el documento en un contenedor aislado en el body
+            // Esto evita problemas de offset causados por el preview-panel
+            var clone = element.cloneNode(true);
+            clone.id = 'documento-pdf-clone';
+            var container = document.createElement('div');
+            container.id = 'pdf-render-container';
+            container.style.cssText = 'position:fixed!important;left:0!important;top:0!important;width:900px!important;height:auto!important;padding:0!important;margin:0!important;background:white!important;z-index:-9999!important;pointer-events:none!important;overflow:visible!important;';
+
+            // Clon: ancho fijo, posicion estatica, padding interno
+            clone.style.cssText = 'position:static!important;width:900px!important;max-width:none!important;margin:0!important;padding:3.5rem!important;box-sizing:border-box!important;background:white!important;color:#1a1a2e!important;font-family:Merriweather,Georgia,Charter,serif!important;font-size:12pt!important;line-height:1.5!important;box-shadow:none!important;border:none!important;min-height:0!important;overflow:visible!important;';
+
+            container.appendChild(clone);
+            document.body.appendChild(container);
             await waitForReflow();
 
             var opt = {
                 margin:       [12, 12, 12, 12],
                 filename:     'PACI_' + nombreEstudiante + '.pdf',
                 image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: (mobileSaved && mobileSaved.isMob) ? 1.5 : 2, useCORS: true, letterRendering: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0, windowWidth: 900 },
+                html2canvas:  { scale: 2, useCORS: true, letterRendering: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0, x: 0, y: 0, windowWidth: 900 },
                 jsPDF:        { unit: 'mm', format: 'letter', orientation: 'portrait' },
                 pagebreak:    { mode: ['css', 'legacy'], before: ['.html2pdf__page-break'], avoid: ['.evitar-corte', 'tr', '.paci-header', 'h3', 'h4'] }
             };
 
-            function restaurar() {
+            function cleanup() {
+                if (container && container.parentNode) container.parentNode.removeChild(container);
                 restoreSwappedInputs(element, swapped);
                 restoreAfterPDF(mobileSaved);
             }
 
-            html2pdf().set(opt).from(element).save().then(function() {
-                restaurar();
-            }).catch(function(err) {
+            html2pdf().set(opt).from(clone).save().then(cleanup).catch(function(err) {
                 console.error('Error generando PDF:', err);
-                restaurar();
+                cleanup();
                 alert('Error al generar PDF. Intente usar la opcion Imprimir (Ctrl+P) como alternativa.');
             });
         }
