@@ -153,8 +153,26 @@ table{border-collapse:collapse}
         .oa-card .text-blue-700 { color: #38bdf8 !important; }
 
         .evitar-corte { break-inside: avoid; page-break-inside: avoid; }
-        .html2pdf__page-break { page-break-before: always; break-before: page; }
+        .html2pdf__page-break {
+            page-break-before: always !important;
+            break-before: page !important;
+            display: block !important;
+            clear: both !important;
+        }
         .consolidado-materiales { margin-top: 1rem; }
+
+        /* === FIX TABLA: forzar layout correcto para html2canvas/PDF ===
+           html2canvas renderiza el DOM en modo pantalla (no @media print). Algunas
+           reglas globales o resets de Tailwind pueden hacer que <thead>/<tr>/<th>
+           pierdan su display nativo, lo que causa que los encabezados se apilen
+           verticalmente en una columna estrecha a la izquierda en vez de extenderse
+           horizontalmente sobre cada columna. Forzamos el display correcto. */
+        #documento table { display: table !important; }
+        #documento thead { display: table-header-group !important; }
+        #documento tbody { display: table-row-group !important; }
+        #documento tfoot { display: table-footer-group !important; }
+        #documento tr { display: table-row !important; }
+        #documento th, #documento td { display: table-cell !important; }
 
         /* === Day toggle === */
         .day-active {
@@ -624,26 +642,109 @@ table{border-collapse:collapse}
                 print-color-adjust: exact !important;
             }
 
-            /* 12) PAGINACION Y SALTOS */
-            .evitar-corte { break-inside: avoid !important; page-break-inside: avoid !important; }
-            table { page-break-inside: auto !important; }
-            tr { page-break-inside: avoid !important; break-inside: avoid !important; }
-            thead { display: table-header-group !important; }
-            .html2pdf__page-break { page-break-before: always !important; break-before: page !important; }
+            /* 12-PRE) Tabla de firmas: NUNCA se parte (es chica, cabe en una pagina) */
+            #documento .tabla-firmas {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+            /* 12-PRE) Cada OA individual: NUNCA se parte entre paginas */
+            #documento .oa-row {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+
+            /* 12) PAGINACION Y SALTOS - REGLAS DE FLUJO ENTRE PAGINAS
+               Filosofia: las TABLAS pueden fluir entre paginas (auto), las FILAS no se cortan,
+               los HEADERS se pegan al siguiente bloque. Asi cada item arranca limpio
+               y las tablas largas no causan paginas vacias por intentar mantenerse enteras. */
+            .evitar-corte {
+                break-inside: avoid !important;
+                page-break-inside: avoid !important;
+            }
+            #documento table {
+                page-break-inside: auto !important;
+                break-inside: auto !important;
+            }
+            #documento tr {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                display: table-row !important;
+            }
+            /* Cada celda y su contenido: indivisible dentro de la fila */
+            #documento td {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+            #documento td textarea {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+            #documento thead {
+                display: table-header-group !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                page-break-after: avoid !important;
+                break-after: avoid !important;
+            }
+            #documento thead tr {
+                display: table-row !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                page-break-after: avoid !important;
+                break-after: avoid !important;
+            }
+            #documento thead th {
+                display: table-cell !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                page-break-after: avoid !important;
+                break-after: avoid !important;
+            }
+            /* Headers azules (.paci-header): siempre se pegan al contenido siguiente */
+            #documento .paci-header,
+            #documento h3.paci-header,
+            #documento h4 {
+                page-break-after: avoid !important;
+                break-after: avoid !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+            /* Headers de modulo (azul oscuro) y su tabla deben quedar juntos al inicio */
+            #documento [style*="background-color:#091845"]:not(table):not(td):not(tr) {
+                page-break-after: avoid !important;
+                break-after: avoid !important;
+            }
+            .html2pdf__page-break {
+                page-break-before: always !important;
+                break-before: page !important;
+                display: block !important;
+                clear: both !important;
+                height: 0 !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
 
             /* 12b) CONSOLIDADO DE MATERIALES: flujo continuo */
+            /* CONSOLIDADO DE MATERIALES: SIEMPRE pegado a su tabla de clases.
+               NUNCA arranca en pagina nueva por si solo (huerfano sin header de modulo). */
             .consolidado-materiales {
                 margin-top: 8pt !important;
                 padding-top: 0 !important;
-                break-before: auto !important;
-                page-break-before: auto !important;
+                /* Pegar al contenido anterior (tabla de clases del modulo) */
+                break-before: avoid !important;
+                page-break-before: avoid !important;
+                /* El bloque entero se mantiene junto si cabe */
+                break-inside: avoid !important;
+                page-break-inside: avoid !important;
             }
             /* Titulo pegado a la tabla (anti-orphan) */
             .consolidado-materiales > .paci-header {
                 break-after: avoid !important;
                 page-break-after: avoid !important;
+                break-before: avoid !important;
+                page-break-before: avoid !important;
             }
-            /* Tabla: PUEDE fluir entre paginas */
+            /* Tabla del consolidado: si es muy grande, puede fluir; lo normal es que quepa entera */
             .consolidado-materiales table {
                 width: 100% !important;
                 table-layout: fixed !important;
@@ -1174,18 +1275,13 @@ table{border-collapse:collapse}
                         </div>
                     </div>
 
-                    <!-- Botones de IA -->
-                    <div class="flex gap-2 mt-3">
-                      <button onclick="aiAdaptOAs()" class="flex-1 bg-purple-600 hover:bg-purple-500 text-white p-3 rounded-xl font-bold transition active:scale-95 shadow-lg text-[10px] uppercase" title="Usar IA para adaptar los OAs seleccionados al nivel del estudiante">
-                        <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Adaptar OAs con IA
-                      </button>
-                      <button onclick="aiDUAStrategies()" class="flex-1 bg-teal-600 hover:bg-teal-500 text-white p-3 rounded-xl font-bold transition active:scale-95 shadow-lg text-[10px] uppercase" title="Generar estrategias DUA basadas en barreras de aprendizaje">
-                        <i class="fa-solid fa-brain mr-1"></i> Estrategias DUA
-                      </button>
-                    </div>
-
-                    <button id="btn-generar" onclick="addModulo()" class="w-full bg-slate-900 text-white p-4 rounded-xl font-black hover:bg-slate-800 transition active:scale-95 shadow-xl uppercase text-xs mt-4 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100">
-                        <i class="fa-solid fa-magic mr-1"></i> Generar Planificación Automática
+                    <button id="btn-generar" onclick="addModulo()" class="w-full bg-slate-900 text-white p-4 rounded-xl font-black hover:bg-slate-800 transition active:scale-95 shadow-xl uppercase text-xs mt-4 disabled:bg-slate-500 disabled:cursor-not-allowed disabled:active:scale-100 border-2 border-slate-900">
+                        <i class="fa-solid fa-bolt mr-1"></i> Generar Planificación (Rápida)
+                    </button>
+                    <!-- Botón IA: genera las clases con IA en base a los OAs adaptados.
+                         Aparece solo si AI_ENABLED=true. Coexiste con el generador procedural de arriba. -->
+                    <button id="btn-generar-ia" onclick="generateClassesWithAI()" class="w-full bg-violet-700 text-white p-4 rounded-xl font-black hover:bg-violet-800 transition active:scale-95 shadow-xl uppercase text-xs mt-2 disabled:bg-violet-400 disabled:cursor-not-allowed disabled:active:scale-100 border-2 border-violet-800" style="display:none;" title="La IA genera clases personalizadas en base a los OAs (adaptados o originales). Tarda 10-30s.">
+                        <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Generar Clases con IA
                     </button>
                 </div>
             </div>
@@ -1231,7 +1327,7 @@ table{border-collapse:collapse}
 
             <div id="out-legal" class="mb-8 p-4 border-l-4 border-blue-600 text-[11px] text-justify shadow-sm rounded-r-lg italic evitar-corte" style="background-color:#b8d4fb;color:#091845"></div>
 
-            <section class="mb-10 evitar-corte">
+            <section class="mb-10">
                 <h3 class="paci-header font-black text-white mb-4 uppercase rounded" style="background-color:#091845;background-image:linear-gradient(135deg,#091845 0%,#1240c4 100%);padding:12px 16px;font-size:13px;letter-spacing:0.15em;color:#ffffff;">I. Identificación del Estudiante</h3>
                 <table class="w-full text-[12px] border-collapse border-2 border-blue-200 rounded overflow-hidden">
                     <tr class="border-b border-blue-100">
@@ -1256,9 +1352,9 @@ table{border-collapse:collapse}
             </section>
 
             <!-- TABLA DE FIRMAS OFICIALES -->
-            <section class="mb-10 evitar-corte">
+            <section class="mb-10 html2pdf__page-break">
                 <h3 class="paci-header font-black text-white mb-4 uppercase rounded" style="background-color:#091845;background-image:linear-gradient(135deg,#091845 0%,#1240c4 100%);padding:12px 16px;font-size:13px;letter-spacing:0.15em;color:#ffffff;">II. Profesionales Responsables</h3>
-                <table class="w-full text-[11px] border-collapse border-2 border-blue-200 mt-4 rounded overflow-hidden">
+                <table class="w-full text-[11px] border-collapse border-2 border-blue-200 mt-4 rounded overflow-hidden tabla-firmas">
                     <thead style="background-color:#a3c2f5">
                         <tr class="border-b border-blue-200">
                             <th class="p-3 font-black text-blue-800 uppercase text-[9px] text-center border-r border-blue-200 w-1/3">Profesionales Responsables</th>
@@ -1272,13 +1368,13 @@ table{border-collapse:collapse}
                 </table>
             </section>
 
-            <section class="mb-10">
+            <section class="mb-10 html2pdf__page-break">
                 <h3 class="paci-header font-black text-white mb-4 uppercase rounded" style="background-color:#091845;background-image:linear-gradient(135deg,#091845 0%,#1240c4 100%);padding:12px 16px;font-size:13px;letter-spacing:0.15em;color:#ffffff;">III. Propuesta Curricular (Clase a Clase)</h3>
                 <div id="out-modulos" class="space-y-10"></div>
             </section>
 
-            <section class="mb-10 page-break evitar-corte">
-                <h3 class="paci-header font-black text-white mb-4 uppercase rounded" style="background-color:#091845;background-image:linear-gradient(135deg,#091845 0%,#1240c4 100%);padding:12px 16px;font-size:13px;letter-spacing:0.15em;color:#ffffff;">IV. Temporalización (Gantt Automática)</h3>
+            <section class="mb-10 html2pdf__page-break">
+                <h3 class="paci-header font-black text-white mb-4 uppercase rounded" style="background-color:#091845;background-image:linear-gradient(135deg,#091845 0%,#1240c4 100%);padding:12px 16px;font-size:13px;letter-spacing:0.15em;color:#ffffff;">IV. Temporalización</h3>
                 <div class="overflow-x-auto border-2 border-slate-900 rounded-xl overflow-hidden shadow-lg">
                     <table class="w-full text-[9px] border-collapse border border-slate-300 text-center" id="gantt"></table>
                 </div>
@@ -3145,7 +3241,10 @@ table{border-collapse:collapse}
               if (s.age) document.getElementById('in-edad').value = s.age;
             }
             if (data.modules && data.modules.length) {
-              state.modulos = data.modules;
+              state.modulos = data.modules.map(m => ({
+                ...m,
+                oas: (m.oas || []).map(normalizeOA)
+              }));
             }
             if (data.team && data.team.length) {
               data.team.forEach((t, i) => {
@@ -3268,7 +3367,13 @@ table{border-collapse:collapse}
                 image: { type: 'jpeg', quality: 0.98 },
                 html2canvas: { scale: (mobileSaved && mobileSaved.isMob) ? 1.5 : 2, useCORS: true, letterRendering: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0, windowWidth: 900 },
                 jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
-                pagebreak: { mode: ['css', 'legacy'], before: ['.html2pdf__page-break'], avoid: ['.evitar-corte', 'tr', '.paci-header', 'h3', 'h4'] }
+                // mode: avoid-all + css + legacy garantiza saltos consistentes en cualquier navegador.
+                // before: usa multiples selectores por si alguno no aplica en cierta version.
+                pagebreak: {
+                    mode: ['avoid-all', 'css', 'legacy'],
+                    before: ['.html2pdf__page-break', '.page-break'],
+                    avoid: ['.evitar-corte', 'tr', '.paci-header', 'h3', 'h4', 'thead']
+                }
             };
 
             function restaurar() {
@@ -3545,7 +3650,7 @@ table{border-collapse:collapse}
                             asig: mod.asig || '',
                             unit: mod.unit || '',
                             nivelTrabajo: mod.nivelTrabajo || doc.work_level || '',
-                            oas: mod.oas || [],
+                            oas: (mod.oas || []).map(normalizeOA),
                             start: mod.start || doc.date_start || '',
                             clases: mod.clases || []
                         });
@@ -3595,6 +3700,10 @@ table{border-collapse:collapse}
 
         window.onload = () => {
             try {
+                // Mostrar boton "Generar Clases con IA" solo si AI_ENABLED
+                const btnGenerarIA = document.getElementById('btn-generar-ia');
+                if (btnGenerarIA) btnGenerarIA.style.display = AI_ENABLED ? 'block' : 'none';
+
                 // PROTECCIÓN NUCLEAR: impedir scroll del body (solo desktop)
                 if (!isMobile()) {
                     document.body.scrollTop = 0;
@@ -4079,7 +4188,7 @@ table{border-collapse:collapse}
                 'Profesor/a de Educación Diferencial': ['Carlos Molina Salgado', 'Victoria Irazoqui Alarcón', 'Trinidad Aguilera Pincheira', 'Yoselyn Melita Pascal'],
                 'Psicólogo': ['Marcos Paine Paillao'],
                 'Fonoaudiólogo/a': ['Fernanda Duhart Fernandez'],
-                'Profesor/a Jefe': ['Jasmín Pérez Villamán', 'Itsha Díaz Muñoz', 'Eduardo Valenzuela Aguayo', 'Margot Torres Opazo', 'Moises Villarroel Cortés', 'José Luis Andrade Fuenzalida', 'Ruben Ramírez Molina', 'Gabriel Villarroel Cortés'],
+                'Profesor/a Jefe': ['Jasmín Pérez Villamán', 'Itsha Díaz Muñoz', 'Eduardo Valenzuela Aguayo', 'Margot Torres Opazo', 'Moises Villarroel Cortés', 'José Luis Andrade Fuenzalida', 'Ruben Ramírez Molina', 'Gabriel Villarroel Cortés', 'Sebastián Salamó Valenzuela'],
                 'Coordinador/a PIE': ['Gladys Matamala Salas'],
                 'Profesor/a de Artes Visuales': ['Ruben Ramírez Molina (1° a 8°)'],
                 'Profesor/a de Música': ['José Luis Andrade Fuenzalida (1° a 8°)'],
@@ -4435,7 +4544,14 @@ table{border-collapse:collapse}
 
             if(cb.checked) {
                 if(!state.bufferOAs.some(o => o.code === code)) {
-                    state.bufferOAs.push({ unit: unit, code: code, text: text });
+                    // textoOriginal: texto MINEDUC (inmutable). textoAdecuado: editable por el educador.
+                    // Inicialmente coinciden; divergen solo si el educador edita.
+                    state.bufferOAs.push({
+                        unit: unit,
+                        code: code,
+                        textoOriginal: text,
+                        textoAdecuado: text
+                    });
                 }
                 cb.parentElement.classList.add('selected');
             } else {
@@ -4444,6 +4560,38 @@ table{border-collapse:collapse}
             }
             renderOABuffer();
             updateValidationHints();
+        }
+
+        // Normaliza un OA al formato nuevo {textoOriginal, textoAdecuado} aceptando datos legacy {text}
+        function normalizeOA(o) {
+            if (!o) return o;
+            if (o.textoOriginal && o.textoAdecuado) return o;
+            const fallback = o.text || o.textoAdecuado || o.textoOriginal || '';
+            return {
+                unit: o.unit || '',
+                code: o.code || '',
+                textoOriginal: o.textoOriginal || fallback,
+                textoAdecuado: o.textoAdecuado || fallback
+            };
+        }
+
+        // Estado UI: que OAs del buffer tienen el panel de edicion abierto
+        state.oaEditorsOpen = state.oaEditorsOpen || {};
+
+        // Toggle global: IA habilitada cuando OPENROUTER_API_KEY este configurada en Cloudflare.
+        // Cambiar a false para ocultar los botones de IA (global y por OA).
+        const AI_ENABLED = true;
+
+        function escapeHtml(s) {
+            return String(s == null ? '' : s)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        function stripCodePrefix(code, text) {
+            if (!text) return '';
+            const prefix = code + ': ';
+            return text.startsWith(prefix) ? text.slice(prefix.length) : text;
         }
 
         function renderOABuffer() {
@@ -4458,18 +4606,228 @@ table{border-collapse:collapse}
             } else {
                 container.classList.remove('hidden');
                 countEl.textContent = state.bufferOAs.length;
-                listEl.innerHTML = state.bufferOAs.map(o => `
-                    <div class="bg-white p-1.5 rounded border border-blue-200 mb-1">
-                        <span class="font-black text-blue-700">${o.code}</span>
-                        <span class="text-[9px] text-slate-500 italic ml-1">(${o.unit.replace('Eje: ', '').replace('Núcleo: ', '')})</span>
-                    </div>
-                `).join('');
+                // El max-h-32 del HTML original cortaba el panel inline de edicion (oculto por overflow).
+                // Ajustamos dinamicamente: si hay paneles abiertos, damos altura amplia.
+                const algunoAbierto = state.bufferOAs.some(o => state.oaEditorsOpen[o.code]);
+                listEl.style.maxHeight = algunoAbierto ? '70vh' : '12rem';
+                listEl.innerHTML = state.bufferOAs.map(o => {
+                    const adecuado = o.textoOriginal !== o.textoAdecuado;
+                    const isOpen = !!state.oaEditorsOpen[o.code];
+                    const codeAttr = String(o.code).replace(/'/g, "\\'");
+                    const adecuadoBadge = adecuado
+                        ? '<span style="background:#fef3c7;color:#92400e;font-size:8px;font-weight:800;padding:1px 6px;border-radius:10px;margin-left:4px;">ADECUADO</span>'
+                        : '';
+                    const previewText = stripCodePrefix(o.code, o.textoAdecuado);
+                    const editor = isOpen ? `
+                        <div class="oa-editor mt-2 p-2 bg-slate-50 rounded border border-slate-200">
+                            <div class="mb-2">
+                                <p class="text-[9px] font-black uppercase text-slate-500 mb-1"><i class="fa-solid fa-lock"></i> Original (MINEDUC)</p>
+                                <p class="text-[10px] text-slate-600 italic">${escapeHtml(stripCodePrefix(o.code, o.textoOriginal))}</p>
+                            </div>
+                            <div>
+                                <p class="text-[9px] font-black uppercase text-blue-700 mb-1"><i class="fa-solid fa-pen"></i> Texto adecuado (editable)</p>
+                                <textarea
+                                    class="w-full text-[10px] p-2 border-2 border-blue-300 rounded resize-y min-h-[80px] bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                    oninput="updateOAAdapted('${codeAttr}', this.value)"
+                                >${escapeHtml(stripCodePrefix(o.code, o.textoAdecuado))}</textarea>
+                            </div>
+                            <div class="flex gap-1 mt-2 flex-wrap">
+                                <button type="button" onclick="restoreOAOriginal('${codeAttr}')" class="text-[9px] font-bold px-2 py-1 bg-slate-200 text-slate-700 rounded hover:bg-slate-300">
+                                    <i class="fa-solid fa-rotate-left"></i> Restaurar original
+                                </button>
+                                <button type="button" onclick="toggleOAEditor('${codeAttr}')" class="text-[9px] font-bold px-2 py-1 bg-slate-700 text-white rounded hover:bg-slate-800 ml-auto">
+                                    Cerrar
+                                </button>
+                            </div>
+                        </div>
+                    ` : '';
+
+                    return `
+                        <div class="bg-white p-1.5 rounded border border-blue-200 mb-1" data-oa-code="${o.code}">
+                            <div class="flex items-center justify-between gap-2">
+                                <div class="flex items-center gap-1 flex-1 min-w-0">
+                                    <span class="font-black text-blue-700">${o.code}</span>
+                                    <span class="text-[9px] text-slate-500 italic">(${escapeHtml(o.unit.replace('Eje: ', '').replace('Núcleo: ', ''))})</span>
+                                    ${adecuadoBadge}
+                                </div>
+                                <div class="flex items-center gap-1 flex-shrink-0">
+                                    <button type="button" onclick="toggleOAEditor('${codeAttr}')" class="text-[9px] font-bold px-2 py-0.5 ${isOpen ? 'bg-blue-700 text-white' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'} rounded">
+                                        <i class="fa-solid ${isOpen ? 'fa-chevron-up' : 'fa-pen-to-square'}"></i> ${isOpen ? 'Cerrar' : 'Editar'}
+                                    </button>
+                                </div>
+                            </div>
+                            ${!isOpen ? `<p class="text-[9px] text-slate-500 mt-1" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${escapeHtml(previewText)}</p>` : ''}
+                            ${editor}
+                        </div>
+                    `;
+                }).join('');
             }
+        }
+
+        // Abrir/cerrar el panel de edicion de un OA del buffer
+        function toggleOAEditor(code) {
+            state.oaEditorsOpen[code] = !state.oaEditorsOpen[code];
+            renderOABuffer();
+        }
+
+        // Actualizar el texto adecuado de un OA en el buffer (no toca textoOriginal)
+        function updateOAAdapted(code, nuevoTexto) {
+            const oa = state.bufferOAs.find(o => o.code === code);
+            if (!oa) return;
+            const trimmed = (nuevoTexto || '').trim();
+            // Mantener el prefijo "OA X: " consistente con el formato del catalogo
+            oa.textoAdecuado = trimmed ? (code + ': ' + trimmed) : oa.textoOriginal;
+            // No re-renderizamos el buffer entero para no perder foco del textarea;
+            // solo actualizamos el badge "ADECUADO" si cambio el estado.
+            const card = document.querySelector(`[data-oa-code="${code}"]`);
+            if (card) {
+                const adecuado = oa.textoOriginal !== oa.textoAdecuado;
+                let badge = card.querySelector('.oa-adecuado-badge');
+                const header = card.querySelector('.flex.items-center.gap-1');
+                if (adecuado && !badge && header) {
+                    badge = document.createElement('span');
+                    badge.className = 'oa-adecuado-badge';
+                    badge.style.cssText = 'background:#fef3c7;color:#92400e;font-size:8px;font-weight:800;padding:1px 6px;border-radius:10px;margin-left:4px;';
+                    badge.textContent = 'ADECUADO';
+                    header.appendChild(badge);
+                } else if (!adecuado && badge) {
+                    badge.remove();
+                }
+            }
+        }
+
+        // Restaurar el texto original del MINEDUC en un OA del buffer
+        function restoreOAOriginal(code) {
+            const oa = state.bufferOAs.find(o => o.code === code);
+            if (!oa) return;
+            oa.textoAdecuado = oa.textoOriginal;
+            renderOABuffer();
         }
 
         // ==========================================
         // GENERADOR DE CONTENIDO PEDAGÓGICO (DUA)
         // ==========================================
+        // Devuelve un foco/sub-tema especifico distinto para cada clase, rotando por asignatura.
+        // Evita que las clases procedurales se repitan textualmente.
+        function getVariacionClase(index, asigValue) {
+            const variaciones = {
+                'lenguaje': [
+                    'Lectura compartida de un texto narrativo corto',
+                    'Producción escrita de oraciones con palabras nuevas',
+                    'Comprensión lectora con preguntas literales e inferenciales',
+                    'Conversación guiada en pares sobre el tema leído',
+                    'Vocabulario contextual con apoyo de imágenes',
+                    'Escritura espontánea con plantilla guiada',
+                    'Identificación de personajes, lugares y secuencia',
+                    'Resumen oral de un texto leído',
+                    'Predicción a partir del título e ilustraciones',
+                    'Análisis del propósito comunicativo del texto',
+                    'Dramatización breve de una situación del texto',
+                    'Elaboración de un dibujo con descripción escrita'
+                ],
+                'matematica': [
+                    'Conteo y comparación de cantidades con material concreto',
+                    'Resolución de problemas aditivos cotidianos',
+                    'Resolución de problemas sustractivos cotidianos',
+                    'Identificación de patrones numéricos y figurativos',
+                    'Medición con unidades no convencionales (palmos, pasos)',
+                    'Reconocimiento de figuras geométricas en el entorno',
+                    'Lectura y registro de datos en tablas simples',
+                    'Estimación y cálculo mental con números pequeños',
+                    'Operaciones aritméticas con bloques multibase',
+                    'Ubicación espacial y orientación en cuadrículas',
+                    'Comparación de longitudes y pesos con balanza',
+                    'Resolución de situaciones cotidianas con dinero ficticio'
+                ],
+                'ciencias': [
+                    'Observación dirigida del entorno natural',
+                    'Experimentación simple con material seguro',
+                    'Registro de hipótesis con dibujos',
+                    'Clasificación de seres vivos con tarjetas',
+                    'Comparación de elementos por sus características',
+                    'Análisis de un fenómeno con apoyo de video',
+                    'Construcción de un modelo con material concreto',
+                    'Investigación guiada con apoyo bibliográfico',
+                    'Reflexión sobre cuidado del medio ambiente',
+                    'Elaboración de fichas de seres vivos',
+                    'Discusión en torno a una pregunta científica',
+                    'Síntesis con organizador gráfico ilustrado'
+                ],
+                'historia': [
+                    'Análisis de fotografías históricas del entorno',
+                    'Construcción de línea de tiempo personal',
+                    'Lectura de relato histórico simplificado',
+                    'Ubicación de lugares en mapa adaptado',
+                    'Comparación entre pasado y presente',
+                    'Identificación de personajes históricos relevantes',
+                    'Dramatización breve de una situación histórica',
+                    'Reflexión sobre tradiciones y cultura local',
+                    'Análisis de un objeto del pasado',
+                    'Elaboración de un álbum histórico ilustrado',
+                    'Discusión guiada sobre identidad y comunidad',
+                    'Investigación familiar con apoyo del hogar'
+                ],
+                'ingles': [
+                    'Vocabulario de objetos del aula con flashcards',
+                    'Canción educativa con gestos (TPR)',
+                    'Juego de roles en situación cotidiana',
+                    'Asociación imagen-palabra con tarjetas',
+                    'Repetición coral de estructuras simples',
+                    'Lectura compartida con audio',
+                    'Producción oral guiada de saludos y despedidas',
+                    'Identificación de colores y números',
+                    'Memorización con juego de memoria',
+                    'Descripción simple de imágenes',
+                    'Diálogo breve en pares con apoyo visual',
+                    'Comprensión auditiva con video corto'
+                ],
+                'artes': [
+                    'Exploración de texturas con materiales variados',
+                    'Pintura libre con témperas y pinceles',
+                    'Modelado con plasticina o arcilla',
+                    'Collage con papeles de colores',
+                    'Dibujo guiado paso a paso',
+                    'Creación con material reciclado',
+                    'Apreciación de obra y reproducción libre',
+                    'Trabajo con plantillas y stencils',
+                    'Estampado con elementos naturales',
+                    'Dactilopintura con apoyo sensorial',
+                    'Diseño de máscaras o títeres',
+                    'Composición visual con formas geométricas'
+                ],
+                'ef': [
+                    'Calentamiento con juegos de coordinación',
+                    'Circuito de equilibrio con conos y cuerdas',
+                    'Juegos de lanzamiento y recepción de pelotas',
+                    'Desplazamientos variados (correr, saltar, gatear)',
+                    'Trabajo de coordinación óculo-manual',
+                    'Juego cooperativo con reglas simples',
+                    'Ejercicios de motricidad gruesa con aros',
+                    'Estaciones de habilidades motrices básicas',
+                    'Baile y expresión corporal con música',
+                    'Juego dirigido con material adaptado',
+                    'Ejercicios de respiración y relajación',
+                    'Circuito de obstáculos con apoyo docente'
+                ],
+                'default': [
+                    'Exploración guiada con apoyo visual',
+                    'Trabajo colaborativo en parejas',
+                    'Reflexión individual con guía estructurada',
+                    'Aplicación a un contexto real cotidiano',
+                    'Comparación entre ejemplos contrastantes',
+                    'Síntesis con organizador gráfico',
+                    'Demostración con material concreto',
+                    'Discusión guiada en grupo pequeño',
+                    'Creación de un producto simple',
+                    'Observación dirigida con registro',
+                    'Resolución de un desafío cooperativo',
+                    'Juego educativo con apoyo del docente'
+                ]
+            };
+            const list = variaciones[asigValue] || variaciones['default'];
+            return list[index % list.length];
+        }
+
         function generatePedagogicalContent(index, totalClases, asigValue) {
             let act = "", c = "", p = "", a = "";
 
@@ -4554,7 +4912,10 @@ table{border-collapse:collapse}
                 }
             }
 
-            act = `ACTIVIDAD CENTRAL:\n${actividadCentral}`;
+            // Foco especifico de esta clase (rota por indice para evitar repeticion)
+            const focoClase = getVariacionClase(index, asigValue);
+
+            act = `FOCO DE LA CLASE: ${focoClase}.\n\nACTIVIDAD CENTRAL:\n${actividadCentral}`;
 
             // Generar materiales según asignatura y fase
             const materiales = generateMaterials(asigValue, index, totalClases);
@@ -4756,7 +5117,7 @@ table{border-collapse:collapse}
 
             let numClases = numClasesInput ? parseInt(numClasesInput.value, 10) : 4;
             if (isNaN(numClases) || numClases <= 0) numClases = 1;
-            if (numClases > 40) numClases = 40;
+            if (numClases > 60) numClases = 60;
 
             if (!aE.value || state.bufferOAs.length === 0 || !dE.value) {
                 const ntCurr = document.getElementById('in-nivel-trabajo')?.value || '';
@@ -4849,6 +5210,168 @@ table{border-collapse:collapse}
         }
 
         // ==========================================
+        // GENERAR CLASES CON IA (OpenRouter)
+        // ==========================================
+        // Coexiste con addModulo() (procedural). Usa los OAs adaptados (textoAdecuado)
+        // para que la IA genere clases personalizadas al estudiante.
+        async function generateClassesWithAI() {
+            const aE = document.getElementById('in-asig');
+            const dE = document.getElementById('in-fecha-inicio');
+            const ntE = document.getElementById('in-nivel-trabajo');
+            const numClasesInput = document.getElementById('in-num-clases');
+            const btnIA = document.getElementById('btn-generar-ia');
+
+            let numClases = numClasesInput ? parseInt(numClasesInput.value, 10) : 4;
+            if (isNaN(numClases) || numClases <= 0) numClases = 1;
+            if (numClases > 60) numClases = 60;
+
+            if (!aE.value || state.bufferOAs.length === 0 || !dE.value) {
+                const ntCurr = ntE?.value || '';
+                const alertMsg = (ntCurr === 'nt1' || ntCurr === 'nt2')
+                    ? 'Faltan datos curriculares. Seleccione Ámbito/Núcleo, Fecha de Inicio y al menos un OA.'
+                    : 'Faltan datos curriculares. Seleccione Asignatura, Fecha de Inicio y al menos un OA.';
+                alert(alertMsg);
+                return;
+            }
+
+            const fechas = calcularFechasPlanificacion();
+            if (fechas.length < numClases) {
+                alert('Error al proyectar el calendario. Verifica que la fecha de inicio sea correcta y que haya suficientes dias habiles.');
+                return;
+            }
+
+            // Mensaje claro al usuario sobre lo que va a pasar
+            // Estimacion de tiempo: ~15s por lote de 12 clases.
+            const lotesEstimados = Math.ceil(numClases / 12);
+            const tiempoEstimado = lotesEstimados <= 1 ? '10-30 segundos'
+                : lotesEstimados === 2 ? '30-60 segundos'
+                : `${lotesEstimados * 15}-${lotesEstimados * 30} segundos (${lotesEstimados} lotes)`;
+            const confirmMsg = `La IA generara ${numClases} clase(s) personalizadas en base a los OAs (adaptados o originales).\n\n` +
+                `Esto consume 1 consulta de IA (de 100 diarias) y puede tardar ${tiempoEstimado}.\n\n¿Continuar?`;
+            if (!confirm(confirmMsg)) return;
+
+            if (btnIA) {
+                btnIA.disabled = true;
+                btnIA.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> IA generando clases...';
+            }
+
+            try {
+                const diagSel = document.getElementById('in-diag');
+                const diagName = diagSel?.options[diagSel.selectedIndex]?.text || '';
+                const diagId = diagSel?.value || '';
+                const studentLevel = document.getElementById('in-nivel-real')?.options[document.getElementById('in-nivel-real').selectedIndex]?.text || '';
+                const targetLevel = ntE?.options[ntE.selectedIndex]?.text || '';
+                const asigName = aE.options[aE.selectedIndex].text;
+                const ntCurr = ntE?.value || '';
+                const esParvularia = (ntCurr === 'nt1' || ntCurr === 'nt2');
+                const token = localStorage.getItem('paci_token');
+
+                const res = await fetch('/api/ai/generate-classes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        _token: token,
+                        oas: state.bufferOAs.map(o => ({
+                            code: o.code,
+                            textoOriginal: o.textoOriginal,
+                            textoAdecuado: o.textoAdecuado
+                        })),
+                        asignatura: asigName,
+                        nivel: targetLevel,
+                        studentLevel: studentLevel,
+                        diagnosisId: diagId,
+                        diagnosisName: diagName,
+                        numClases: numClases,
+                        esParvularia: esParvularia
+                    })
+                });
+
+                const data = await res.json();
+
+                if (!data.ok) {
+                    alert('Error IA: ' + (data.error || 'desconocido'));
+                    return;
+                }
+
+                if (!Array.isArray(data.clases) || !data.clases.length) {
+                    alert('La IA no devolvio clases. Intenta de nuevo.');
+                    return;
+                }
+
+                // Construir array de clases combinando lo que devolvio la IA con las fechas calculadas
+                const clasesArray = data.clases.slice(0, numClases).map((cl, i) => ({
+                    n: i + 1,
+                    date: fechas[i],
+                    act: cl.act || '',
+                    c: cl.c || '',
+                    p: cl.p || '',
+                    a: cl.a || '',
+                    materiales: Array.isArray(cl.materiales) ? cl.materiales : []
+                }));
+
+                // Si la IA genero menos clases que las pedidas, completar con plantillas procedurales
+                while (clasesArray.length < numClases) {
+                    const i = clasesArray.length;
+                    const content = generatePedagogicalContent(i, numClases, aE.value);
+                    clasesArray.push({
+                        n: i + 1,
+                        date: fechas[i],
+                        act: content.act,
+                        c: content.c,
+                        p: content.p,
+                        a: content.a,
+                        materiales: content.materiales || []
+                    });
+                }
+
+                const uniqueUnits = [...new Set(state.bufferOAs.map(o => o.unit))];
+                const combinedUnitName = uniqueUnits.length > 1
+                    ? 'Integración de Ejes: ' + uniqueUnits.map(u => u.replace('Eje: ', '').replace('Núcleo: ', '')).join(', ')
+                    : uniqueUnits[0];
+
+                const mod = {
+                    id: Date.now(),
+                    asig: asigName,
+                    unit: combinedUnitName,
+                    nivelTrabajo: targetLevel,
+                    oas: [...state.bufferOAs],
+                    start: dE.value,
+                    clases: clasesArray,
+                    generadoConIA: true
+                };
+
+                state.modulos.push(mod);
+
+                state.bufferOAs = [];
+                renderOABuffer();
+                loadOAs();
+                updateValidationHints();
+                renderModulos();
+                updateGantt();
+
+                setTimeout(() => {
+                    const modulosContainer = document.getElementById('out-modulos');
+                    if (modulosContainer) {
+                        const last = modulosContainer.lastElementChild;
+                        if (last) last.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }, 100);
+
+                // Notificacion de cuota restante
+                const remaining = typeof data.remaining === 'number' ? data.remaining : '?';
+                console.log('Clases generadas con IA. Modelo:', data.model, '| Cuota IA restante hoy:', remaining);
+
+            } catch (e) {
+                alert('Error de conexion IA: ' + e.message);
+            } finally {
+                if (btnIA) {
+                    btnIA.disabled = false;
+                    btnIA.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Generar Clases con IA';
+                }
+            }
+        }
+
+        // ==========================================
         // RENDERIZADORES DE VISTA
         // ==========================================
         function renderModulos() {
@@ -4862,10 +5385,15 @@ table{border-collapse:collapse}
                 agrupados[m.asig].push(m);
             });
 
-            Object.keys(agrupados).forEach(asig => {
+            // Contador global de modulos para decidir cuales necesitan salto de pagina
+            let moduloGlobalIdx = 0;
+
+            Object.keys(agrupados).forEach((asig, asigIdx) => {
                 const color = getAsigColor(asig);
                 const asigGroup = document.createElement('div');
-                asigGroup.className = 'mb-12 evitar-corte';
+                // Cada asignatura arranca en pagina nueva (excepto la primera).
+                const pageBreakClass = asigIdx > 0 ? ' html2pdf__page-break' : '';
+                asigGroup.className = 'mb-12' + pageBreakClass;
 
                 const asigTitle = document.createElement('h4');
                 asigTitle.className = 'text-sm font-black uppercase tracking-widest mb-6 pb-2';
@@ -4880,7 +5408,7 @@ table{border-collapse:collapse}
                 const modulosContainer = document.createElement('div');
                 modulosContainer.className = 'space-y-8';
 
-                agrupados[asig].forEach(m => {
+                agrupados[asig].forEach((m, modIdxInAsig) => {
                     // [MEJORA 6] Calcular badges de estado
                     const totalClases = m.clases.length;
                     let fechaInicio = '-', fechaFin = '-';
@@ -4889,7 +5417,15 @@ table{border-collapse:collapse}
                         fechaFin = formatDateShort(m.clases[m.clases.length - 1].date);
                     }
 
-                    const oasHtml = m.oas.map(o => `<div style="margin-bottom:10px;display:flex;align-items:flex-start;gap:8px;"><span style="font-weight:900;font-size:13px;color:#1240c4;white-space:nowrap;padding-top:3px;min-width:42px;">${o.code}</span><textarea class="w-full h-auto min-h-[36px] border-0 bg-transparent resize-y font-medium overflow-hidden auto-expand" style="font-size:11px;line-height:1.5;color:#1e293b;padding:2px 4px;" onchange="updateOAText(${m.id}, '${o.code}', this.value)">${o.text.replace(o.code+': ', '')}</textarea></div>`).join('');
+                    const oasHtml = m.oas.map(o => {
+                        // Compatibilidad: o.textoAdecuado es el formato nuevo, o.text es legacy
+                        const textoMostrado = o.textoAdecuado || o.text || '';
+                        const adecuado = (o.textoOriginal && o.textoAdecuado && o.textoOriginal !== o.textoAdecuado);
+                        const badge = adecuado
+                            ? '<span style="background:#fef3c7;color:#92400e;font-size:8px;font-weight:800;padding:1px 6px;border-radius:10px;margin-left:4px;vertical-align:middle;">ADECUADO</span>'
+                            : '';
+                        return `<div class="oa-row" style="margin-bottom:10px;display:flex;align-items:flex-start;gap:8px;page-break-inside:avoid;break-inside:avoid;"><span style="font-weight:900;font-size:13px;color:#1240c4;white-space:nowrap;padding-top:3px;min-width:42px;">${o.code}${badge}</span><textarea class="w-full h-auto min-h-[36px] border-0 bg-transparent resize-y font-medium overflow-hidden auto-expand" style="font-size:11px;line-height:1.5;color:#1e293b;padding:2px 4px;" onchange="updateOAText(${m.id}, '${o.code}', this.value)">${stripCodePrefix(o.code, textoMostrado)}</textarea></div>`;
+                    }).join('');
                     let rows = '';
                     m.clases.forEach(cl => {
                         const evalCheckboxes = (tipo) => `<div style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap;margin-left:auto;flex-shrink:0;padding-left:4px;">
@@ -4938,8 +5474,15 @@ table{border-collapse:collapse}
                                 <td style="width:65%;padding:5px 8px;vertical-align:middle;"><div style="display:flex;flex-wrap:wrap;gap:4px;">${pills}</div></td>
                             </tr>`;
                         });
+                        // Decidir si el consolidado necesita su propia pagina:
+                        // si el modulo tiene mas de 8 clases, su tabla probablemente ocupa toda
+                        // la pagina y el consolidado debe ir aparte para no quedar cortado.
+                        const consolidadoEnPaginaPropia = m.clases.length > 8;
+                        const consolidadoClass = consolidadoEnPaginaPropia
+                            ? 'consolidado-materiales mt-0 html2pdf__page-break'
+                            : 'consolidado-materiales mt-0';
                         materialesHtml = `
-                            <div class="consolidado-materiales mt-0" style="border-top:1px solid #cbd5e1;">
+                            <div class="${consolidadoClass}" style="border-top:1px solid #cbd5e1;">
                                 <div class="paci-header flex items-center gap-2" style="background-color:#091845;background-image:linear-gradient(135deg,#091845 0%,#1240c4 100%);padding:10px 16px;page-break-after:avoid;break-after:avoid;">
                                     <i class="fa-solid fa-boxes-stacked" style="color:#fbbf24;font-size:12px;"></i>
                                     <span style="font-weight:900;font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:#ffffff;">Consolidado de Materiales y Recursos</span>
@@ -4956,9 +5499,15 @@ table{border-collapse:collapse}
                             </div>`;
                     }
 
-                    // [MEJORA 8] Animación suave al agregar módulos
+                    // [MEJORA 8] Animación suave al agregar módulos.
+                    // Salto de pagina: solo los modulos 2+ DENTRO de una asignatura saltan.
+                    // El primer modulo de cada asignatura va pegado a su titulo de asignatura
+                    // (que ya tiene su propio salto de pagina si no es la primera asignatura).
+                    // Asi evitamos paginas vacias con solo el titulo "Asignatura: X".
                     const div = document.createElement('div');
-                    div.className = 'rounded-2xl overflow-hidden bg-white mb-2 module-animate-in html2pdf__page-break';
+                    const moduloPageBreak = modIdxInAsig > 0 ? ' html2pdf__page-break' : '';
+                    moduloGlobalIdx++;
+                    div.className = 'rounded-2xl overflow-hidden bg-white mb-2 module-animate-in' + moduloPageBreak;
                     div.style.cssText = 'border:1px solid #cbd5e1;box-shadow:0 1px 3px rgba(0,0,0,0.08);';
                     div.innerHTML = `
                         <div class="paci-header text-white flex justify-between items-center" style="background-color:#091845;background-image:linear-gradient(135deg,#091845 0%,#1240c4 100%);padding:14px 16px;">
@@ -5019,7 +5568,13 @@ table{border-collapse:collapse}
 
         function updateOAText(mId, code, v) {
             const m = state.modulos.find(m => m.id === mId);
-            if(m) { const oa = m.oas.find(o => o.code === code); if(oa) oa.text = code + ': ' + v; }
+            if(!m) return;
+            const oa = m.oas.find(o => o.code === code);
+            if(!oa) return;
+            const nuevoTexto = code + ': ' + v;
+            // textoAdecuado es lo que se muestra en clases y PDF; textoOriginal queda intacto
+            oa.textoAdecuado = nuevoTexto;
+            oa.text = nuevoTexto; // mantener compatibilidad con codigo legacy que lea o.text
         }
 
         function autoExpand(el) {
@@ -5265,13 +5820,63 @@ table{border-collapse:collapse}
             // de la hoja Carta usable (191.9mm con margenes de 12mm)
             var CLONE_WIDTH = 800;
             var clone = element.cloneNode(true);
-            clone.id = 'documento-pdf-clone';
+            // OJO: NO renombrar el id del clon. Las reglas CSS de tablas/fondos/colores
+            // usan el selector "#documento ..." y si se renombra el id del clon, esas
+            // reglas dejan de aplicar al elemento que html2canvas captura -> se rompe
+            // el layout (encabezados de tabla apilados, fondos perdidos, etc.).
+            // El id duplicado solo existe los milisegundos que dura la captura,
+            // y ningun getElementById('documento') se ejecuta durante ese intervalo.
             var container = document.createElement('div');
             container.id = 'pdf-render-container';
             container.style.cssText = 'position:fixed!important;left:0!important;top:0!important;width:' + CLONE_WIDTH + 'px!important;height:auto!important;padding:0!important;margin:0!important;background:white!important;z-index:-9999!important;pointer-events:none!important;overflow:hidden!important;';
 
             // Clon: ancho fijo, posicion estatica, padding interno MAS REDUCIDO para dejar espacio
             clone.style.cssText = 'position:static!important;width:' + CLONE_WIDTH + 'px!important;max-width:none!important;margin:0!important;padding:2.5rem!important;box-sizing:border-box!important;background:white!important;color:#1a1a2e!important;font-family:Merriweather,Georgia,Charter,serif!important;font-size:12pt!important;line-height:1.5!important;box-shadow:none!important;border:none!important;min-height:0!important;overflow:hidden!important;';
+
+            // FIX TABLAS: forzar layout correcto via inline-style en cada elemento de tabla.
+            // Inline-style tiene maxima especificidad y siempre gana, asi que blindamos el layout
+            // contra cualquier reset/utility que pueda hacer que thead/tr/th se apilen como bloques.
+            // Tambien forzamos table-layout:fixed para que las columnas respeten los anchos
+            // declarados en la primera fila (las clases w-1/3 de Tailwind o los style="width:X%").
+            clone.querySelectorAll('table').forEach(function(t) {
+                t.style.setProperty('display', 'table', 'important');
+                t.style.setProperty('table-layout', 'fixed', 'important');
+                t.style.setProperty('width', '100%', 'important');
+                t.style.setProperty('border-collapse', 'collapse', 'important');
+            });
+            clone.querySelectorAll('thead').forEach(function(t) { t.style.setProperty('display', 'table-header-group', 'important'); });
+            clone.querySelectorAll('tbody').forEach(function(t) { t.style.setProperty('display', 'table-row-group', 'important'); });
+            clone.querySelectorAll('tfoot').forEach(function(t) { t.style.setProperty('display', 'table-footer-group', 'important'); });
+            clone.querySelectorAll('tr').forEach(function(t) {
+                t.style.setProperty('display', 'table-row', 'important');
+                t.style.setProperty('width', '100%', 'important');
+            });
+            clone.querySelectorAll('th, td').forEach(function(t) {
+                t.style.setProperty('display', 'table-cell', 'important');
+                t.style.setProperty('vertical-align', t.style.verticalAlign || 'top', 'important');
+            });
+
+            // FIX FIRMAS: la tabla de profesionales tiene 3 columnas iguales (w-1/3 cada una).
+            // Forzamos exactamente 33.33% por columna para que los titulos queden centrados
+            // sobre cada dato (rol / nombre / firma) y no apilados a la izquierda.
+            var firmasTable = clone.querySelector('.tabla-firmas');
+            if (firmasTable) {
+                firmasTable.querySelectorAll('thead th, tbody td').forEach(function(c, i) {
+                    c.style.setProperty('width', '33.3333%', 'important');
+                    c.style.setProperty('text-align', 'center', 'important');
+                });
+            }
+
+            // FIX TABLAS DE MODULOS: 3 columnas con anchos fija 8% / 55% / 37%
+            // (Fecha / Estrategia Pedagogica / Indicadores).
+            clone.querySelectorAll('#out-modulos table').forEach(function(t) {
+                var ths = t.querySelectorAll('thead > tr > th');
+                if (ths.length === 3) {
+                    ths[0].style.setProperty('width', '8%', 'important');
+                    ths[1].style.setProperty('width', '55%', 'important');
+                    ths[2].style.setProperty('width', '37%', 'important');
+                }
+            });
 
             container.appendChild(clone);
             document.body.appendChild(container);
@@ -5297,189 +5902,6 @@ table{border-collapse:collapse}
                 cleanup();
                 alert('Error al generar PDF. Intente usar la opcion Imprimir (Ctrl+P) como alternativa.');
             });
-        }
-
-        // ==========================================
-        // INTELIGENCIA ARTIFICIAL (Groq API)
-        // ==========================================
-
-        // Adaptar OAs seleccionados con IA
-        async function aiAdaptOAs() {
-          if (!state.bufferOAs.length) {
-            alert('Primero selecciona al menos un Objetivo de Aprendizaje (OA) para adaptar.');
-            return;
-          }
-
-          const diagSel = document.getElementById('in-diag');
-          const diagName = diagSel?.options[diagSel.selectedIndex]?.text || '';
-          const diagId = diagSel?.value || '';
-          const studentLevel = document.getElementById('in-nivel-real')?.options[document.getElementById('in-nivel-real').selectedIndex]?.text || '';
-          const targetLevel = document.getElementById('in-nivel-trabajo')?.options[document.getElementById('in-nivel-trabajo').selectedIndex]?.text || '';
-
-          // Crear modal de resultados
-          let modal = document.getElementById('ai-modal');
-          if (!modal) {
-            modal = document.createElement('div');
-            modal.id = 'ai-modal';
-            modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,0.6);backdrop-filter:blur(4px);z-index:10000;display:flex;align-items:center;justify-content:center;padding:1rem;';
-            document.body.appendChild(modal);
-          }
-          modal.style.display = 'flex';
-          modal.innerHTML = '<div style="background:#fff;border-radius:1.25rem;padding:2rem;width:95%;max-width:600px;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);"><div style="text-align:center;padding:2rem;"><i class="fa-solid fa-spinner fa-spin" style="font-size:2rem;color:#7c3aed;"></i><p style="font-size:0.8rem;color:#64748b;margin-top:0.75rem;font-weight:600;">Consultando IA para adaptar ' + state.bufferOAs.length + ' OA(s)...</p></div></div>';
-
-          // Adaptar el primer OA del buffer (para no sobrecargar)
-          const oa = state.bufferOAs[0];
-          const token = localStorage.getItem('paci_token');
-
-          try {
-            const res = await fetch('/api/ai/adapt-oa', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                _token: token,
-                oaCode: oa.code,
-                oaText: oa.text,
-                studentLevel,
-                targetLevel,
-                diagnosisId: diagId,
-                diagnosisName: diagName
-              })
-            });
-            const data = await res.json();
-
-            if (!data.ok) {
-              modal.querySelector('div').innerHTML = '<h3 style="font-size:1rem;font-weight:800;color:#dc2626;margin-bottom:0.5rem;"><i class="fa-solid fa-exclamation-triangle"></i> Error</h3><p style="font-size:0.8rem;color:#64748b;">' + (data.error || 'Error desconocido') + '</p><button onclick="document.getElementById(\'ai-modal\').style.display=\'none\'" style="margin-top:1rem;background:#64748b;color:#fff;border:none;padding:0.5rem 1.5rem;border-radius:0.5rem;font-weight:700;cursor:pointer;">Cerrar</button>';
-              return;
-            }
-
-            const a = data.adaptations;
-            let resultHtml = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;"><h3 style="font-size:1rem;font-weight:800;color:#7c3aed;"><i class="fa-solid fa-wand-magic-sparkles"></i> Adaptaciones sugeridas por IA</h3><button onclick="document.getElementById(\'ai-modal\').style.display=\'none\'" style="background:none;border:none;font-size:1.25rem;color:#94a3b8;cursor:pointer;"><i class="fa-solid fa-times"></i></button></div>';
-            resultHtml += '<p style="font-size:0.7rem;color:#94a3b8;margin-bottom:1rem;">Modelo: ' + (data.model || 'Groq') + ' | Consultas restantes hoy: ' + data.remaining + '</p>';
-
-            if (a.adaptaciones) {
-              a.adaptaciones.forEach(ad => {
-                const typeColors = { simplificacion: '#2563eb', graduacion: '#059669', priorizacion: '#d97706', eliminacion: '#dc2626' };
-                const color = typeColors[ad.tipo] || '#64748b';
-                resultHtml += '<div style="border:2px solid ' + color + '33;border-radius:0.75rem;padding:1rem;margin-bottom:0.75rem;border-left:4px solid ' + color + ';">';
-                resultHtml += '<span style="background:' + color + ';color:#fff;font-size:0.6rem;font-weight:800;padding:0.2rem 0.5rem;border-radius:1rem;text-transform:uppercase;">' + ad.tipo + '</span>';
-                resultHtml += '<p style="font-size:0.8rem;color:#1a1a2e;margin-top:0.5rem;font-weight:600;">' + (ad.oa_adaptado || '') + '</p>';
-                resultHtml += '<p style="font-size:0.7rem;color:#64748b;margin-top:0.25rem;font-style:italic;">' + (ad.justificacion || '') + '</p>';
-                resultHtml += '</div>';
-              });
-            }
-
-            if (a.estrategias_apoyo && a.estrategias_apoyo.length) {
-              resultHtml += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:0.75rem;padding:1rem;margin-bottom:0.75rem;">';
-              resultHtml += '<span style="font-size:0.7rem;font-weight:800;color:#065f46;"><i class="fa-solid fa-lightbulb text-amber-500"></i> Estrategias de Apoyo</span><ul style="margin-top:0.5rem;padding-left:1rem;">';
-              a.estrategias_apoyo.forEach(s => { resultHtml += '<li style="font-size:0.75rem;color:#334155;margin-bottom:0.25rem;">' + s + '</li>'; });
-              resultHtml += '</ul></div>';
-            }
-
-            if (a.raw) {
-              resultHtml += '<pre style="background:#f1f5f9;padding:1rem;border-radius:0.5rem;font-size:0.7rem;white-space:pre-wrap;overflow-x:auto;">' + a.raw + '</pre>';
-            }
-
-            modal.querySelector('div').innerHTML = resultHtml;
-
-          } catch (e) {
-            modal.querySelector('div').innerHTML = '<h3 style="color:#dc2626;font-weight:800;">Error de conexion</h3><p style="font-size:0.8rem;color:#64748b;margin-top:0.5rem;">' + e.message + '</p><button onclick="document.getElementById(\'ai-modal\').style.display=\'none\'" style="margin-top:1rem;background:#64748b;color:#fff;border:none;padding:0.5rem 1.5rem;border-radius:0.5rem;font-weight:700;cursor:pointer;">Cerrar</button>';
-          }
-        }
-
-        // Generar estrategias DUA con IA
-        async function aiDUAStrategies() {
-          const diagSel = document.getElementById('in-diag');
-          const diagName = diagSel?.options[diagSel.selectedIndex]?.text || '';
-          const diagId = diagSel?.value || '';
-          const asigSel = document.getElementById('in-asig');
-          const subject = asigSel?.options[asigSel.selectedIndex]?.text || '';
-          const level = document.getElementById('in-nivel-trabajo')?.options[document.getElementById('in-nivel-trabajo').selectedIndex]?.text || '';
-
-          // Pedir barreras al usuario
-          const barriersInput = prompt('Describe las barreras de aprendizaje del estudiante (separa con comas):\n\nEjemplos: dificultad para mantener atencion, problemas de comprension lectora, baja motivacion');
-          if (!barriersInput || !barriersInput.trim()) return;
-
-          const barriers = barriersInput.split(',').map(b => b.trim()).filter(Boolean);
-
-          // Crear modal
-          let modal = document.getElementById('ai-modal');
-          if (!modal) {
-            modal = document.createElement('div');
-            modal.id = 'ai-modal';
-            modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,0.6);backdrop-filter:blur(4px);z-index:10000;display:flex;align-items:center;justify-content:center;padding:1rem;';
-            document.body.appendChild(modal);
-          }
-          modal.style.display = 'flex';
-          modal.innerHTML = '<div style="background:#fff;border-radius:1.25rem;padding:2rem;width:95%;max-width:600px;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);"><div style="text-align:center;padding:2rem;"><i class="fa-solid fa-spinner fa-spin" style="font-size:2rem;color:#0d9488;"></i><p style="font-size:0.8rem;color:#64748b;margin-top:0.75rem;font-weight:600;">Generando estrategias DUA...</p></div></div>';
-
-          const token = localStorage.getItem('paci_token');
-
-          try {
-            const res = await fetch('/api/ai/dua-strategies', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                _token: token,
-                barriers,
-                diagnosisId: diagId,
-                diagnosisName: diagName,
-                subject,
-                level
-              })
-            });
-            const data = await res.json();
-
-            if (!data.ok) {
-              modal.querySelector('div').innerHTML = '<h3 style="font-size:1rem;font-weight:800;color:#dc2626;"><i class="fa-solid fa-exclamation-triangle"></i> Error</h3><p style="font-size:0.8rem;color:#64748b;">' + (data.error || 'Error desconocido') + '</p><button onclick="document.getElementById(\'ai-modal\').style.display=\'none\'" style="margin-top:1rem;background:#64748b;color:#fff;border:none;padding:0.5rem 1.5rem;border-radius:0.5rem;font-weight:700;cursor:pointer;">Cerrar</button>';
-              return;
-            }
-
-            const s = data.strategies;
-            let resultHtml = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;"><h3 style="font-size:1rem;font-weight:800;color:#0d9488;"><i class="fa-solid fa-brain"></i> Estrategias DUA generadas por IA</h3><button onclick="document.getElementById(\'ai-modal\').style.display=\'none\'" style="background:none;border:none;font-size:1.25rem;color:#94a3b8;cursor:pointer;"><i class="fa-solid fa-times"></i></button></div>';
-            resultHtml += '<p style="font-size:0.7rem;color:#94a3b8;margin-bottom:1rem;">Consultas restantes hoy: ' + data.remaining + '</p>';
-
-            const principios = [
-              { key: 'representacion', label: 'Representacion', icon: 'fa-eye', color: '#2563eb' },
-              { key: 'accion_expresion', label: 'Accion y Expresion', icon: 'fa-hand', color: '#059669' },
-              { key: 'implicacion', label: 'Implicacion', icon: 'fa-heart', color: '#dc2626' }
-            ];
-
-            principios.forEach(p => {
-              const strategies = s[p.key];
-              if (!strategies || !strategies.length) return;
-              resultHtml += '<div style="border:2px solid ' + p.color + '33;border-radius:0.75rem;margin-bottom:0.75rem;overflow:hidden;">';
-              resultHtml += '<div style="background:' + p.color + ';color:#fff;padding:0.625rem 1rem;font-size:0.75rem;font-weight:800;"><i class="fa-solid ' + p.icon + '"></i> ' + p.label + '</div>';
-              resultHtml += '<div style="padding:0.75rem;">';
-              strategies.forEach(st => {
-                resultHtml += '<div style="margin-bottom:0.625rem;padding:0.5rem;background:#f8fafc;border-radius:0.5rem;">';
-                resultHtml += '<p style="font-size:0.8rem;font-weight:700;color:#1a1a2e;">' + (st.estrategia || '') + '</p>';
-                if (st.materiales && st.materiales.length) {
-                  resultHtml += '<p style="font-size:0.65rem;color:#64748b;margin-top:0.25rem;"><strong>Materiales:</strong> ' + st.materiales.join(', ') + '</p>';
-                }
-                if (st.aplicacion) {
-                  resultHtml += '<p style="font-size:0.65rem;color:#475569;margin-top:0.25rem;font-style:italic;">' + st.aplicacion + '</p>';
-                }
-                resultHtml += '</div>';
-              });
-              resultHtml += '</div></div>';
-            });
-
-            if (s.recomendaciones_generales && s.recomendaciones_generales.length) {
-              resultHtml += '<div style="background:#fefce8;border:1px solid #fde68a;border-radius:0.75rem;padding:1rem;">';
-              resultHtml += '<span style="font-size:0.7rem;font-weight:800;color:#92400e;"><i class="fa-solid fa-star text-amber-500"></i> Recomendaciones Generales</span><ul style="margin-top:0.5rem;padding-left:1rem;">';
-              s.recomendaciones_generales.forEach(r => { resultHtml += '<li style="font-size:0.75rem;color:#334155;margin-bottom:0.25rem;">' + r + '</li>'; });
-              resultHtml += '</ul></div>';
-            }
-
-            if (s.raw) {
-              resultHtml += '<pre style="background:#f1f5f9;padding:1rem;border-radius:0.5rem;font-size:0.7rem;white-space:pre-wrap;">' + s.raw + '</pre>';
-            }
-
-            modal.querySelector('div').innerHTML = resultHtml;
-
-          } catch (e) {
-            modal.querySelector('div').innerHTML = '<h3 style="color:#dc2626;font-weight:800;">Error de conexion</h3><p style="font-size:0.8rem;color:#64748b;margin-top:0.5rem;">' + e.message + '</p><button onclick="document.getElementById(\'ai-modal\').style.display=\'none\'" style="margin-top:1rem;background:#64748b;color:#fff;border:none;padding:0.5rem 1.5rem;border-radius:0.5rem;font-weight:700;cursor:pointer;">Cerrar</button>';
-          }
         }
 
         // ==========================================
