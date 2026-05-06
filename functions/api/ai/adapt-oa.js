@@ -1,5 +1,5 @@
 import { getUser } from '../auth-helper.js';
-import { checkRateLimit, callGroq, sanitizeForPrompt } from './groq-helper.js';
+import { checkRateLimit, callAI, sanitizeForPrompt } from './ai-helper.js';
 
 // POST /api/ai/adapt-oa
 // Recibe un OA + nivel del estudiante + diagnostico
@@ -17,7 +17,7 @@ export async function onRequestPost(context) {
     if (!rl.allowed) {
       return new Response(JSON.stringify({
         ok: false,
-        error: 'Has alcanzado el limite diario de consultas IA (20/dia). Intenta manana.',
+        error: 'Has alcanzado el limite diario de consultas IA (100/dia). Intenta manana.',
         remaining: 0
       }), { status: 429, headers });
     }
@@ -84,7 +84,7 @@ Genera exactamente este JSON:
       }
     ];
 
-    const result = await callGroq(env, messages, {
+    const result = await callAI(env, messages, {
       temperature: 0.6,
       maxTokens: 1500,
       jsonMode: true

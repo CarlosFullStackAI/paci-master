@@ -83,17 +83,22 @@ export async function onRequestPost(context) {
     const docId = docRes.meta.last_row_id;
 
     // Guardar OAs de todos los modulos
+    // Compatibilidad: acepta el formato nuevo (textoOriginal/textoAdecuado) y el legacy (text)
+    // oa_text se mantiene espejando textoAdecuado para no romper lecturas existentes
     const oaStmts = [];
     for (const mod of modules) {
       if (mod.oas && mod.oas.length) {
         for (const oa of mod.oas) {
+          const original = oa.textoOriginal || oa.text || '';
+          const adapted = oa.textoAdecuado || oa.text || original;
           oaStmts.push(
             db.prepare(
-              `INSERT INTO document_oas (document_id, student_id, subject, subject_key, level, unit_name, oa_code, oa_text, trimester)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+              `INSERT INTO document_oas (document_id, student_id, subject, subject_key, level, unit_name, oa_code, oa_text, oa_text_original, oa_text_adapted, trimester)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
             ).bind(
               docId, studentId, mod.asig || '', mod.asigKey || '',
-              mod.nivelTrabajo || '', oa.unit || '', oa.code || '', oa.text || '',
+              mod.nivelTrabajo || '', oa.unit || '', oa.code || '',
+              adapted, original, adapted,
               trimester || ''
             )
           );

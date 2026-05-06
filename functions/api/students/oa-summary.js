@@ -19,9 +19,10 @@ export async function onRequestPost(context) {
     }
 
     // Obtener todos los OAs del estudiante con su progreso
+    // oa_text_original: texto MINEDUC inmutable; oa_text_adapted: texto editado por el educador
     const oas = await env.DB.prepare(
       `SELECT do.id, do.subject, do.subject_key, do.level, do.unit_name,
-              do.oa_code, do.oa_text, do.trimester,
+              do.oa_code, do.oa_text, do.oa_text_original, do.oa_text_adapted, do.trimester,
               do.progress_status, do.progress_observations, do.evaluated_at, do.evaluated_by,
               d.id as document_id
        FROM document_oas do
@@ -47,10 +48,17 @@ export async function onRequestPost(context) {
       }
       const status = oa.progress_status || 'no_evaluado';
       summary[key].trimesters[trim][status]++;
+      // text expone el texto adecuado (lo que el educador trabaja)
+      // textoOriginal expone el texto MINEDUC para trazabilidad / comparacion
+      const textoAdecuado = oa.oa_text_adapted || oa.oa_text || '';
+      const textoOriginal = oa.oa_text_original || oa.oa_text || textoAdecuado;
       summary[key].trimesters[trim].oas.push({
         id: oa.id,
         code: oa.oa_code,
-        text: oa.oa_text,
+        text: textoAdecuado,
+        textoOriginal,
+        textoAdecuado,
+        adecuado: textoOriginal !== textoAdecuado,
         unit: oa.unit_name,
         status,
         observations: oa.progress_observations || '',
