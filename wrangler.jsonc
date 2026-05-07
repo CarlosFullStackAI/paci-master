@@ -1,6 +1,8 @@
 {
   "name": "proyecto-paci",
   "pages_build_output_dir": "./",
+  "compatibility_flags": ["nodejs_compat"],
+  "compatibility_date": "2024-09-23",
   "kv_namespaces": [
     {
       "binding": "PACI_USERS",
@@ -13,5 +15,8 @@
       "database_name": "paci-db",
       "database_id": "0c979ec1-9d81-4653-809b-4d7058a7a5f2"
     }
-  ]
+  ],
+  "browser": {
+    "binding": "BROWSER"
+  }
 }

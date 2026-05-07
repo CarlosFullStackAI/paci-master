@@ -1,6 +1,7 @@
 node_modules/
 .claude/
 .wrangler/
+backups/
 *.docx
 styles.css
 input.css
