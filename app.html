@@ -5833,15 +5833,12 @@ table{border-collapse:collapse}
             // Clon: ancho fijo, posicion estatica, padding interno MAS REDUCIDO para dejar espacio
             clone.style.cssText = 'position:static!important;width:' + CLONE_WIDTH + 'px!important;max-width:none!important;margin:0!important;padding:2.5rem!important;box-sizing:border-box!important;background:white!important;color:#1a1a2e!important;font-family:Merriweather,Georgia,Charter,serif!important;font-size:12pt!important;line-height:1.5!important;box-shadow:none!important;border:none!important;min-height:0!important;overflow:hidden!important;';
 
-            // FIX TABLAS: forzar layout correcto via inline-style en cada elemento de tabla.
-            // Inline-style tiene maxima especificidad y siempre gana, asi que blindamos el layout
-            // contra cualquier reset/utility que pueda hacer que thead/tr/th se apilen como bloques.
-            // Tambien forzamos table-layout:fixed para que las columnas respeten los anchos
-            // declarados en la primera fila (las clases w-1/3 de Tailwind o los style="width:X%").
+            // FIX DISPLAY: forzar display nativo en elementos de tabla via inline-style.
+            // Suficiente para evitar que thead/tr/th se apilen como bloques.
+            // NO forzamos table-layout:fixed globalmente porque rompe tablas que dependen
+            // de auto-layout (como el consolidado de materiales con pills que envuelven).
             clone.querySelectorAll('table').forEach(function(t) {
                 t.style.setProperty('display', 'table', 'important');
-                t.style.setProperty('table-layout', 'fixed', 'important');
-                t.style.setProperty('width', '100%', 'important');
                 t.style.setProperty('border-collapse', 'collapse', 'important');
             });
             clone.querySelectorAll('thead').forEach(function(t) { t.style.setProperty('display', 'table-header-group', 'important'); });
@@ -5849,43 +5846,37 @@ table{border-collapse:collapse}
             clone.querySelectorAll('tfoot').forEach(function(t) { t.style.setProperty('display', 'table-footer-group', 'important'); });
             clone.querySelectorAll('tr').forEach(function(t) {
                 t.style.setProperty('display', 'table-row', 'important');
-                t.style.setProperty('width', '100%', 'important');
-                // Cada fila es atomica: NUNCA se corta entre paginas (evita
-                // duplicacion fantasma donde la mitad aparece al final de una
-                // pagina y la fila completa al principio de la siguiente).
+                // Cada fila es atomica: nunca se corta entre paginas. No agregamos
+                // page-break-inside:avoid en td porque se acumula con el de tr y puede
+                // hacer que html2pdf empuje contenido fuera de pagina.
                 t.style.setProperty('page-break-inside', 'avoid', 'important');
                 t.style.setProperty('break-inside', 'avoid', 'important');
             });
             clone.querySelectorAll('th, td').forEach(function(t) {
                 t.style.setProperty('display', 'table-cell', 'important');
-                t.style.setProperty('vertical-align', t.style.verticalAlign || 'top', 'important');
-                t.style.setProperty('page-break-inside', 'avoid', 'important');
-                t.style.setProperty('break-inside', 'avoid', 'important');
             });
 
-            // Tabla de firmas: cabe en una sola pagina, mantener entera.
-            var firmasTableForBreak = clone.querySelector('.tabla-firmas');
-            if (firmasTableForBreak) {
-                firmasTableForBreak.style.setProperty('page-break-inside', 'avoid', 'important');
-                firmasTableForBreak.style.setProperty('break-inside', 'avoid', 'important');
-            }
-
-            // FIX FIRMAS: la tabla de profesionales tiene 3 columnas iguales (w-1/3 cada una).
-            // Forzamos exactamente 33.33% por columna para que los titulos queden centrados
-            // sobre cada dato (rol / nombre / firma) y no apilados a la izquierda.
+            // FIX FIRMAS: tabla de profesionales con 3 columnas iguales.
+            // Aqui SI usamos table-layout:fixed porque queremos que los titulos queden
+            // exactamente centrados sobre cada dato (rol / nombre / firma).
             var firmasTable = clone.querySelector('.tabla-firmas');
             if (firmasTable) {
-                firmasTable.querySelectorAll('thead th, tbody td').forEach(function(c, i) {
+                firmasTable.style.setProperty('table-layout', 'fixed', 'important');
+                firmasTable.style.setProperty('width', '100%', 'important');
+                firmasTable.querySelectorAll('thead th, tbody td').forEach(function(c) {
                     c.style.setProperty('width', '33.3333%', 'important');
                     c.style.setProperty('text-align', 'center', 'important');
                 });
             }
 
-            // FIX TABLAS DE MODULOS: 3 columnas con anchos fija 8% / 55% / 37%
-            // (Fecha / Estrategia Pedagogica / Indicadores).
-            clone.querySelectorAll('#out-modulos table').forEach(function(t) {
+            // FIX TABLAS DE MODULOS: tablas de clases con 3 columnas (Fecha / Estrategia / Indicadores).
+            // Aplicamos table-layout:fixed solo en estas para que respeten los anchos 8/55/37.
+            // No tocamos otras tablas dentro de #out-modulos (como consolidado de materiales).
+            clone.querySelectorAll('#out-modulos > div > div > table').forEach(function(t) {
                 var ths = t.querySelectorAll('thead > tr > th');
                 if (ths.length === 3) {
+                    t.style.setProperty('table-layout', 'fixed', 'important');
+                    t.style.setProperty('width', '100%', 'important');
                     ths[0].style.setProperty('width', '8%', 'important');
                     ths[1].style.setProperty('width', '55%', 'important');
                     ths[2].style.setProperty('width', '37%', 'important');
@@ -5902,7 +5893,7 @@ table{border-collapse:collapse}
                 image:        { type: 'jpeg', quality: 0.98 },
                 html2canvas:  { scale: 2, useCORS: true, letterRendering: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0, x: 0, y: 0, width: CLONE_WIDTH, windowWidth: CLONE_WIDTH },
                 jsPDF:        { unit: 'mm', format: 'letter', orientation: 'portrait' },
-                pagebreak:    { mode: ['css', 'legacy'], before: ['.html2pdf__page-break'], avoid: ['.evitar-corte', 'tr', 'thead', '.tabla-firmas', '.paci-header', 'h3', 'h4'] }
+                pagebreak:    { mode: ['css', 'legacy'], before: ['.html2pdf__page-break'], avoid: ['.evitar-corte', 'tr', '.paci-header', 'h3', 'h4'] }
             };
 
             function cleanup() {
