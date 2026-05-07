@@ -8,9 +8,9 @@
   "region": "Biobio",
   "decretos_aplicables": ["170/2009", "83/2015", "67/2018"],
   "branding": {
-    "logo_principal": "logos/LOGO Escuela Luis Cruz Martínez - Editado.png",
-    "logo_pie": "logos/LOGO Programa de Integración Escolar.png",
-    "logo_convivencia": "logos/Logo Convivencia Escolar.png",
+    "logo_principal": "logos/escuela.png",
+    "logo_pie": "logos/pie.png",
+    "logo_convivencia": "logos/convivencia.png",
     "color_primario": "#091845",
     "color_secundario": "#1240c4"
   },
