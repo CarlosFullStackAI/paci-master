@@ -5850,11 +5850,25 @@ table{border-collapse:collapse}
             clone.querySelectorAll('tr').forEach(function(t) {
                 t.style.setProperty('display', 'table-row', 'important');
                 t.style.setProperty('width', '100%', 'important');
+                // Cada fila es atomica: NUNCA se corta entre paginas (evita
+                // duplicacion fantasma donde la mitad aparece al final de una
+                // pagina y la fila completa al principio de la siguiente).
+                t.style.setProperty('page-break-inside', 'avoid', 'important');
+                t.style.setProperty('break-inside', 'avoid', 'important');
             });
             clone.querySelectorAll('th, td').forEach(function(t) {
                 t.style.setProperty('display', 'table-cell', 'important');
                 t.style.setProperty('vertical-align', t.style.verticalAlign || 'top', 'important');
+                t.style.setProperty('page-break-inside', 'avoid', 'important');
+                t.style.setProperty('break-inside', 'avoid', 'important');
             });
+
+            // Tabla de firmas: cabe en una sola pagina, mantener entera.
+            var firmasTableForBreak = clone.querySelector('.tabla-firmas');
+            if (firmasTableForBreak) {
+                firmasTableForBreak.style.setProperty('page-break-inside', 'avoid', 'important');
+                firmasTableForBreak.style.setProperty('break-inside', 'avoid', 'important');
+            }
 
             // FIX FIRMAS: la tabla de profesionales tiene 3 columnas iguales (w-1/3 cada una).
             // Forzamos exactamente 33.33% por columna para que los titulos queden centrados
@@ -5888,7 +5902,7 @@ table{border-collapse:collapse}
                 image:        { type: 'jpeg', quality: 0.98 },
                 html2canvas:  { scale: 2, useCORS: true, letterRendering: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0, x: 0, y: 0, width: CLONE_WIDTH, windowWidth: CLONE_WIDTH },
                 jsPDF:        { unit: 'mm', format: 'letter', orientation: 'portrait' },
-                pagebreak:    { mode: ['css', 'legacy'], before: ['.html2pdf__page-break'], avoid: ['.evitar-corte', 'tr', '.paci-header', 'h3', 'h4'] }
+                pagebreak:    { mode: ['css', 'legacy'], before: ['.html2pdf__page-break'], avoid: ['.evitar-corte', 'tr', 'thead', '.tabla-firmas', '.paci-header', 'h3', 'h4'] }
             };
 
             function cleanup() {
