@@ -5830,8 +5830,10 @@ table{border-collapse:collapse}
             container.id = 'pdf-render-container';
             container.style.cssText = 'position:fixed!important;left:0!important;top:0!important;width:' + CLONE_WIDTH + 'px!important;height:auto!important;padding:0!important;margin:0!important;background:white!important;z-index:-9999!important;pointer-events:none!important;overflow:hidden!important;';
 
-            // Clon: ancho fijo, posicion estatica, padding interno MAS REDUCIDO para dejar espacio
-            clone.style.cssText = 'position:static!important;width:' + CLONE_WIDTH + 'px!important;max-width:none!important;margin:0!important;padding:2.5rem!important;box-sizing:border-box!important;background:white!important;color:#1a1a2e!important;font-family:Merriweather,Georgia,Charter,serif!important;font-size:12pt!important;line-height:1.5!important;box-shadow:none!important;border:none!important;min-height:0!important;overflow:hidden!important;';
+            // Clon: ancho fijo, posicion estatica, padding interno MAS REDUCIDO para dejar espacio.
+            // overflow:visible para que html2canvas capture todo el contenido (incluido lo que
+            // sobresalga de los limites del clon, p.ej. tablas anchas como el Gantt).
+            clone.style.cssText = 'position:static!important;width:' + CLONE_WIDTH + 'px!important;max-width:none!important;margin:0!important;padding:2.5rem!important;box-sizing:border-box!important;background:white!important;color:#1a1a2e!important;font-family:Merriweather,Georgia,Charter,serif!important;font-size:12pt!important;line-height:1.5!important;box-shadow:none!important;border:none!important;min-height:0!important;overflow:visible!important;';
 
             // FIX DISPLAY: forzar display nativo en elementos de tabla via inline-style.
             // Suficiente para evitar que thead/tr/th se apilen como bloques.
@@ -5882,6 +5884,41 @@ table{border-collapse:collapse}
                     ths[2].style.setProperty('width', '37%', 'important');
                 }
             });
+
+            // FIX ANIMACIONES: deshabilitar animaciones en el clon. Si una animacion sigue
+            // corriendo cuando html2canvas captura, los elementos se capturan en su estado
+            // intermedio (p.ej. opacity:0 al inicio de slideInModule), haciendo que modulos
+            // y consolidados aparezcan invisibles en el PDF.
+            clone.querySelectorAll('.module-animate-in').forEach(function(el) {
+                el.style.setProperty('animation', 'none', 'important');
+                el.style.setProperty('opacity', '1', 'important');
+                el.style.setProperty('transform', 'none', 'important');
+            });
+
+            // FIX OVERFLOW EN WRAPPERS: divs con overflow-hidden u overflow-x-auto que
+            // contienen tablas (p.ej. el wrapper del Gantt) recortan contenido que sobresale.
+            // En el PDF queremos que TODO el contenido sea visible.
+            clone.querySelectorAll('.overflow-hidden, .overflow-x-auto, [class*="overflow-"]').forEach(function(el) {
+                // Solo divs/sections wrappers, no tocar el clon mismo ni elementos esenciales
+                if (el === clone) return;
+                el.style.setProperty('overflow', 'visible', 'important');
+                el.style.setProperty('overflow-x', 'visible', 'important');
+                el.style.setProperty('overflow-y', 'visible', 'important');
+            });
+
+            // FIX GANTT: la tabla de temporalizacion puede ser mas ancha que el clon (800px).
+            // Forzamos table-layout:fixed con anchos reducidos para que quepa.
+            var ganttTable = clone.querySelector('#gantt');
+            if (ganttTable) {
+                ganttTable.style.setProperty('table-layout', 'fixed', 'important');
+                ganttTable.style.setProperty('width', '100%', 'important');
+                ganttTable.style.setProperty('font-size', '7px', 'important');
+                // Reducir padding interno para que las celdas no expandan demasiado
+                ganttTable.querySelectorAll('th, td').forEach(function(c) {
+                    c.style.setProperty('padding', '2px 1px', 'important');
+                    c.style.setProperty('word-break', 'break-word', 'important');
+                });
+            }
 
             container.appendChild(clone);
             document.body.appendChild(container);
