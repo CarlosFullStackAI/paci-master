@@ -1,0 +1,23 @@
+{
+  "id": "lcm-pulebu",
+  "nombre": "Escuela Luis Cruz Martinez",
+  "nombre_corto": "LCM Pulebu",
+  "rbd": null,
+  "localidad": "Pulebu",
+  "comuna": null,
+  "region": "Biobio",
+  "decretos_aplicables": ["170/2009", "83/2015", "67/2018"],
+  "branding": {
+    "logo_principal": "logos/LOGO Escuela Luis Cruz Martínez - Editado.png",
+    "logo_pie": "logos/LOGO Programa de Integración Escolar.png",
+    "logo_convivencia": "logos/Logo Convivencia Escolar.png",
+    "color_primario": "#091845",
+    "color_secundario": "#1240c4"
+  },
+  "calendario": {
+    "ano_actual": 2026,
+    "calendario_oficial": "../../mineduc/calendario-escolar/2026/biobio.pdf"
+  },
+  "staff_doc": "staff/cargos-docentes.docx",
+  "_notas": "RBD y comuna pendientes de completar. Este config aun NO se carga en runtime — pendiente refactor Fase 2 para que la app lea desde aqui en vez de tener los strings hardcoded."
+}

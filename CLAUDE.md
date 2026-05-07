@@ -35,27 +35,48 @@ npm run deploy
 ## Estructura del Proyecto
 ```
 /
-├── app.html                 # Aplicacion principal (crear/editar PACI)
-├── login.html               # Pagina de login
-├── dashboard.html           # Dashboard de gestion
-├── index.html               # Pagina de entrada/redirect
-├── functions/api/           # Cloudflare Pages Functions (backend)
-│   ├── auth-helper.js       # Helper de autenticacion
-│   ├── crypto-helper.js     # Helper de criptografia
-│   ├── login.js             # Endpoint de login
-│   ├── register.js          # Endpoint de registro
-│   ├── logout.js            # Endpoint de logout
-│   ├── verify.js            # Verificacion de sesion
-│   ├── change-password.js   # Cambio de contrasena
-│   ├── forgot-password.js   # Recuperacion de contrasena
-│   ├── students/            # CRUD de estudiantes
-│   ├── documents/           # CRUD de documentos PACI
-│   ├── admin/               # Funciones administrativas
-│   └── audit-helper.js      # Helper de auditoria
-├── oas-reales.js            # Objetivos de aprendizaje reales
-├── migrations/              # Migraciones de D1
-├── wrangler.jsonc           # Config de Cloudflare
-└── _headers                 # Headers de seguridad
+├── app.html                          # Aplicacion principal (crear/editar PACI)
+├── login.html                        # Pagina de login
+├── dashboard.html                    # Dashboard de gestion
+├── index.html                        # Pagina de entrada/redirect
+├── nee-templates.js                  # Templates de Necesidades Educativas Especiales
+├── favicon.{png,svg}                 # Branding global
+│
+├── functions/api/                    # Cloudflare Pages Functions (backend)
+│   ├── auth-helper.js
+│   ├── crypto-helper.js
+│   ├── login.js, register.js, logout.js, verify.js
+│   ├── change-password.js, forgot-password.js
+│   ├── generate-pdf.js               # PDF server-side via Browser Rendering
+│   ├── students/                     # CRUD de estudiantes
+│   ├── documents/                    # CRUD de documentos PACI
+│   └── admin/
+│
+├── data/                             # Datos categorizados (multi-tenant ready)
+│   ├── mineduc/                      # GENERICO (cualquier colegio chileno)
+│   │   ├── oas/                      # OAs raw text + JS compilado
+│   │   ├── bases-curriculares/       # PDFs Bases Curriculares MINEDUC
+│   │   ├── normativa/                # Decretos, Leyes
+│   │   ├── calendario-escolar/       # Calendarios oficiales por ano/region
+│   │   ├── formato-paci.docx         # Formato oficial Decreto 83/2015
+│   │   └── asignaturas.docx
+│   └── tenants/                      # ESPECIFICO por establecimiento
+│       └── lcm-pulebu/                # Escuela Luis Cruz Martinez (Pulebu)
+│           ├── config.json           # Datos del colegio (RBD, comuna, etc.)
+│           ├── logos/
+│           └── staff/
+│
+├── scripts/                          # Build tools (NO runtime)
+│   ├── build-oas.js                  # Compila *_raw.txt → oas-reales.js
+│   ├── parse-oas.js
+│   └── extract-oas.js                # Extrae texto desde PDFs
+│
+├── migrations/                       # D1 schema migrations
+├── archive/                          # Versiones legacy (revisar antes de borrar)
+├── backups/                          # Snapshots locales (gitignored)
+│
+├── package.json, wrangler.jsonc, _headers, tailwind.config.js, input.css
+└── .gitignore, .eslintrc.json
 ```
 
 ## Convenciones de Codigo
@@ -78,6 +99,8 @@ npm run deploy
 ## Notas Importantes
 - La base de datos D1 se llama "paci-db"
 - El KV namespace para usuarios es "PACI_USERS"
-- Los OA (Objetivos de Aprendizaje) reales estan en oas-reales.js
+- Los OA (Objetivos de Aprendizaje) estan inline en `app.html` como `OAS_REALES`. La fuente esta en `data/mineduc/oas/oas-reales.js` (output de `scripts/build-oas.js`).
 - El proyecto esta en Cloudflare Pages como "proyecto-paci"
-- Los archivos *_raw.txt contienen OA parseados por asignatura
+- Los archivos `data/mineduc/oas/*_raw.txt` contienen OA crudo extraido de los PDFs MINEDUC.
+- PDF descarga: server-side via Cloudflare Browser Rendering en `functions/api/generate-pdf.js`.
+- Multi-tenancy: estructura preparada en `data/tenants/`. Strings "Escuela Luis Cruz Martinez" siguen hardcoded en `app.html` y `login.html` — pendiente refactor Fase 2 para leer desde `config.json`.

@@ -2,18 +2,23 @@ node_modules/
 .claude/
 .wrangler/
 backups/
-*.docx
+package-lock.json
+
+# Build outputs (regenerables)
 styles.css
+
+# Tailwind config local (no del repo)
 input.css
 tailwind.config.js
-package-lock.json
-# Archivos temporales de extraccion de OAs
-lenguaje_raw.txt
-lenguaje_7_8_raw.txt
-matematica_raw.txt
-matematica_7_8_raw.txt
-nt_lenguaje_raw.txt
-nt_matematica_raw.txt
-build-oas.js
-parse-oas.js
-extract-oas.js
+
+# Documentos binarios: por privacidad (staff/) o tamaño (formato MINEDUC)
+*.docx
+
+# PDFs grandes de bases curriculares y normativa MINEDUC
+# (publicos pero pesados; se descargan desde curriculumnacional.cl)
+data/mineduc/bases-curriculares/*.pdf
+data/mineduc/normativa/**/*.pdf
+data/mineduc/calendario-escolar/**/*.pdf
+
+# Tenants: logos PNG son livianos y se versionan;
+# .docx con info de personal se ignoran por privacidad (regla *.docx arriba)
