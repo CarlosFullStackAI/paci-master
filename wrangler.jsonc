@@ -18,5 +18,11 @@
   ],
   "browser": {
     "binding": "BROWSER"
+  },
+  // Variables de entorno (publicas, no secretas).
+  // GOOGLE_CLIENT_ID es publico por diseno (Google lo expone en el HTML del frontend).
+  // Reemplazar el placeholder con el Client ID real una vez creado en Google Cloud Console.
+  "vars": {
+    "GOOGLE_CLIENT_ID": "PENDIENTE_CONFIGURAR_CLIENT_ID_DE_GOOGLE"
   }
 }

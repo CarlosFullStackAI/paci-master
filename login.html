@@ -8,6 +8,8 @@
   <link rel="shortcut icon" href="/favicon.png?v=2" type="image/png">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+  <!-- Google Identity Services (GIS) - Sign in with Google -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -171,6 +173,28 @@
     }
     .link-forgot:hover { text-decoration: underline; }
 
+    .google-signin-wrap { display: flex; justify-content: center; }
+    .google-signin-wrap:empty { display: none; }
+    .google-divider {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin: 1rem 0;
+      color: #94a3b8;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .google-divider::before,
+    .google-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: #e2e8f0;
+    }
+    .google-divider span { white-space: nowrap; }
+
     .msg {
       padding: 0.75rem 1rem;
       border-radius: 0.5rem;
@@ -244,6 +268,11 @@
       <!-- Login -->
       <div class="form-body form-section active" id="form-login">
         <div class="msg" id="msg-login"></div>
+
+        <!-- Google Sign-In: se renderiza dinamicamente via JS si GOOGLE_CLIENT_ID esta configurado -->
+        <div id="google-signin-login" class="google-signin-wrap" style="margin-bottom: 1rem;"></div>
+        <div id="google-divider-login" class="google-divider" style="display:none;"><span>o continua con tu correo</span></div>
+
         <div class="field">
           <label>Correo electronico</label>
           <div class="input-wrap">
@@ -269,6 +298,11 @@
       <!-- Register -->
       <div class="form-body form-section" id="form-register">
         <div class="msg" id="msg-register"></div>
+
+        <!-- Google Sign-In tambien sirve para registrarse (crea cuenta si no existe) -->
+        <div id="google-signin-register" class="google-signin-wrap" style="margin-bottom: 1rem;"></div>
+        <div id="google-divider-register" class="google-divider" style="display:none;"><span>o crea tu cuenta con correo</span></div>
+
         <div class="field">
           <label>Nombre completo</label>
           <div class="input-wrap">
@@ -342,6 +376,90 @@
         }).catch(() => {});
       }
     })();
+
+    // ===== Google Sign-In (GIS) =====
+    // Carga el client_id desde /api/google-config y renderiza el boton.
+    // Si GOOGLE_CLIENT_ID no esta configurado en el server, el boton no aparece
+    // y el usuario solo ve la opcion email/password.
+    let GOOGLE_INIT_DONE = false;
+
+    async function initGoogleSignIn() {
+      try {
+        const res = await fetch('/api/google-config');
+        const cfg = await res.json();
+        if (!cfg.enabled || !cfg.client_id) return; // Sin client_id, oculto silenciosamente
+
+        // Esperar a que el script GIS termine de cargar
+        if (typeof google === 'undefined' || !google.accounts) {
+          setTimeout(initGoogleSignIn, 300);
+          return;
+        }
+
+        google.accounts.id.initialize({
+          client_id: cfg.client_id,
+          callback: handleGoogleCredential,
+          auto_select: false,
+          cancel_on_tap_outside: true
+        });
+
+        // Renderizar boton en login y register
+        ['google-signin-login', 'google-signin-register'].forEach(function(id) {
+          var el = document.getElementById(id);
+          if (!el) return;
+          google.accounts.id.renderButton(el, {
+            theme: 'outline',
+            size: 'large',
+            text: id.endsWith('register') ? 'signup_with' : 'signin_with',
+            shape: 'rectangular',
+            logo_alignment: 'center',
+            width: 340
+          });
+        });
+
+        // Mostrar divisores
+        var divLogin = document.getElementById('google-divider-login');
+        var divReg = document.getElementById('google-divider-register');
+        if (divLogin) divLogin.style.display = 'flex';
+        if (divReg) divReg.style.display = 'flex';
+
+        GOOGLE_INIT_DONE = true;
+      } catch (e) {
+        console.warn('Google Sign-In no disponible:', e);
+      }
+    }
+
+    async function handleGoogleCredential(response) {
+      // Determinar en que tab esta el usuario para mostrar el msg correcto
+      var inRegister = document.getElementById('form-register').classList.contains('active');
+      var msgId = inRegister ? 'msg-register' : 'msg-login';
+
+      showMsg(msgId, 'Validando con Google...', 'info');
+      try {
+        var res = await fetch('/api/login-google', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ credential: response.credential })
+        });
+        var data = await res.json();
+        if (!res.ok || !data.ok) {
+          showMsg(msgId, data.error || 'Error al iniciar sesion con Google.', 'error');
+          return;
+        }
+        // Guardar token y redirigir igual que el login tradicional
+        if (data.token) localStorage.setItem('paci_token', data.token);
+        showMsg(msgId, 'Sesion iniciada con Google. Redirigiendo...', 'success');
+        setTimeout(function() { window.location.href = '/dashboard.html'; }, 600);
+      } catch (e) {
+        showMsg(msgId, 'Error de red al validar con Google.', 'error');
+      }
+    }
+
+    // Iniciar GIS al cargar la pagina (espera al script async)
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initGoogleSignIn);
+    } else {
+      initGoogleSignIn();
+    }
 
     // Tabs
     function showTab(tab) {
