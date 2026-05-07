@@ -470,6 +470,26 @@ table{border-collapse:collapse}
         @media print {
             /* 0) PAGINA: tamaño carta, margenes 1cm (maximo aprovechamiento) */
             @page { size: letter; margin: 1cm; }
+            /* Pagina de la Gantt: landscape para que las 11 columnas (asignatura + 10 meses)
+               quepan sin recorte. Named pages funcionan en algunos navegadores;
+               donde no funcionen, el transform:scale del wrapper es respaldo. */
+            @page gantt-landscape { size: letter landscape; margin: 1cm; }
+            #seccion-gantt { page: gantt-landscape; }
+            /* Respaldo siempre activo: escalar la Gantt al 80% para que entre
+               horizontalmente aunque el navegador no soporte named pages. */
+            #gantt-wrapper {
+                transform: scale(0.85) !important;
+                transform-origin: top left !important;
+                width: 117% !important;
+            }
+            #seccion-gantt #gantt {
+                font-size: 7pt !important;
+            }
+            #seccion-gantt #gantt th,
+            #seccion-gantt #gantt td {
+                padding: 2pt 1pt !important;
+                word-break: break-word !important;
+            }
 
             /* 0b) FORZAR COLORES DE FONDO EN TODOS LOS NAVEGADORES */
             *, *::before, *::after {
@@ -714,14 +734,32 @@ table{border-collapse:collapse}
                 page-break-after: avoid !important;
                 break-after: avoid !important;
             }
+            /* .html2pdf__page-break: solo fuerza salto de pagina antes del elemento.
+               OJO: NO aplicar height:0/margin:0/padding:0 globalmente porque esta clase
+               tambien la usan secciones de contenido real (consolidado de materiales,
+               III. Propuesta Curricular, IV. Temporalizacion, etc.) y las haria
+               invisibles en la impresion. Solo colapsamos a height:0 si el elemento
+               esta vacio (caso marcadores standalone tipo <hr class="html2pdf__page-break">). */
             .html2pdf__page-break {
                 page-break-before: always !important;
                 break-before: page !important;
                 display: block !important;
                 clear: both !important;
+            }
+            .html2pdf__page-break:empty {
                 height: 0 !important;
                 margin: 0 !important;
                 padding: 0 !important;
+            }
+
+            /* PACI-SECTION: clase semantica para bloques que NO deben partirse en mitad
+               (clases de estrategia pedagogica, OAs individuales, headers + primer contenido).
+               Cuando un bloque es mas alto que una pagina, el navegador igual lo dividira,
+               pero por defecto intenta mantenerlo entero. */
+            .paci-section,
+            #documento .paci-section {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
             }
 
             /* 12b) CONSOLIDADO DE MATERIALES: flujo continuo */
@@ -1373,9 +1411,9 @@ table{border-collapse:collapse}
                 <div id="out-modulos" class="space-y-10"></div>
             </section>
 
-            <section class="mb-10 html2pdf__page-break">
+            <section id="seccion-gantt" class="mb-10 html2pdf__page-break">
                 <h3 class="paci-header font-black text-white mb-4 uppercase rounded" style="background-color:#091845;background-image:linear-gradient(135deg,#091845 0%,#1240c4 100%);padding:12px 16px;font-size:13px;letter-spacing:0.15em;color:#ffffff;">IV. Temporalización</h3>
-                <div class="overflow-x-auto border-2 border-slate-900 rounded-xl overflow-hidden shadow-lg">
+                <div id="gantt-wrapper" class="overflow-x-auto border-2 border-slate-900 rounded-xl overflow-hidden shadow-lg">
                     <table class="w-full text-[9px] border-collapse border border-slate-300 text-center" id="gantt"></table>
                 </div>
             </section>
@@ -5434,7 +5472,7 @@ table{border-collapse:collapse}
                             <label style="display:inline-flex;align-items:center;gap:2px;cursor:pointer;" title="${tipo}: Por Lograr"><input type="checkbox" style="width:13px;height:13px;accent-color:#dc2626;cursor:pointer;"><span style="font-size:7px;font-weight:900;color:#dc2626;">PL</span></label>
                         </div>`;
 
-                        rows += `<tr class="border-b border-slate-200 evitar-corte" style="page-break-inside:avoid;break-inside:avoid;">
+                        rows += `<tr class="border-b border-slate-200 evitar-corte paci-section" style="page-break-inside:avoid;break-inside:avoid;">
                             <td class="border-r border-slate-200 align-top" style="width:8%;padding:4px 2px;">
                                 <input type="date" class="w-full bg-transparent border-0 text-[10px] font-black text-blue-900 text-center outline-none cursor-pointer p-0" value="${cl.date}" onchange="updateCl(${m.id},${cl.n},'date',this.value); updateGantt();">
                             </td>
