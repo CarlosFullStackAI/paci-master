@@ -23,6 +23,19 @@
       }).catch(function() {});
     })();
     </script>
+    <script>
+    // Carga del config del establecimiento (tenant). Hoy hay 1 solo tenant hardcoded;
+    // cuando exista un segundo colegio, TENANT_SLUG pasara a venir de la sesion del usuario.
+    window.TENANT_SLUG = 'lcm-pulebu';
+    window.TENANT_CONFIG = null;
+    window.TENANT_CONFIG_READY = fetch('/data/tenants/' + window.TENANT_SLUG + '/config.json')
+      .then(function(r) { return r.json(); })
+      .then(function(cfg) { window.TENANT_CONFIG = cfg; return cfg; })
+      .catch(function(err) {
+        console.error('No se pudo cargar config del tenant:', err);
+        return { nombre: 'Establecimiento' };
+      });
+    </script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <!-- Librería para descargar a PDF nativo -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -1112,7 +1125,7 @@ table{border-collapse:collapse}
                 </button>
                 <div id="acc-id" class="accordion-content px-4 space-y-4 open">
                     <input type="text" id="in-nombre" class="w-full border p-2.5 rounded-lg text-sm" placeholder="Nombre completo del estudiante" oninput="updatePreview()">
-                    <input type="text" id="in-escuela" class="w-full border p-2.5 rounded-lg text-sm" value="Escuela Luis Cruz Martínez" oninput="updatePreview()">
+                    <input type="text" id="in-escuela" class="w-full border p-2.5 rounded-lg text-sm" placeholder="Cargando establecimiento..." oninput="updatePreview()">
 
                     <div class="grid grid-cols-2 gap-3">
                         <select id="in-duracion" class="border p-2.5 rounded-lg text-sm outline-none" onchange="updatePreview(); setFechasTrimestre()">
@@ -3738,6 +3751,19 @@ table{border-collapse:collapse}
 
         window.onload = () => {
             try {
+                // Aplicar config del tenant al input #in-escuela cuando llegue.
+                // Solo setea si el input quedo vacio (caso documento nuevo). Si despues
+                // cargarDocumento() trae un valor guardado, el .value previo no se toca.
+                if (window.TENANT_CONFIG_READY) {
+                    window.TENANT_CONFIG_READY.then(function(cfg) {
+                        var inEscuela = document.getElementById('in-escuela');
+                        if (inEscuela && !inEscuela.value) {
+                            inEscuela.value = cfg.nombre || '';
+                            if (typeof updatePreview === 'function') updatePreview();
+                        }
+                    });
+                }
+
                 // Mostrar boton "Generar Clases con IA" solo si AI_ENABLED
                 const btnGenerarIA = document.getElementById('btn-generar-ia');
                 if (btnGenerarIA) btnGenerarIA.style.display = AI_ENABLED ? 'block' : 'none';

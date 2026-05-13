@@ -359,7 +359,7 @@
       </div>
     </div>
 
-    <p class="footer-text">Escuela Luis Cruz Martinez &middot; Programa de Integracion Escolar</p>
+    <p class="footer-text"><span id="tenant-nombre">Establecimiento</span> &middot; Programa de Integracion Escolar</p>
   </div>
 
   <script>
@@ -460,6 +460,18 @@
     } else {
       initGoogleSignIn();
     }
+
+    // Cargar nombre del establecimiento desde el config del tenant
+    (function() {
+      var TENANT_SLUG = 'lcm-pulebu';
+      fetch('/data/tenants/' + TENANT_SLUG + '/config.json')
+        .then(function(r) { return r.json(); })
+        .then(function(cfg) {
+          var el = document.getElementById('tenant-nombre');
+          if (el && cfg && cfg.nombre) el.textContent = cfg.nombre;
+        })
+        .catch(function(err) { console.error('No se pudo cargar config del tenant:', err); });
+    })();
 
     // Tabs
     function showTab(tab) {
