@@ -1121,7 +1121,7 @@ table{border-collapse:collapse}
                             <option value="3er Trimestre">3er Trimestre</option>
                             <option value="Anual" selected>Anual</option>
                         </select>
-                        <input type="date" id="in-fnac" class="border p-2.5 rounded-lg text-sm outline-none" onchange="calcularEdad()">
+                        <input type="date" id="in-fnac" class="border p-2.5 rounded-lg text-sm outline-none" onchange="calcularEdad()" data-allow-weekend="true">
                     </div>
 
                     <div class="flex gap-3 items-center">
@@ -5331,8 +5331,11 @@ table{border-collapse:collapse}
                     return;
                 }
 
-                if (!Array.isArray(data.clases) || !data.clases.length) {
-                    alert('La IA no devolvio clases. Intenta de nuevo.');
+                // Si data.clases viene vacio pero data.ok=true, significa que la IA
+                // fallo y el backend pide rellenar con plantillas procedurales.
+                // El while loop mas abajo se encarga de completar todas las clases.
+                if (!Array.isArray(data.clases)) {
+                    alert('Respuesta inesperada de la IA. Intenta de nuevo.');
                     return;
                 }
 
@@ -5398,6 +5401,17 @@ table{border-collapse:collapse}
                 // Notificacion de cuota restante
                 const remaining = typeof data.remaining === 'number' ? data.remaining : '?';
                 console.log('Clases generadas con IA. Modelo:', data.model, '| Cuota IA restante hoy:', remaining);
+
+                // Aviso al usuario si hubo lotes que la IA no pudo completar (se rellenaron con plantillas)
+                if (data.usadasPlantillas) {
+                    const mensaje = data.clases.length === 0
+                        ? (data.mensajePlantillas || 'La IA no pudo generar clases para esta asignatura. Se completaron con plantillas pedagogicas — puedes editarlas o reintentar.')
+                        : `Aviso: ${data.lotes - data.lotesExitosos} de ${data.lotes} lote(s) IA fallaron. Las clases faltantes se completaron con plantillas pedagogicas — puedes editarlas o reintentar.`;
+                    setTimeout(() => alert(mensaje), 150);
+                    if (Array.isArray(data.erroresLotes)) {
+                        console.warn('Detalles de lotes IA fallidos:', data.erroresLotes);
+                    }
+                }
 
             } catch (e) {
                 alert('Error de conexion IA: ' + e.message);
@@ -5847,24 +5861,16 @@ table{border-collapse:collapse}
             swapped.noPrint.forEach(function(el) { el.style.display = ''; });
         }
 
-        // Descargar PDF: server-side rendering via Cloudflare Browser Rendering.
-        // El endpoint /api/generate-pdf usa Puppeteer/Chrome real con emulateMediaType('print'),
-        // lo que activa @media print y produce un PDF identico al de la impresion del navegador.
-        // Resultado: descarga 100% automatica (sin dialogo) con paginacion perfecta.
-        // Si el endpoint falla (BR no activado, sin red, etc.) cae a window.print() como fallback.
-        async function downloadPDF() {
-            var rawNombre = document.getElementById('in-nombre') ? (document.getElementById('in-nombre').value || 'Estudiante') : 'Estudiante';
-            var nombreLimpio = rawNombre.replace(/[\\/:*?"<>|]/g, '').trim() || 'Estudiante';
-            var filename = 'PACI_' + nombreLimpio;
-
-            // Loader visual mientras el server renderiza (puede tardar 3-8 segundos)
+        // Loader visual reutilizable mientras el server renderiza (3-8 segundos).
+        // Devuelve un objeto con .remove() para limpieza.
+        function mostrarLoaderPdf(texto, subtexto) {
             var loaderId = 'pdf-server-loader';
             var existing = document.getElementById(loaderId);
             if (existing) existing.remove();
             var loader = document.createElement('div');
             loader.id = loaderId;
             loader.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:99999;color:#fff;font-family:Plus Jakarta Sans,sans-serif;';
-            loader.innerHTML = '<div style="text-align:center;"><div style="width:60px;height:60px;border:4px solid rgba(255,255,255,0.2);border-top-color:#3b82f6;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 16px;"></div><div style="font-size:14px;font-weight:700;">Generando PDF...</div><div style="font-size:11px;color:#94a3b8;margin-top:6px;">Renderizando en servidor (3-8 seg)</div></div>';
+            loader.innerHTML = '<div style="text-align:center;"><div style="width:60px;height:60px;border:4px solid rgba(255,255,255,0.2);border-top-color:#3b82f6;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 16px;"></div><div style="font-size:14px;font-weight:700;">' + (texto || 'Generando PDF...') + '</div><div style="font-size:11px;color:#94a3b8;margin-top:6px;">' + (subtexto || 'Renderizando en servidor (3-8 seg)') + '</div></div>';
             if (!document.getElementById('pdf-loader-keyframes')) {
                 var kf = document.createElement('style');
                 kf.id = 'pdf-loader-keyframes';
@@ -5872,89 +5878,107 @@ table{border-collapse:collapse}
                 document.head.appendChild(kf);
             }
             document.body.appendChild(loader);
+            return {
+                remove: function() {
+                    var l = document.getElementById(loaderId);
+                    if (l) l.remove();
+                }
+            };
+        }
 
-            function removeLoader() {
-                var l = document.getElementById(loaderId);
-                if (l) l.remove();
+        // Construye el HTML completo del documento PACI (estilos + valores de inputs)
+        // y lo envia a /api/generate-pdf. Devuelve { blob, filename } listos para
+        // descargar o imprimir. Lanza error si el endpoint falla (lo maneja el caller).
+        async function buildPaciPdfBlob() {
+            var rawNombre = document.getElementById('in-nombre') ? (document.getElementById('in-nombre').value || 'Estudiante') : 'Estudiante';
+            var nombreLimpio = rawNombre.replace(/[\\/:*?"<>|]/g, '').trim() || 'Estudiante';
+            var filename = 'PACI_' + nombreLimpio;
+
+            var docElement = document.getElementById('documento');
+            if (!docElement) throw new Error('No se encontro #documento');
+
+            // Extraer todos los estilos del documento (incluye Tailwind, @media print, etc.)
+            var allStyles = '';
+            for (var i = 0; i < document.styleSheets.length; i++) {
+                try {
+                    var sheet = document.styleSheets[i];
+                    var rules = sheet.cssRules;
+                    if (!rules) continue;
+                    for (var j = 0; j < rules.length; j++) {
+                        allStyles += rules[j].cssText + '\n';
+                    }
+                } catch (e) { /* skip CORS-protected sheets */ }
             }
 
-            // Construir HTML completo: documento + estilos extraidos de styleSheets
+            // Inyectar valores actuales de inputs/textareas/selects en el DOM clonado
+            // (Puppeteer captura valores, pero necesitan estar en atributos/contenido)
+            var tempContainer = document.createElement('div');
+            tempContainer.innerHTML = docElement.outerHTML;
+            tempContainer.querySelectorAll('input').forEach(function(inp) {
+                if (inp.type === 'checkbox' || inp.type === 'radio') {
+                    if (inp.checked) inp.setAttribute('checked', '');
+                    else inp.removeAttribute('checked');
+                } else {
+                    inp.setAttribute('value', inp.value || '');
+                }
+            });
+            tempContainer.querySelectorAll('textarea').forEach(function(ta) {
+                ta.textContent = ta.value || '';
+            });
+            tempContainer.querySelectorAll('select').forEach(function(sel) {
+                Array.from(sel.options).forEach(function(opt) {
+                    if (opt.value === sel.value) opt.setAttribute('selected', '');
+                    else opt.removeAttribute('selected');
+                });
+            });
+
+            var fullHtml = '<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">'
+                + '<title>' + filename + '</title>'
+                + '<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">'
+                + '<style>' + allStyles + '</style>'
+                + '</head><body>' + tempContainer.innerHTML + '</body></html>';
+
+            var resp = await fetch('/api/generate-pdf', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify({ html: fullHtml, filename: filename })
+            });
+
+            if (!resp.ok) {
+                var errText = '';
+                try { var ej = await resp.json(); errText = ej.error || ''; } catch {}
+                throw new Error('Server respondio ' + resp.status + (errText ? ': ' + errText : ''));
+            }
+
+            var blob = await resp.blob();
+            return { blob: blob, filename: filename };
+        }
+
+        // Descargar PDF: server-side rendering via Cloudflare Browser Rendering.
+        // El endpoint /api/generate-pdf usa Puppeteer/Chrome real con emulateMediaType('print'),
+        // lo que activa @media print y produce un PDF identico al de la impresion del navegador.
+        // Resultado: descarga 100% automatica (sin dialogo) con paginacion perfecta.
+        // Si el endpoint falla (BR no activado, sin red, etc.) cae a window.print() como fallback.
+        async function downloadPDF() {
+            var loader = mostrarLoaderPdf('Generando PDF...', 'Renderizando en servidor (3-8 seg)');
+
             try {
-                var docElement = document.getElementById('documento');
-                if (!docElement) throw new Error('No se encontro #documento');
-
-                // Extraer todos los estilos del documento (incluye Tailwind, @media print, etc.)
-                var allStyles = '';
-                for (var i = 0; i < document.styleSheets.length; i++) {
-                    try {
-                        var sheet = document.styleSheets[i];
-                        var rules = sheet.cssRules;
-                        if (!rules) continue;
-                        for (var j = 0; j < rules.length; j++) {
-                            allStyles += rules[j].cssText + '\n';
-                        }
-                    } catch (e) { /* skip CORS-protected sheets */ }
-                }
-
-                // Reemplazar inputs/textareas/checkboxes por contenido visible (Puppeteer captura
-                // valores pero los textareas necesitan que el value se transcriba al DOM)
-                var docHtml = docElement.outerHTML;
-                // Inyectar valores actuales de inputs en sus atributos (asegura que se vean en el PDF)
-                var tempContainer = document.createElement('div');
-                tempContainer.innerHTML = docHtml;
-                tempContainer.querySelectorAll('input').forEach(function(inp) {
-                    if (inp.type === 'checkbox' || inp.type === 'radio') {
-                        if (inp.checked) inp.setAttribute('checked', '');
-                        else inp.removeAttribute('checked');
-                    } else {
-                        inp.setAttribute('value', inp.value || '');
-                    }
-                });
-                tempContainer.querySelectorAll('textarea').forEach(function(ta) {
-                    ta.textContent = ta.value || '';
-                });
-                tempContainer.querySelectorAll('select').forEach(function(sel) {
-                    Array.from(sel.options).forEach(function(opt) {
-                        if (opt.value === sel.value) opt.setAttribute('selected', '');
-                        else opt.removeAttribute('selected');
-                    });
-                });
-
-                var fullHtml = '<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">'
-                    + '<title>' + filename + '</title>'
-                    + '<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">'
-                    + '<style>' + allStyles + '</style>'
-                    + '</head><body>' + tempContainer.innerHTML + '</body></html>';
-
-                // POST al endpoint server-side
-                var resp = await fetch('/api/generate-pdf', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'same-origin',
-                    body: JSON.stringify({ html: fullHtml, filename: filename })
-                });
-
-                if (!resp.ok) {
-                    var errText = '';
-                    try { var ej = await resp.json(); errText = ej.error || ''; } catch {}
-                    throw new Error('Server respondio ' + resp.status + (errText ? ': ' + errText : ''));
-                }
-
-                var blob = await resp.blob();
-                var url = URL.createObjectURL(blob);
+                var result = await buildPaciPdfBlob();
+                var url = URL.createObjectURL(result.blob);
                 var a = document.createElement('a');
                 a.href = url;
-                a.download = filename + '.pdf';
+                a.download = result.filename + '.pdf';
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
                 setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
 
-                removeLoader();
+                loader.remove();
                 return;
             } catch (err) {
                 console.error('PDF server-side fallo, usando fallback window.print():', err);
-                removeLoader();
+                loader.remove();
 
                 // FALLBACK: window.print() (requiere clic del usuario en el dialogo)
                 var continuar = confirm(
@@ -5965,8 +5989,10 @@ table{border-collapse:collapse}
                 );
                 if (!continuar) return;
 
+                var rawNombre = document.getElementById('in-nombre') ? (document.getElementById('in-nombre').value || 'Estudiante') : 'Estudiante';
+                var nombreLimpio = rawNombre.replace(/[\\/:*?"<>|]/g, '').trim() || 'Estudiante';
                 var titleSaved = document.title;
-                document.title = filename;
+                document.title = 'PACI_' + nombreLimpio;
                 try {
                     window.print();
                 } finally {
@@ -6324,9 +6350,63 @@ table{border-collapse:collapse}
           btn.innerHTML = originalHTML;
         }
 
-        // Imprimir: usa window.print() nativo (mas confiable que html2pdf para imprimir)
-        function printPDF() {
-            window.print();
+        // Imprimir: genera el PDF server-side (mismo endpoint que downloadPDF) y lo abre
+        // en un iframe oculto para disparar el dialogo de impresion sobre el PDF. Asi el
+        // navegador NO agrega cabecera con el <title> ni pie con la URL (que es lo que
+        // pasaria con window.print() sobre el HTML directo).
+        // Fallback: si el endpoint falla, cae a window.print() previo confirm.
+        async function printPDF() {
+            var loader = mostrarLoaderPdf('Preparando impresion...', 'Renderizando en servidor (3-8 seg)');
+
+            try {
+                var result = await buildPaciPdfBlob();
+                var url = URL.createObjectURL(result.blob);
+
+                var iframe = document.createElement('iframe');
+                iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;';
+                iframe.src = url;
+                iframe.onload = function() {
+                    // Pequeno delay para asegurar que el visor de PDF este listo
+                    setTimeout(function() {
+                        try {
+                            iframe.contentWindow.focus();
+                            iframe.contentWindow.print();
+                        } catch (e) {
+                            console.error('No se pudo imprimir el iframe, abriendo en pestana nueva:', e);
+                            window.open(url, '_blank');
+                        }
+                    }, 300);
+                };
+                document.body.appendChild(iframe);
+
+                // Limpieza tardia (despues de que usuario cierra el dialogo de impresion)
+                setTimeout(function() {
+                    URL.revokeObjectURL(url);
+                    if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+                }, 60000);
+
+                loader.remove();
+            } catch (err) {
+                console.error('PDF server-side fallo, usando fallback window.print():', err);
+                loader.remove();
+
+                var continuar = confirm(
+                    'No se pudo generar el PDF en el servidor (' + (err.message || err) + ').\n\n'
+                    + 'Como alternativa se abrira el dialogo de impresion del navegador.\n'
+                    + 'IMPORTANTE: en el dialogo, en "Mas configuraciones", DESMARCA\n'
+                    + '"Encabezados y pies de pagina" para que no aparezcan el titulo y la URL.\n\n'
+                    + '¿Continuar?'
+                );
+                if (!continuar) return;
+
+                var titleSaved = document.title;
+                document.title = 'PACI';
+                try {
+                    window.print();
+                } finally {
+                    setTimeout(function() { document.title = titleSaved; }, 1000);
+                }
+            }
         }
     </script>
 
@@ -6381,6 +6461,17 @@ table{border-collapse:collapse}
         font-size: 0.8rem; font-weight: 700; color: #e2e8f0;
         text-transform: capitalize;
     }
+    .paci-dp-sel {
+        background: rgba(56,189,248,0.08); border: 1px solid rgba(56,189,248,0.15);
+        color: #e2e8f0; font-size: 0.7rem; font-weight: 700;
+        padding: 3px 4px; border-radius: 0.35rem; cursor: pointer;
+        appearance: none; -webkit-appearance: none; -moz-appearance: none;
+        outline: none; transition: all 0.15s;
+    }
+    .paci-dp-sel:hover { background: rgba(56,189,248,0.18); }
+    .paci-dp-sel:focus { border-color: rgba(56,189,248,0.45); }
+    .paci-dp-sel-year { color: #38bdf8; }
+    .paci-dp-sel option { background: #1e293b; color: #e2e8f0; }
     .paci-dp-weekdays {
         display: grid; grid-template-columns: repeat(7, 1fr);
         padding: 0.5rem 0.75rem 0.25rem; gap: 0;
@@ -6463,6 +6554,9 @@ table{border-collapse:collapse}
     // ==========================================
     var PaciDP = (function() {
         var currentMonth, currentYear, selectedDate, targetInput, onChangeCallback;
+        // allowWeekend: si true, no bloquea sabados/domingos (ej: fecha de nacimiento).
+        // Por defecto false: bloquea fines de semana (planificacion de clases solo en dias habiles).
+        var allowWeekend = false;
         var container = null;
         var overlay = null;
         var MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -6477,6 +6571,8 @@ table{border-collapse:collapse}
             if (!container) init();
             targetInput = input;
             onChangeCallback = null;
+            // Lee del input si permite fines de semana (caso: fecha de nacimiento).
+            allowWeekend = input.dataset && input.dataset.allowWeekend === 'true';
 
             // Parsear fecha actual del input
             var val = input.value || '';
@@ -6486,6 +6582,12 @@ table{border-collapse:collapse}
                 currentYear = parseInt(p[0]);
                 currentMonth = parseInt(p[1]) - 1;
                 selectedDate = val;
+            } else if (allowWeekend) {
+                // Fecha de nacimiento sin valor: abrir hace 10 anos para minimizar
+                // clicks (los estudiantes PACI son tipicamente de primaria/secundaria).
+                currentYear = today.getFullYear() - 10;
+                currentMonth = today.getMonth();
+                selectedDate = null;
             } else {
                 currentYear = today.getFullYear();
                 currentMonth = today.getMonth();
@@ -6522,12 +6624,33 @@ table{border-collapse:collapse}
             var firstDay = new Date(currentYear, currentMonth, 1).getDay();
             firstDay = firstDay === 0 ? 6 : firstDay - 1; // Lunes=0
 
+            // Rango de anos: si allowWeekend (fecha de nacimiento) abre 1920..hoy+1.
+            // Para planificacion: ano actual -2..+5.
+            var nowYear = new Date().getFullYear();
+            var yearMin = allowWeekend ? 1920 : (nowYear - 2);
+            var yearMax = allowWeekend ? (nowYear + 1) : (nowYear + 5);
+            // Asegurarse de que currentYear este dentro del select (si no, lo extendemos).
+            if (currentYear < yearMin) yearMin = currentYear;
+            if (currentYear > yearMax) yearMax = currentYear;
+
             var html = '<div class="paci-dp-header">';
             html += '<div style="display:flex;gap:3px;">';
             html += '<button onclick="PaciDP.prevYear()" title="Ano anterior" style="font-size:0.55rem;width:24px;"><i class="fa-solid fa-angles-left"></i></button>';
             html += '<button onclick="PaciDP.prevMonth()" title="Mes anterior"><i class="fa-solid fa-chevron-left" style="font-size:0.65rem;"></i></button>';
             html += '</div>';
-            html += '<span class="paci-dp-title">' + MONTHS[currentMonth] + ' <strong style="color:#38bdf8;">' + currentYear + '</strong></span>';
+            // Selects de mes y ano para navegacion rapida
+            html += '<span class="paci-dp-title" style="display:flex;gap:4px;align-items:center;">';
+            html += '<select class="paci-dp-sel" onchange="PaciDP.setMonth(this.value)">';
+            for (var mi = 0; mi < 12; mi++) {
+              html += '<option value="' + mi + '"' + (mi === currentMonth ? ' selected' : '') + '>' + MONTHS[mi] + '</option>';
+            }
+            html += '</select>';
+            html += '<select class="paci-dp-sel paci-dp-sel-year" onchange="PaciDP.setYear(this.value)">';
+            for (var yi = yearMax; yi >= yearMin; yi--) {
+              html += '<option value="' + yi + '"' + (yi === currentYear ? ' selected' : '') + '>' + yi + '</option>';
+            }
+            html += '</select>';
+            html += '</span>';
             html += '<div style="display:flex;gap:3px;">';
             html += '<button onclick="PaciDP.nextMonth()" title="Mes siguiente"><i class="fa-solid fa-chevron-right" style="font-size:0.65rem;"></i></button>';
             html += '<button onclick="PaciDP.nextYear()" title="Ano siguiente" style="font-size:0.55rem;width:24px;"><i class="fa-solid fa-angles-right"></i></button>';
@@ -6564,9 +6687,9 @@ table{border-collapse:collapse}
                     var tooltipPos = (row >= totalRows - 2) ? 'pos-above' : 'pos-below';
                     tooltip = '<span class="paci-dp-tooltip ' + tooltipPos + '">' + FERIADOS_CHILE[dateStr] + '</span>';
                 }
-                // Fines de semana
+                // Fines de semana (solo bloquear si el input no permite weekend)
                 var dow = new Date(currentYear, currentMonth, d).getDay();
-                if (dow === 0 || dow === 6) cls += ' disabled';
+                if (!allowWeekend && (dow === 0 || dow === 6)) cls += ' disabled';
 
                 html += '<div class="' + cls + '" data-date="' + dateStr + '" onclick="PaciDP.select(\'' + dateStr + '\')">' + d + tooltip + '</div>';
             }
@@ -6596,10 +6719,10 @@ table{border-collapse:collapse}
         }
 
         function select(dateStr) {
-            // No seleccionar fines de semana
+            // No seleccionar fines de semana (a menos que el input lo permita)
             var p = dateStr.split('-');
             var dow = new Date(parseInt(p[0]), parseInt(p[1]) - 1, parseInt(p[2])).getDay();
-            if (dow === 0 || dow === 6) return;
+            if (!allowWeekend && (dow === 0 || dow === 6)) return;
 
             selectedDate = dateStr;
             if (targetInput) {
@@ -6651,11 +6774,27 @@ table{border-collapse:collapse}
             render('left');
         }
 
+        function setMonth(m) {
+            var n = parseInt(m, 10);
+            if (!isNaN(n) && n >= 0 && n <= 11) {
+                currentMonth = n;
+                render();
+            }
+        }
+
+        function setYear(y) {
+            var n = parseInt(y, 10);
+            if (!isNaN(n) && n > 1900 && n < 2200) {
+                currentYear = n;
+                render();
+            }
+        }
+
         function formatDate(d) {
             return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
         }
 
-        return { open: open, close: close, select: select, prevMonth: prevMonth, nextMonth: nextMonth, prevYear: prevYear, nextYear: nextYear, goToday: goToday, clear: clear };
+        return { open: open, close: close, select: select, prevMonth: prevMonth, nextMonth: nextMonth, prevYear: prevYear, nextYear: nextYear, setMonth: setMonth, setYear: setYear, goToday: goToday, clear: clear };
     })();
 
     // Interceptar clicks en inputs date del control panel
@@ -6670,6 +6809,15 @@ table{border-collapse:collapse}
     document.addEventListener('mousedown', function(e) {
         var input = e.target.closest('#control-panel input[type="date"]');
         if (input) { e.preventDefault(); input.blur(); }
+    });
+    // Cerrar datepicker con tecla Escape
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            var overlay = document.getElementById('dp-overlay');
+            if (overlay && overlay.classList.contains('show')) {
+                PaciDP.close();
+            }
+        }
     });
     </script>
 
