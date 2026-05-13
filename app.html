@@ -1215,6 +1215,14 @@ table{border-collapse:collapse}
 
                     <div id="oa-selector-container" class="space-y-2">
                         <label id="lbl-oas-disponibles" class="text-[10px] font-black text-slate-500 uppercase block mb-1">OAs Reales Disponibles:</label>
+                        <div class="relative">
+                            <input type="search" id="in-oa-search" placeholder="Buscar por numero (ej. 23) o palabra clave..." oninput="filterOAs()" class="w-full border border-slate-200 rounded-lg pl-8 pr-8 py-2 text-xs outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                            <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-[10px]"></i>
+                            <button type="button" id="btn-clear-oa-search" onclick="clearOASearch()" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 text-xs hidden" title="Limpiar busqueda">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                        <p id="oa-search-empty" class="hidden text-center text-[10px] text-slate-500 italic py-2">Ningun OA coincide con la busqueda.</p>
                         <div id="oa-list" class="border bg-white rounded-xl max-h-[350px] overflow-y-auto p-1.5 space-y-1.5 shadow-inner border-slate-200">
                             <p class="text-slate-400 italic text-center py-10 text-xs px-4">Seleccione Asignatura y Unidad para cargar los OAs oficiales.</p>
                         </div>
@@ -4504,6 +4512,55 @@ table{border-collapse:collapse}
             }
         }
 
+        // Filtra las tarjetas .oa-card visibles del listado segun el texto del input
+        // #in-oa-search. Si el query son solo digitos (ej. "23"), busca match exacto
+        // del numero contra el codigo del OA (matchea "OA 23" pero NO "OA 230"). Si
+        // tiene letras, hace substring case-insensitive sobre todo el texto.
+        function filterOAs() {
+            const input = document.getElementById('in-oa-search');
+            const clearBtn = document.getElementById('btn-clear-oa-search');
+            const emptyMsg = document.getElementById('oa-search-empty');
+            const list = document.getElementById('oa-list');
+            if (!input || !list) return;
+
+            const q = (input.value || '').trim().toLowerCase();
+            if (clearBtn) clearBtn.classList.toggle('hidden', !q);
+
+            const cards = list.querySelectorAll('.oa-card');
+            const isNumOnly = /^\d+$/.test(q);
+            const numRegex = isNumOnly ? new RegExp('\\boa\\s*' + q + '\\b', 'i') : null;
+
+            let visible = 0;
+            cards.forEach(function(card) {
+                if (!q) {
+                    card.style.display = '';
+                    visible++;
+                    return;
+                }
+                const cb = card.querySelector('input[data-code]');
+                const code = cb ? (cb.getAttribute('data-code') || '') : '';
+                const text = card.textContent || '';
+                let match;
+                if (isNumOnly) {
+                    match = numRegex.test(code) || numRegex.test(text);
+                } else {
+                    match = text.toLowerCase().includes(q);
+                }
+                card.style.display = match ? '' : 'none';
+                if (match) visible++;
+            });
+
+            if (emptyMsg) emptyMsg.classList.toggle('hidden', !(q && visible === 0 && cards.length > 0));
+        }
+
+        function clearOASearch() {
+            const input = document.getElementById('in-oa-search');
+            if (!input) return;
+            input.value = '';
+            filterOAs();
+            input.focus();
+        }
+
         function loadOAs() {
             const asigEl = document.getElementById('in-asig');
             const ntEl = document.getElementById('in-nivel-trabajo');
@@ -4511,6 +4568,14 @@ table{border-collapse:collapse}
             const list = document.getElementById('oa-list');
 
             if(!asigEl || !uSel || !list || !ntEl) return;
+
+            // Limpiar busqueda anterior al cargar OAs de una unidad distinta
+            const searchInput = document.getElementById('in-oa-search');
+            if (searchInput) searchInput.value = '';
+            const clearBtn = document.getElementById('btn-clear-oa-search');
+            if (clearBtn) clearBtn.classList.add('hidden');
+            const emptyMsg = document.getElementById('oa-search-empty');
+            if (emptyMsg) emptyMsg.classList.add('hidden');
 
             const asig = asigEl.value;
             let nivel = ntEl.value;
