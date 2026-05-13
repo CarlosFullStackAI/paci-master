@@ -344,7 +344,7 @@
     // ==========================================
     // STUDENT DETAIL
     // ==========================================
-    const loadedStudents = {};
+    let loadedStudents = {};
 
     async function loadStudentDetail(id) {
       if (loadedStudents[id]) return;
@@ -746,12 +746,22 @@
     async function deleteDoc(docId, studentId) {
       if (!confirm('Eliminar este documento PACI?')) return;
       const res = await api('/api/documents/delete', { documentId: docId });
-      if (res.ok) {
-        loadedStudents[studentId] = false;
-        loadStudentDetail(studentId);
-        loadDashboard();
-      } else {
+      if (!res.ok) {
         alert('Error: ' + (res.error || 'No se pudo eliminar'));
+        return;
+      }
+      // Recordar si el card del estudiante estaba abierto para reabrirlo despues
+      const bodyEl = document.getElementById('body-' + studentId);
+      const wasOpen = bodyEl ? bodyEl.classList.contains('open') : false;
+
+      // Invalidar cache y regenerar dashboard. Awaiteado para evitar race condition
+      // donde loadDashboard borra el render de loadStudentDetail.
+      loadedStudents[studentId] = false;
+      await loadDashboard();
+
+      if (wasOpen) {
+        // toggleCard expande y llama loadStudentDetail con la cache invalidada
+        toggleCard(studentId);
       }
     }
 
@@ -763,12 +773,12 @@
       if (!confirm('CONFIRMAR: Realmente quieres eliminar a "' + studentName + '" y todos sus datos?')) return;
 
       const res = await api('/api/students/delete', { studentId });
-      if (res.ok) {
-        loadedStudents = {};
-        loadDashboard();
-      } else {
+      if (!res.ok) {
         alert('Error: ' + (res.error || 'No se pudo eliminar'));
+        return;
       }
+      loadedStudents = {};
+      await loadDashboard();
     }
 
     // ==========================================
