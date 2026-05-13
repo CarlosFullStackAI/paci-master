@@ -6013,8 +6013,26 @@ table{border-collapse:collapse}
                     inp.setAttribute('value', inp.value || '');
                 }
             });
-            tempContainer.querySelectorAll('textarea').forEach(function(ta) {
-                ta.textContent = ta.value || '';
+            // Reemplazar cada textarea por un <div> con el mismo texto. Los textareas
+            // en el PACI usan auto-expand via JS (autoExpand copia scrollHeight al
+            // height), pero Puppeteer no ejecuta ese JS sobre el clon, asi que los
+            // textareas quedan con min-height fijo + overflow:hidden y el texto sale
+            // truncado en el PDF. Los <div> se expanden naturalmente al contenido.
+            // Iteramos en paralelo sobre los textareas del DOM original y del clon
+            // para usar el .value editado del original (outerHTML solo captura el
+            // defaultValue, no el valor editado por el usuario).
+            var originalTextareas = Array.from(docElement.querySelectorAll('textarea'));
+            var clonedTextareas = Array.from(tempContainer.querySelectorAll('textarea'));
+            clonedTextareas.forEach(function(clonedTa, idx) {
+                var origTa = originalTextareas[idx];
+                var value = origTa ? (origTa.value || '') : (clonedTa.value || clonedTa.textContent || '');
+                var div = document.createElement('div');
+                div.className = clonedTa.className || '';
+                var origStyle = clonedTa.getAttribute('style') || '';
+                // Override anti-truncado: visible overflow, altura automatica, preservar saltos
+                div.setAttribute('style', origStyle + ';display:block;white-space:pre-wrap;word-wrap:break-word;overflow:visible !important;height:auto !important;min-height:0 !important;max-height:none !important;resize:none;');
+                div.textContent = value;
+                clonedTa.parentNode.replaceChild(div, clonedTa);
             });
             tempContainer.querySelectorAll('select').forEach(function(sel) {
                 Array.from(sel.options).forEach(function(opt) {
