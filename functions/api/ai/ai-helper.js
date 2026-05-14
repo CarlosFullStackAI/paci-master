@@ -50,6 +50,29 @@ export function sanitizeForPrompt(text) {
     .substring(0, 500);
 }
 
+// Extrae y parsea el primer JSON balanceado del contenido.
+// Maneja casos comunes: envoltura ```json ... ```, texto antes/despues del JSON,
+// y respuestas degeneradas (algunos modelos free responden basura tipo ":::::").
+// Retorna objeto parseado o null si no se pudo extraer JSON valido.
+export function extractJSON(content) {
+  if (!content) return null;
+  let cleaned = String(content).trim();
+  cleaned = cleaned.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+
+  const firstBrace = cleaned.indexOf('{');
+  const lastBrace = cleaned.lastIndexOf('}');
+  if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
+    return null;
+  }
+  cleaned = cleaned.substring(firstBrace, lastBrace + 1);
+
+  try {
+    return JSON.parse(cleaned);
+  } catch (e) {
+    return null;
+  }
+}
+
 // Funcion publica: llama a IA con cascada automatica entre proveedores.
 // Si un proveedor falla por rate limit, error o caida, prueba el siguiente.
 export async function callAI(env, messages, options = {}) {
@@ -121,6 +144,20 @@ async function callOpenRouter(env, messages, options) {
       lastError = `${model}: respuesta vacia`;
       continue;
     }
+    // Si pedimos JSON, validar que el modelo no genero basura degenerada.
+    // Si el JSON no parsea, tratar como falla del modelo y pasar al siguiente.
+    if (options.jsonMode) {
+      const parsed = extractJSON(content);
+      if (!parsed) {
+        lastError = `${model}: JSON malformado en respuesta`;
+        continue;
+      }
+      return {
+        content: JSON.stringify(parsed),
+        usage: data.usage || {},
+        model: data.model || model
+      };
+    }
     return {
       content,
       usage: data.usage || {},
@@ -169,6 +206,18 @@ async function callGroq(env, messages, options) {
     if (!content || !content.trim() || content.trim() === 'null') {
       lastError = `${model}: respuesta vacia`;
       continue;
+    }
+    if (options.jsonMode) {
+      const parsed = extractJSON(content);
+      if (!parsed) {
+        lastError = `${model}: JSON malformado en respuesta`;
+        continue;
+      }
+      return {
+        content: JSON.stringify(parsed),
+        usage: data.usage || {},
+        model: data.model || model
+      };
     }
     return {
       content,
@@ -226,6 +275,18 @@ async function callGemini(env, messages, options) {
     if (!text || !text.trim() || text.trim() === 'null') {
       lastError = `${model}: respuesta vacia`;
       continue;
+    }
+    if (options.jsonMode) {
+      const parsed = extractJSON(text);
+      if (!parsed) {
+        lastError = `${model}: JSON malformado en respuesta`;
+        continue;
+      }
+      return {
+        content: JSON.stringify(parsed),
+        usage: data.usageMetadata || {},
+        model
+      };
     }
     return {
       content: text,

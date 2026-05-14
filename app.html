@@ -1344,6 +1344,40 @@ table{border-collapse:collapse}
                     </button>
                 </div>
             </div>
+
+            <!-- 4. Contexto para la IA. NO se guarda en el documento PACI:
+                 los textos se envian al endpoint /api/ai/generate-classes solo al
+                 momento de generar clases con IA, y persisten en localStorage del
+                 navegador para no reescribirlos entre modulos. Visible solo si AI_ENABLED. -->
+            <div id="ai-context-panel" class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden" style="display:none;">
+                <button class="w-full text-left p-4 bg-slate-50 font-bold text-xs uppercase flex justify-between items-center" onclick="toggleAcc('acc-ai-context')">
+                    <span class="flex items-center gap-2">
+                        4. Contexto para la IA
+                        <span class="text-[10px] font-normal normal-case text-slate-500">(opcional)</span>
+                        <span id="ai-context-indicator" class="hidden bg-violet-600 text-white px-1.5 py-0.5 rounded-full text-[9px]" title="Hay informacion guardada">activo</span>
+                    </span>
+                    <i class="fa-solid fa-wand-magic-sparkles text-violet-600"></i>
+                </button>
+                <div id="acc-ai-context" class="accordion-content px-4 space-y-3 pb-4 open">
+                    <p class="text-[10px] text-slate-600 leading-relaxed bg-violet-50 border border-violet-200 rounded-lg p-2.5">
+                        <i class="fa-solid fa-circle-info text-violet-600 mr-1"></i>
+                        Esta informacion se envia a la IA al generar clases con IA para ajustar las actividades y los materiales a tu realidad de aula. No se guarda en el documento PACI; queda solo en este navegador.
+                    </p>
+                    <div>
+                        <label for="in-ai-contexto" class="text-[10px] font-black text-slate-500 uppercase mb-1 block">Contexto de las clases</label>
+                        <textarea id="in-ai-contexto" rows="3" maxlength="500" placeholder="Ej: curso de 8 estudiantes con apoyo PIE 2 veces por semana, trabajamos mucho en parejas, el estudiante se distrae con ruidos fuertes, estamos cerca de fiestas patrias." class="w-full border p-2.5 rounded-lg text-xs outline-none focus:ring-2 focus:ring-violet-500 resize-none" oninput="onAIContextInput()"></textarea>
+                        <p class="text-[9px] text-slate-500 mt-1 text-right"><span id="in-ai-contexto-count">0</span>/500</p>
+                    </div>
+                    <div>
+                        <label for="in-ai-recursos" class="text-[10px] font-black text-slate-500 uppercase mb-1 block">Recursos disponibles</label>
+                        <textarea id="in-ai-recursos" rows="3" maxlength="500" placeholder="Ej: sala con proyector, no hay tablets, biblioteca con libros Caligrafix, material concreto de matematicas (regletas, abaco), pizarra acrilica." class="w-full border p-2.5 rounded-lg text-xs outline-none focus:ring-2 focus:ring-violet-500 resize-none" oninput="onAIContextInput()"></textarea>
+                        <p class="text-[9px] text-slate-500 mt-1 text-right"><span id="in-ai-recursos-count">0</span>/500</p>
+                    </div>
+                    <button type="button" onclick="clearAIContext()" class="text-[10px] text-violet-700 hover:text-violet-900 underline">
+                        <i class="fa-solid fa-eraser mr-1"></i>Limpiar campos
+                    </button>
+                </div>
+            </div>
         </div>
     </aside>
 
@@ -3776,6 +3810,12 @@ table{border-collapse:collapse}
                 const btnGenerarIA = document.getElementById('btn-generar-ia');
                 if (btnGenerarIA) btnGenerarIA.style.display = AI_ENABLED ? 'block' : 'none';
 
+                // Mostrar panel "Contexto para la IA" solo si AI_ENABLED y cargar valores
+                // previamente guardados en localStorage.
+                const aiContextPanel = document.getElementById('ai-context-panel');
+                if (aiContextPanel) aiContextPanel.style.display = AI_ENABLED ? 'block' : 'none';
+                if (AI_ENABLED) loadAIContextFromStorage();
+
                 // PROTECCIÓN NUCLEAR: impedir scroll del body (solo desktop)
                 if (!isMobile()) {
                     document.body.scrollTop = 0;
@@ -5339,6 +5379,86 @@ table{border-collapse:collapse}
         }
 
         // ==========================================
+        // CONTEXTO ADICIONAL PARA LA IA (no se guarda en el PACI)
+        // ==========================================
+        // Permite al docente dar a la IA contexto del aula (tamano del curso,
+        // dinamica, agenda, etc.) y los recursos disponibles (proyector, libros,
+        // material concreto) para que las actividades y materiales generados sean
+        // realistas. Persiste en localStorage del navegador para no reescribirlo
+        // entre modulos, pero NO viaja con el documento PACI guardado en D1.
+        const AI_CONTEXT_LS_KEY = 'paci_ai_context_v1';
+
+        function loadAIContextFromStorage() {
+            try {
+                const raw = localStorage.getItem(AI_CONTEXT_LS_KEY);
+                if (!raw) return;
+                const data = JSON.parse(raw);
+                const inCtx = document.getElementById('in-ai-contexto');
+                const inRec = document.getElementById('in-ai-recursos');
+                if (inCtx && typeof data.contexto === 'string') inCtx.value = data.contexto;
+                if (inRec && typeof data.recursos === 'string') inRec.value = data.recursos;
+                refreshAIContextCounters();
+                refreshAIContextIndicator();
+            } catch (e) {
+                // localStorage puede fallar en modo incognito o cuotas; no es critico.
+            }
+        }
+
+        function saveAIContextToStorage() {
+            try {
+                const contexto = (document.getElementById('in-ai-contexto')?.value || '').trim();
+                const recursos = (document.getElementById('in-ai-recursos')?.value || '').trim();
+                if (!contexto && !recursos) {
+                    localStorage.removeItem(AI_CONTEXT_LS_KEY);
+                } else {
+                    localStorage.setItem(AI_CONTEXT_LS_KEY, JSON.stringify({ contexto, recursos }));
+                }
+            } catch (e) {
+                // ignorar
+            }
+        }
+
+        function refreshAIContextCounters() {
+            const inCtx = document.getElementById('in-ai-contexto');
+            const inRec = document.getElementById('in-ai-recursos');
+            const ctCtx = document.getElementById('in-ai-contexto-count');
+            const ctRec = document.getElementById('in-ai-recursos-count');
+            if (inCtx && ctCtx) ctCtx.textContent = inCtx.value.length;
+            if (inRec && ctRec) ctRec.textContent = inRec.value.length;
+        }
+
+        function refreshAIContextIndicator() {
+            const inCtx = document.getElementById('in-ai-contexto');
+            const inRec = document.getElementById('in-ai-recursos');
+            const indicator = document.getElementById('ai-context-indicator');
+            if (!indicator) return;
+            const hasData = (inCtx && inCtx.value.trim()) || (inRec && inRec.value.trim());
+            indicator.classList.toggle('hidden', !hasData);
+        }
+
+        function onAIContextInput() {
+            refreshAIContextCounters();
+            refreshAIContextIndicator();
+            saveAIContextToStorage();
+        }
+
+        function clearAIContext() {
+            const inCtx = document.getElementById('in-ai-contexto');
+            const inRec = document.getElementById('in-ai-recursos');
+            if (inCtx) inCtx.value = '';
+            if (inRec) inRec.value = '';
+            try { localStorage.removeItem(AI_CONTEXT_LS_KEY); } catch (e) {}
+            refreshAIContextCounters();
+            refreshAIContextIndicator();
+        }
+
+        function getAIContextPayload() {
+            const contexto = (document.getElementById('in-ai-contexto')?.value || '').trim();
+            const recursos = (document.getElementById('in-ai-recursos')?.value || '').trim();
+            return { contextoClases: contexto, recursosDisponibles: recursos };
+        }
+
+        // ==========================================
         // GENERAR CLASES CON IA (OpenRouter)
         // ==========================================
         // Coexiste con addModulo() (procedural). Usa los OAs adaptados (textoAdecuado)
@@ -5395,6 +5515,7 @@ table{border-collapse:collapse}
                 const esParvularia = (ntCurr === 'nt1' || ntCurr === 'nt2');
                 const token = localStorage.getItem('paci_token');
 
+                const aiCtx = getAIContextPayload();
                 const res = await fetch('/api/ai/generate-classes', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -5411,7 +5532,9 @@ table{border-collapse:collapse}
                         diagnosisId: diagId,
                         diagnosisName: diagName,
                         numClases: numClases,
-                        esParvularia: esParvularia
+                        esParvularia: esParvularia,
+                        contextoClases: aiCtx.contextoClases,
+                        recursosDisponibles: aiCtx.recursosDisponibles
                     })
                 });
 
@@ -7029,6 +7152,7 @@ table{border-collapse:collapse}
         { icon: 'fa-users', label: 'Equipo de Aula', action: function() { toggleAcc('acc-equipo'); }, section: 'acc-equipo' },
         { icon: 'fa-bullseye', label: 'Objetivos de Aprendizaje', action: function() { toggleAcc('acc-oas'); }, section: 'acc-oas' },
         { icon: 'fa-image', label: 'Logos Institucionales', action: function() { toggleAcc('acc-logos'); }, section: 'acc-logos' },
+        { icon: 'fa-wand-magic-sparkles', label: 'Contexto para la IA', action: function() { toggleAcc('acc-ai-context'); }, section: 'acc-ai-context' },
         { icon: 'fa-cloud-arrow-up', label: 'Guardar PACI', action: function() { guardarPACI(); }, shortcut: 'Ctrl+S' },
         { icon: 'fa-download', label: 'Descargar PDF', action: function() { downloadPDF(); }, shortcut: 'Ctrl+P' },
         { icon: 'fa-print', label: 'Imprimir', action: function() { printPDF(); } },
