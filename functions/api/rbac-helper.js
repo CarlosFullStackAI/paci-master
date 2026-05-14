@@ -10,25 +10,27 @@ const COMMENT_ROLES = ['admin', 'teacher', 'educador_diferencial', 'profesor_asi
 const APPROVE_ROLES = ['admin', 'utp'];
 const MANAGE_STUDENTS_ROLES = ['admin', 'teacher', 'educador_diferencial'];
 
-// Mapa de permisos por accion
-const PERMISSIONS = {
-  'paci:create': FULL_CRUD_ROLES,
-  'paci:edit': FULL_CRUD_ROLES,
-  'paci:delete': FULL_CRUD_ROLES,
-  'paci:read': VALID_ROLES, // todos pueden leer (con filtros segun rol)
-  'paci:comment': COMMENT_ROLES,
-  'paci:approve': APPROVE_ROLES,
-  'student:create': MANAGE_STUDENTS_ROLES,
-  'student:edit': MANAGE_STUDENTS_ROLES,
-  'student:delete': MANAGE_STUDENTS_ROLES,
-  'student:read': VALID_ROLES, // todos pueden leer estudiantes
-  'admin:set-role': ['admin'],
-  'admin:audit-logs': ['admin']
-};
+// Mapa de permisos por accion. Usar Map (no objeto literal) evita acceso
+// indexado dinamico y elimina riesgo de prototype-pollution si una accion
+// llegara a contener nombres reservados como __proto__ o constructor.
+const PERMISSIONS = new Map([
+  ['paci:create', FULL_CRUD_ROLES],
+  ['paci:edit', FULL_CRUD_ROLES],
+  ['paci:delete', FULL_CRUD_ROLES],
+  ['paci:read', VALID_ROLES], // todos pueden leer (con filtros segun rol)
+  ['paci:comment', COMMENT_ROLES],
+  ['paci:approve', APPROVE_ROLES],
+  ['student:create', MANAGE_STUDENTS_ROLES],
+  ['student:edit', MANAGE_STUDENTS_ROLES],
+  ['student:delete', MANAGE_STUDENTS_ROLES],
+  ['student:read', VALID_ROLES], // todos pueden leer estudiantes
+  ['admin:set-role', ['admin']],
+  ['admin:audit-logs', ['admin']]
+]);
 
 // Verificar si un rol tiene permiso para una accion
 export function hasPermission(role, action) {
-  const allowedRoles = PERMISSIONS[action];
+  const allowedRoles = PERMISSIONS.get(action);
   if (!allowedRoles) return false;
   return allowedRoles.includes(role || 'teacher');
 }

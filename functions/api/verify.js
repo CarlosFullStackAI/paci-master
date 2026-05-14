@@ -32,6 +32,11 @@ export async function onRequestPost(context) {
 }
 
 function getCookieValue(cookieStr, name) {
-  const match = cookieStr.match(new RegExp('(?:^|;\\s*)' + name + '=([^;]*)'));
-  return match ? match[1] : null;
+  if (!cookieStr) return null;
+  const prefix = name + '=';
+  for (const cookie of cookieStr.split(';')) {
+    const trimmed = cookie.trim();
+    if (trimmed.startsWith(prefix)) return trimmed.substring(prefix.length);
+  }
+  return null;
 }

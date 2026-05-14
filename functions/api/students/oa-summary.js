@@ -33,26 +33,41 @@ export async function onRequestPost(context) {
 
     const allOas = oas.results || [];
 
-    // Agrupar por asignatura -> trimestre -> status
-    const summary = {};
+    // Agrupar por asignatura -> trimestre -> status. Map evita acceso
+    // indexado dinamico (subject_key, trimester) y protege contra
+    // prototype-pollution. Para los contadores por status usamos un
+    // switch sobre allowlist en lugar de incrementar dinamicamente.
+    const summary = new Map();
     const totals = { logrado: 0, en_desarrollo: 0, no_logrado: 0, no_evaluado: 0 };
+    const VALID_STATUSES = new Set(['logrado', 'en_desarrollo', 'no_logrado', 'no_evaluado']);
 
     allOas.forEach(oa => {
       const key = oa.subject_key || 'sin_asignatura';
-      if (!summary[key]) {
-        summary[key] = { name: oa.subject, trimesters: {} };
+      if (!summary.has(key)) {
+        summary.set(key, { name: oa.subject, trimesters: new Map() });
       }
+      const subjEntry = summary.get(key);
       const trim = oa.trimester || 'Sin trimestre';
-      if (!summary[key].trimesters[trim]) {
-        summary[key].trimesters[trim] = { logrado: 0, en_desarrollo: 0, no_logrado: 0, no_evaluado: 0, oas: [] };
+      if (!subjEntry.trimesters.has(trim)) {
+        subjEntry.trimesters.set(trim, { logrado: 0, en_desarrollo: 0, no_logrado: 0, no_evaluado: 0, oas: [] });
       }
-      const status = oa.progress_status || 'no_evaluado';
-      summary[key].trimesters[trim][status]++;
+      const trimEntry = subjEntry.trimesters.get(trim);
+      const status = VALID_STATUSES.has(oa.progress_status) ? oa.progress_status : 'no_evaluado';
+
+      // status validado contra allowlist: incrementar via switch evita
+      // acceso indexado dinamico en trimEntry/totals.
+      switch (status) {
+        case 'logrado': trimEntry.logrado++; totals.logrado++; break;
+        case 'en_desarrollo': trimEntry.en_desarrollo++; totals.en_desarrollo++; break;
+        case 'no_logrado': trimEntry.no_logrado++; totals.no_logrado++; break;
+        default: trimEntry.no_evaluado++; totals.no_evaluado++;
+      }
+
       // text expone el texto adecuado (lo que el educador trabaja)
       // textoOriginal expone el texto MINEDUC para trazabilidad / comparacion
       const textoAdecuado = oa.oa_text_adapted || oa.oa_text || '';
       const textoOriginal = oa.oa_text_original || oa.oa_text || textoAdecuado;
-      summary[key].trimesters[trim].oas.push({
+      trimEntry.oas.push({
         id: oa.id,
         code: oa.oa_code,
         text: textoAdecuado,
@@ -65,15 +80,22 @@ export async function onRequestPost(context) {
         evaluatedAt: oa.evaluated_at || '',
         evaluatedBy: oa.evaluated_by || ''
       });
-      totals[status]++;
     });
+
+    // Convertir Maps a objeto plano para serializacion JSON
+    const summaryObj = Object.fromEntries(
+      Array.from(summary, ([k, v]) => [k, {
+        name: v.name,
+        trimesters: Object.fromEntries(v.trimesters)
+      }])
+    );
 
     return new Response(JSON.stringify({
       ok: true,
       studentId,
       totalOAs: allOas.length,
       totals,
-      summary
+      summary: summaryObj
     }), { status: 200, headers });
 
   } catch (e) {

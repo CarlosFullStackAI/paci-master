@@ -173,7 +173,5 @@ function b64UrlDecodeBytes(s) {
   let normalized = s.replace(/-/g, '+').replace(/_/g, '/');
   while (normalized.length % 4) normalized += '=';
   const binary = atob(normalized);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return bytes;
+  return Uint8Array.from(binary, c => c.charCodeAt(0));
 }

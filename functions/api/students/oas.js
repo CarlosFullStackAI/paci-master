@@ -34,25 +34,28 @@ export async function onRequestPost(context) {
 
     const oas = await env.DB.prepare(query).bind(...params).all();
 
-    // Agrupar por asignatura
-    const grouped = {};
+    // Agrupar por asignatura. Map evita acceso indexado dinamico y
+    // protege contra prototype-pollution si subject_key o trimester llegaran
+    // a contener __proto__ / constructor.
+    const grouped = new Map();
     for (const oa of (oas.results || [])) {
       const key = oa.subject_key;
-      if (!grouped[key]) {
-        grouped[key] = {
+      if (!grouped.has(key)) {
+        grouped.set(key, {
           subject: oa.subject,
           subjectKey: key,
           level: oa.level,
-          trimesters: {}
-        };
+          trimesters: new Map()
+        });
       }
-      if (!grouped[key].trimesters[oa.trimester]) {
-        grouped[key].trimesters[oa.trimester] = [];
+      const subj = grouped.get(key);
+      if (!subj.trimesters.has(oa.trimester)) {
+        subj.trimesters.set(oa.trimester, []);
       }
+      const trimList = subj.trimesters.get(oa.trimester);
       // Evitar duplicados
-      const exists = grouped[key].trimesters[oa.trimester].some(o => o.code === oa.oa_code);
-      if (!exists) {
-        grouped[key].trimesters[oa.trimester].push({
+      if (!trimList.some(o => o.code === oa.oa_code)) {
+        trimList.push({
           code: oa.oa_code,
           text: oa.oa_text,
           unit: oa.unit_name
@@ -60,9 +63,19 @@ export async function onRequestPost(context) {
       }
     }
 
+    // Convertir Maps a objeto plano para serializacion JSON
+    const groupedObj = Object.fromEntries(
+      Array.from(grouped, ([k, v]) => [k, {
+        subject: v.subject,
+        subjectKey: v.subjectKey,
+        level: v.level,
+        trimesters: Object.fromEntries(v.trimesters)
+      }])
+    );
+
     return new Response(JSON.stringify({
       ok: true,
-      oas: grouped,
+      oas: groupedObj,
       raw: oas.results || []
     }), { status: 200, headers });
 
