@@ -1361,20 +1361,106 @@ table{border-collapse:collapse}
                 <div id="acc-ai-context" class="accordion-content px-4 space-y-3 pb-4 open">
                     <p class="text-[10px] text-slate-600 leading-relaxed bg-violet-50 border border-violet-200 rounded-lg p-2.5">
                         <i class="fa-solid fa-circle-info text-violet-600 mr-1"></i>
-                        Esta informacion se envia a la IA al generar clases con IA para ajustar las actividades y los materiales a tu realidad de aula. No se guarda en el documento PACI; queda solo en este navegador.
+                        Esta informacion se envia a la IA al generar clases para ajustar actividades, evaluaciones y materiales a tu realidad de aula. No se guarda en el documento PACI; queda solo en este navegador.
                     </p>
+
+                    <!-- Duracion por clase: solo una opcion -->
+                    <div>
+                        <label class="text-[10px] font-black text-slate-500 uppercase mb-1 block">Duracion por clase</label>
+                        <div class="grid grid-cols-3 gap-1.5">
+                            <button type="button" data-duracion="45" data-selected="false" onclick="selectAIDuracion('45')" class="ai-duracion-btn text-[10px] font-bold py-2 px-1 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition leading-tight">
+                                45 min<br><span class="text-[9px] font-normal opacity-60">1 bloque</span>
+                            </button>
+                            <button type="button" data-duracion="90" data-selected="false" onclick="selectAIDuracion('90')" class="ai-duracion-btn text-[10px] font-bold py-2 px-1 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition leading-tight">
+                                90 min<br><span class="text-[9px] font-normal opacity-60">2 bloques</span>
+                            </button>
+                            <button type="button" data-duracion="135" data-selected="false" onclick="selectAIDuracion('135')" class="ai-duracion-btn text-[10px] font-bold py-2 px-1 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition leading-tight">
+                                135 min<br><span class="text-[9px] font-normal opacity-60">3 bloques</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Estrategia de Evaluacion: una o varias -->
+                    <div>
+                        <label class="text-[10px] font-black text-slate-500 uppercase mb-1 block">Estrategias de evaluacion <span class="font-normal normal-case text-slate-400">(una o varias)</span></label>
+                        <div class="grid grid-cols-2 gap-1.5">
+                            <label class="flex items-center gap-2 text-[10px] cursor-pointer px-2 py-1.5 rounded border border-slate-200 bg-white hover:bg-slate-50">
+                                <input type="checkbox" class="ai-eval-cb w-3 h-3" value="Ticket de salida" onchange="onAIContextInput()">
+                                <span class="text-slate-700">Ticket de salida</span>
+                            </label>
+                            <label class="flex items-center gap-2 text-[10px] cursor-pointer px-2 py-1.5 rounded border border-slate-200 bg-white hover:bg-slate-50">
+                                <input type="checkbox" class="ai-eval-cb w-3 h-3" value="Pauta de cotejo" onchange="onAIContextInput()">
+                                <span class="text-slate-700">Pauta de cotejo</span>
+                            </label>
+                            <label class="flex items-center gap-2 text-[10px] cursor-pointer px-2 py-1.5 rounded border border-slate-200 bg-white hover:bg-slate-50">
+                                <input type="checkbox" class="ai-eval-cb w-3 h-3" value="Rubrica de trabajo grupal" onchange="onAIContextInput()">
+                                <span class="text-slate-700">Rubrica grupal</span>
+                            </label>
+                            <label class="flex items-center gap-2 text-[10px] cursor-pointer px-2 py-1.5 rounded border border-slate-200 bg-white hover:bg-slate-50">
+                                <input type="checkbox" class="ai-eval-cb w-3 h-3" value="Evaluacion formativa rapida" onchange="onAIContextInput()">
+                                <span class="text-slate-700">Formativa rapida</span>
+                            </label>
+                            <label class="flex items-center gap-2 text-[10px] cursor-pointer px-2 py-1.5 rounded border border-slate-200 bg-white hover:bg-slate-50 col-span-2">
+                                <input type="checkbox" class="ai-eval-cb w-3 h-3" value="Sin evaluacion explicita" onchange="onAIContextInput()">
+                                <span class="text-slate-700">Sin evaluacion explicita</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Contexto del aula -->
                     <div>
                         <label for="in-ai-contexto" class="text-[10px] font-black text-slate-500 uppercase mb-1 block">Contexto de las clases</label>
                         <textarea id="in-ai-contexto" rows="3" maxlength="500" placeholder="Ej: curso de 8 estudiantes con apoyo PIE 2 veces por semana, trabajamos mucho en parejas, el estudiante se distrae con ruidos fuertes, estamos cerca de fiestas patrias." class="w-full border p-2.5 rounded-lg text-xs outline-none focus:ring-2 focus:ring-violet-500 resize-none" oninput="onAIContextInput()"></textarea>
                         <p class="text-[9px] text-slate-500 mt-1 text-right"><span id="in-ai-contexto-count">0</span>/500</p>
                     </div>
+
+                    <!-- Conocimientos previos -->
+                    <div>
+                        <label for="in-ai-conocimientos" class="text-[10px] font-black text-slate-500 uppercase mb-1 block">Conocimientos previos del grupo</label>
+                        <textarea id="in-ai-conocimientos" rows="2" maxlength="400" placeholder="Ej: Ya manejan las operaciones basicas, pero les cuesta resolver problemas de planteo." class="w-full border p-2.5 rounded-lg text-xs outline-none focus:ring-2 focus:ring-violet-500 resize-none" oninput="onAIContextInput()"></textarea>
+                        <p class="text-[9px] text-slate-500 mt-1 text-right"><span id="in-ai-conocimientos-count">0</span>/400</p>
+                    </div>
+
+                    <!-- Intereses del grupo -->
+                    <div>
+                        <label for="in-ai-intereses" class="text-[10px] font-black text-slate-500 uppercase mb-1 block">Intereses del grupo <span class="font-normal normal-case text-slate-400">(opcional)</span></label>
+                        <input type="text" id="in-ai-intereses" maxlength="200" placeholder="Ej: Les gustan los videojuegos de aventura, la tecnologia y el futbol." class="w-full border p-2.5 rounded-lg text-xs outline-none focus:ring-2 focus:ring-violet-500" oninput="onAIContextInput()">
+                    </div>
+
+                    <!-- Recursos disponibles -->
                     <div>
                         <label for="in-ai-recursos" class="text-[10px] font-black text-slate-500 uppercase mb-1 block">Recursos disponibles</label>
                         <textarea id="in-ai-recursos" rows="3" maxlength="500" placeholder="Ej: sala con proyector, no hay tablets, biblioteca con libros Caligrafix, material concreto de matematicas (regletas, abaco), pizarra acrilica." class="w-full border p-2.5 rounded-lg text-xs outline-none focus:ring-2 focus:ring-violet-500 resize-none" oninput="onAIContextInput()"></textarea>
                         <p class="text-[9px] text-slate-500 mt-1 text-right"><span id="in-ai-recursos-count">0</span>/500</p>
                     </div>
+
+                    <!-- DUA / Accesibilidad -->
+                    <div>
+                        <label class="text-[10px] font-black text-slate-500 uppercase mb-1 block">Requerimientos DUA / Accesibilidad</label>
+                        <div class="grid grid-cols-2 gap-1.5 mb-2">
+                            <label class="flex items-center gap-2 text-[10px] cursor-pointer px-2 py-1.5 rounded border border-slate-200 bg-white hover:bg-slate-50">
+                                <input type="checkbox" class="ai-dua-cb w-3 h-3" value="Simplificar vocabulario" onchange="onAIContextInput()">
+                                <span class="text-slate-700">Simplificar vocabulario</span>
+                            </label>
+                            <label class="flex items-center gap-2 text-[10px] cursor-pointer px-2 py-1.5 rounded border border-slate-200 bg-white hover:bg-slate-50">
+                                <input type="checkbox" class="ai-dua-cb w-3 h-3" value="Instrucciones paso a paso" onchange="onAIContextInput()">
+                                <span class="text-slate-700">Instrucciones paso a paso</span>
+                            </label>
+                            <label class="flex items-center gap-2 text-[10px] cursor-pointer px-2 py-1.5 rounded border border-slate-200 bg-white hover:bg-slate-50">
+                                <input type="checkbox" class="ai-dua-cb w-3 h-3" value="Incluir pausas activas" onchange="onAIContextInput()">
+                                <span class="text-slate-700">Pausas activas</span>
+                            </label>
+                            <label class="flex items-center gap-2 text-[10px] cursor-pointer px-2 py-1.5 rounded border border-slate-200 bg-white hover:bg-slate-50">
+                                <input type="checkbox" class="ai-dua-cb w-3 h-3" value="Apoyo visual constante" onchange="onAIContextInput()">
+                                <span class="text-slate-700">Apoyo visual constante</span>
+                            </label>
+                        </div>
+                        <textarea id="in-ai-dua-detalle" rows="2" maxlength="400" placeholder="Ej: Un estudiante requiere material con alto contraste o macrotipo. Otro necesita audifonos por hipoacusia leve." class="w-full border p-2.5 rounded-lg text-xs outline-none focus:ring-2 focus:ring-violet-500 resize-none" oninput="onAIContextInput()"></textarea>
+                        <p class="text-[9px] text-slate-500 mt-1 text-right"><span id="in-ai-dua-detalle-count">0</span>/400</p>
+                    </div>
+
                     <button type="button" onclick="clearAIContext()" class="text-[10px] text-violet-700 hover:text-violet-900 underline">
-                        <i class="fa-solid fa-eraser mr-1"></i>Limpiar campos
+                        <i class="fa-solid fa-eraser mr-1"></i>Limpiar todos los campos
                     </button>
                 </div>
             </div>
@@ -5381,22 +5467,89 @@ table{border-collapse:collapse}
         // ==========================================
         // CONTEXTO ADICIONAL PARA LA IA (no se guarda en el PACI)
         // ==========================================
-        // Permite al docente dar a la IA contexto del aula (tamano del curso,
-        // dinamica, agenda, etc.) y los recursos disponibles (proyector, libros,
-        // material concreto) para que las actividades y materiales generados sean
-        // realistas. Persiste en localStorage del navegador para no reescribirlo
-        // entre modulos, pero NO viaja con el documento PACI guardado en D1.
-        const AI_CONTEXT_LS_KEY = 'paci_ai_context_v1';
+        // Captura 8 campos pedagogicos que se concatenan en un markdown
+        // listo para inyectar al prompt en /api/ai/generate-classes. La
+        // info persiste solo en localStorage del navegador; NO viaja con el
+        // documento PACI guardado en D1.
+        const AI_CONTEXT_LS_KEY = 'paci_ai_context_v2';
+        const AI_CONTEXT_LS_KEY_LEGACY = 'paci_ai_context_v1';
+        const AI_DURACION_LABELS = {
+            '45': '45 min (1 bloque)',
+            '90': '90 min (2 bloques)',
+            '135': '135 min (3 bloques)'
+        };
+        const AI_COUNTED_FIELDS = ['in-ai-contexto', 'in-ai-conocimientos', 'in-ai-recursos', 'in-ai-dua-detalle'];
+        const AI_TEXT_FIELDS = [
+            { id: 'in-ai-contexto', key: 'contexto' },
+            { id: 'in-ai-conocimientos', key: 'conocimientos' },
+            { id: 'in-ai-intereses', key: 'intereses' },
+            { id: 'in-ai-recursos', key: 'recursos' },
+            { id: 'in-ai-dua-detalle', key: 'duaDetalle' }
+        ];
+
+        function getCheckedValues(selector) {
+            return Array.from(document.querySelectorAll(selector))
+                .filter(cb => cb.checked)
+                .map(cb => cb.value);
+        }
+
+        function getSelectedDuracion() {
+            const btn = document.querySelector('.ai-duracion-btn[data-selected="true"]');
+            return btn ? (btn.dataset.duracion || '') : '';
+        }
+
+        function readAIContextState() {
+            const state = {
+                duracion: getSelectedDuracion(),
+                estrategiasEval: getCheckedValues('.ai-eval-cb'),
+                duaChecks: getCheckedValues('.ai-dua-cb')
+            };
+            AI_TEXT_FIELDS.forEach(f => {
+                const el = document.getElementById(f.id);
+                state[f.key] = el ? el.value.trim() : '';
+            });
+            return state;
+        }
+
+        function aiContextHasData(state) {
+            return !!(state.duracion || state.estrategiasEval.length || state.duaChecks.length ||
+                state.contexto || state.conocimientos || state.intereses ||
+                state.recursos || state.duaDetalle);
+        }
 
         function loadAIContextFromStorage() {
             try {
+                let data = null;
                 const raw = localStorage.getItem(AI_CONTEXT_LS_KEY);
-                if (!raw) return;
-                const data = JSON.parse(raw);
-                const inCtx = document.getElementById('in-ai-contexto');
-                const inRec = document.getElementById('in-ai-recursos');
-                if (inCtx && typeof data.contexto === 'string') inCtx.value = data.contexto;
-                if (inRec && typeof data.recursos === 'string') inRec.value = data.recursos;
+                if (raw) {
+                    data = JSON.parse(raw);
+                } else {
+                    // Migrar formato v1 (solo contexto + recursos) si existe
+                    const rawV1 = localStorage.getItem(AI_CONTEXT_LS_KEY_LEGACY);
+                    if (rawV1) {
+                        const v1 = JSON.parse(rawV1);
+                        data = { contexto: v1.contexto || '', recursos: v1.recursos || '' };
+                        localStorage.removeItem(AI_CONTEXT_LS_KEY_LEGACY);
+                    }
+                }
+                if (!data) {
+                    refreshAIContextCounters();
+                    refreshAIContextIndicator();
+                    return;
+                }
+                AI_TEXT_FIELDS.forEach(f => {
+                    if (typeof data[f.key] === 'string') {
+                        const el = document.getElementById(f.id);
+                        if (el) el.value = data[f.key];
+                    }
+                });
+                if (typeof data.duracion === 'string' && data.duracion) {
+                    selectAIDuracion(data.duracion, true);
+                }
+                const evalSet = new Set(Array.isArray(data.estrategiasEval) ? data.estrategiasEval : []);
+                document.querySelectorAll('.ai-eval-cb').forEach(cb => { cb.checked = evalSet.has(cb.value); });
+                const duaSet = new Set(Array.isArray(data.duaChecks) ? data.duaChecks : []);
+                document.querySelectorAll('.ai-dua-cb').forEach(cb => { cb.checked = duaSet.has(cb.value); });
                 refreshAIContextCounters();
                 refreshAIContextIndicator();
             } catch (e) {
@@ -5406,12 +5559,11 @@ table{border-collapse:collapse}
 
         function saveAIContextToStorage() {
             try {
-                const contexto = (document.getElementById('in-ai-contexto')?.value || '').trim();
-                const recursos = (document.getElementById('in-ai-recursos')?.value || '').trim();
-                if (!contexto && !recursos) {
+                const state = readAIContextState();
+                if (!aiContextHasData(state)) {
                     localStorage.removeItem(AI_CONTEXT_LS_KEY);
                 } else {
-                    localStorage.setItem(AI_CONTEXT_LS_KEY, JSON.stringify({ contexto, recursos }));
+                    localStorage.setItem(AI_CONTEXT_LS_KEY, JSON.stringify(state));
                 }
             } catch (e) {
                 // ignorar
@@ -5419,21 +5571,17 @@ table{border-collapse:collapse}
         }
 
         function refreshAIContextCounters() {
-            const inCtx = document.getElementById('in-ai-contexto');
-            const inRec = document.getElementById('in-ai-recursos');
-            const ctCtx = document.getElementById('in-ai-contexto-count');
-            const ctRec = document.getElementById('in-ai-recursos-count');
-            if (inCtx && ctCtx) ctCtx.textContent = inCtx.value.length;
-            if (inRec && ctRec) ctRec.textContent = inRec.value.length;
+            AI_COUNTED_FIELDS.forEach(id => {
+                const el = document.getElementById(id);
+                const ct = document.getElementById(id + '-count');
+                if (el && ct) ct.textContent = el.value.length;
+            });
         }
 
         function refreshAIContextIndicator() {
-            const inCtx = document.getElementById('in-ai-contexto');
-            const inRec = document.getElementById('in-ai-recursos');
             const indicator = document.getElementById('ai-context-indicator');
             if (!indicator) return;
-            const hasData = (inCtx && inCtx.value.trim()) || (inRec && inRec.value.trim());
-            indicator.classList.toggle('hidden', !hasData);
+            indicator.classList.toggle('hidden', !aiContextHasData(readAIContextState()));
         }
 
         function onAIContextInput() {
@@ -5442,20 +5590,67 @@ table{border-collapse:collapse}
             saveAIContextToStorage();
         }
 
+        function selectAIDuracion(val, skipSave) {
+            document.querySelectorAll('.ai-duracion-btn').forEach(btn => {
+                const isActive = btn.dataset.duracion === val;
+                btn.dataset.selected = isActive ? 'true' : 'false';
+                if (isActive) {
+                    btn.classList.add('bg-violet-100', 'border-violet-500', 'text-violet-900');
+                    btn.classList.remove('bg-white', 'border-slate-200', 'text-slate-600');
+                } else {
+                    btn.classList.add('bg-white', 'border-slate-200', 'text-slate-600');
+                    btn.classList.remove('bg-violet-100', 'border-violet-500', 'text-violet-900');
+                }
+            });
+            if (!skipSave) {
+                refreshAIContextIndicator();
+                saveAIContextToStorage();
+            }
+        }
+
         function clearAIContext() {
-            const inCtx = document.getElementById('in-ai-contexto');
-            const inRec = document.getElementById('in-ai-recursos');
-            if (inCtx) inCtx.value = '';
-            if (inRec) inRec.value = '';
+            AI_TEXT_FIELDS.forEach(f => {
+                const el = document.getElementById(f.id);
+                if (el) el.value = '';
+            });
+            document.querySelectorAll('.ai-eval-cb, .ai-dua-cb').forEach(cb => { cb.checked = false; });
+            document.querySelectorAll('.ai-duracion-btn').forEach(btn => {
+                btn.dataset.selected = 'false';
+                btn.classList.remove('bg-violet-100', 'border-violet-500', 'text-violet-900');
+                btn.classList.add('bg-white', 'border-slate-200', 'text-slate-600');
+            });
             try { localStorage.removeItem(AI_CONTEXT_LS_KEY); } catch (e) {}
             refreshAIContextCounters();
             refreshAIContextIndicator();
         }
 
+        // Concatena los 8 campos en un bloque Markdown que el backend inyecta
+        // en el prompt envuelto en <contexto_docente>. Solo se incluyen los
+        // campos que tienen contenido para no contaminar el prompt con vacios.
+        function buildAIContextMarkdown() {
+            const s = readAIContextState();
+            const parts = [];
+            if (s.duracion) {
+                parts.push('**Duracion por clase:** ' + (AI_DURACION_LABELS[s.duracion] || s.duracion));
+            }
+            if (s.estrategiasEval.length) {
+                parts.push('**Estrategias de evaluacion preferidas:**\n' + s.estrategiasEval.map(e => '- ' + e).join('\n'));
+            }
+            if (s.contexto) parts.push('**Contexto del aula:**\n' + s.contexto);
+            if (s.conocimientos) parts.push('**Conocimientos previos del grupo:**\n' + s.conocimientos);
+            if (s.intereses) parts.push('**Intereses del grupo:** ' + s.intereses);
+            if (s.recursos) parts.push('**Recursos disponibles:**\n' + s.recursos);
+            if (s.duaChecks.length || s.duaDetalle) {
+                let dua = '**Pautas DUA / Accesibilidad:**';
+                if (s.duaChecks.length) dua += '\n' + s.duaChecks.map(d => '- ' + d).join('\n');
+                if (s.duaDetalle) dua += '\nDetalles especificos: ' + s.duaDetalle;
+                parts.push(dua);
+            }
+            return parts.join('\n\n');
+        }
+
         function getAIContextPayload() {
-            const contexto = (document.getElementById('in-ai-contexto')?.value || '').trim();
-            const recursos = (document.getElementById('in-ai-recursos')?.value || '').trim();
-            return { contextoClases: contexto, recursosDisponibles: recursos };
+            return { contextoFormateado: buildAIContextMarkdown() };
         }
 
         // ==========================================
@@ -5533,8 +5728,7 @@ table{border-collapse:collapse}
                         diagnosisName: diagName,
                         numClases: numClases,
                         esParvularia: esParvularia,
-                        contextoClases: aiCtx.contextoClases,
-                        recursosDisponibles: aiCtx.recursosDisponibles
+                        contextoFormateado: aiCtx.contextoFormateado
                     })
                 });
 

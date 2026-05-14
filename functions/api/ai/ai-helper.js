@@ -40,14 +40,16 @@ export async function checkRateLimit(env, userEmail) {
   return { allowed: true, remaining: MAX_CALLS_PER_DAY - count - 1, count: count + 1 };
 }
 
-// Sanitizar texto del usuario contra prompt injection antes de incluir en prompts
-export function sanitizeForPrompt(text) {
+// Sanitizar texto del usuario contra prompt injection antes de incluir en prompts.
+// maxLength permite ampliar el limite cuando el campo legitimamente puede ser
+// mas grande (ej. un bloque markdown consolidado de varios campos).
+export function sanitizeForPrompt(text, maxLength = 500) {
   if (!text) return '';
   return String(text)
     .replace(/```/g, '')
     .replace(/\n{3,}/g, '\n\n')
     .trim()
-    .substring(0, 500);
+    .substring(0, maxLength);
 }
 
 // Extrae y parsea el primer JSON balanceado del contenido.
