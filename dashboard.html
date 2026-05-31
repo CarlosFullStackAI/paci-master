@@ -41,8 +41,8 @@
     .section-title { font-size: 0.8rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: #475569; margin-bottom: 1rem; }
 
     /* Student cards */
-    .student-card { background: #fff; border-radius: 1rem; border: 2px solid #e2e8f0; overflow: hidden; transition: all 0.2s; margin-bottom: 1rem; }
-    .student-card:hover { border-color: #93c5fd; }
+    .student-card { background: #fff; border-radius: 1rem; border: 1px solid #e2e8f0; overflow: hidden; transition: all 0.2s; margin-bottom: 1rem; box-shadow: 0 1px 3px rgba(15,23,42,0.06); }
+    .student-card:hover { border-color: #93c5fd; box-shadow: 0 10px 28px rgba(15,23,42,0.10); }
     .student-card-header { background: linear-gradient(135deg, #091845, #1240c4); color: #fff; padding: 1rem 1.25rem; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
     .student-card-header h3 { font-size: 0.9rem; font-weight: 800; }
     .badge { background: rgba(255,255,255,0.2); padding: 0.2rem 0.6rem; border-radius: 1rem; font-size: 0.6rem; font-weight: 700; }
@@ -90,6 +90,27 @@
     .doc-item-info .title { font-size: 0.75rem; font-weight: 700; }
     .doc-item-info .meta { font-size: 0.65rem; color: #64748b; margin-top: 0.125rem; }
     .doc-item-oas { display: flex; flex-wrap: wrap; gap: 0.25rem; margin-top: 0.375rem; }
+
+    /* Doc cards (rediseno) */
+    .doc-card { background: #fff; border: 1px solid #e9eef5; border-radius: 0.9rem; margin-bottom: 0.85rem; overflow: hidden; box-shadow: 0 1px 2px rgba(15,23,42,0.04); transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s; }
+    .doc-card:hover { box-shadow: 0 10px 28px rgba(15,23,42,0.10); transform: translateY(-2px); border-color: #d7dfea; }
+    .doc-card-accent { height: 5px; width: 100%; }
+    .doc-card-body { padding: 1rem 1.1rem; }
+    .doc-card-title { font-size: 0.95rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 0.55rem; line-height: 1.2; }
+    .doc-card-icon { width: 32px; height: 32px; border-radius: 0.6rem; display: inline-flex; align-items: center; justify-content: center; color: #fff; font-size: 0.85rem; flex-shrink: 0; box-shadow: 0 2px 6px rgba(15,23,42,0.18); }
+    .doc-meta { display: flex; flex-wrap: wrap; gap: 0.35rem 0.9rem; margin-top: 0.65rem; font-size: 0.68rem; color: #64748b; font-weight: 600; }
+    .doc-meta span { display: inline-flex; align-items: center; gap: 0.32rem; }
+    .doc-meta i { opacity: 0.5; }
+    .doc-chips { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.6rem; }
+    .status-chip { display: inline-flex; align-items: center; gap: 0.32rem; font-size: 0.6rem; font-weight: 800; padding: 0.28rem 0.62rem; border-radius: 1rem; text-transform: uppercase; letter-spacing: 0.03em; }
+    .status-approved { background: #d1fae5; color: #065f46; }
+    .status-rejected { background: #fee2e2; color: #b91c1c; }
+    .status-pending { background: #fef3c7; color: #92400e; }
+    .doc-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; align-items: center; margin-top: 0.9rem; padding-top: 0.8rem; border-top: 1px dashed #e2e8f0; }
+    .btn-violet { background: #7c3aed; color: #fff; }
+    .btn-violet:hover { background: #6d28d9; }
+    .btn-ghost { background: #f1f5f9; color: #475569; }
+    .btn-ghost:hover { background: #e2e8f0; }
 
     .empty-state { text-align: center; padding: 2rem; color: #94a3b8; }
     .empty-state i { font-size: 2.5rem; margin-bottom: 0.75rem; display: block; }
@@ -752,38 +773,44 @@
         const subjectKeys = (d.subject_key || '').split(',');
         const mainColor = ASIG_COLORS[subjectKeys[0]] || '#1e3a8a';
 
+        const statusChip = d.approval_status === 'approved'
+          ? '<span class="status-chip status-approved"><i class="fa-solid fa-circle-check"></i> Aprobado</span>'
+          : d.approval_status === 'rejected'
+          ? '<span class="status-chip status-rejected"><i class="fa-solid fa-circle-xmark"></i> Rechazado</span>'
+          : '<span class="status-chip status-pending"><i class="fa-solid fa-clock"></i> Pendiente</span>';
+
         return `
-        <div style="border:2px solid #e2e8f0;border-radius:0.75rem;margin-bottom:0.75rem;overflow:hidden;border-left:4px solid ${mainColor};">
-          <div style="padding:1rem;display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:0.5rem;">
-            <div style="flex:1;min-width:200px;">
-              <div style="font-size:0.85rem;font-weight:800;color:#0f172a;margin-bottom:0.25rem;">
-                <i class="fa-solid fa-file-lines" style="color:${mainColor};margin-right:0.25rem;"></i>
-                PACI - ${esc(d.trimester || 'Sin trimestre')}
-              </div>
-              <div style="font-size:0.7rem;color:#64748b;margin-bottom:0.375rem;">
-                ${esc(d.subject || 'Sin asignatura')} &middot; ${esc(d.work_level || '')} &middot; ${d.num_classes || 0} clases
-              </div>
-              <div style="font-size:0.65rem;color:#94a3b8;">
-                ${formatDate(d.date_start)} a ${formatDate(d.date_end)} &middot; Creado ${formatDate(d.created_at)}
-                ${modCount > 1 ? ' &middot; <strong>' + modCount + ' asignaturas</strong>' : ''}
-              </div>
-              ${oaCodes.length ? '<div style="display:flex;flex-wrap:wrap;gap:0.2rem;margin-top:0.375rem;">' + oaCodes.slice(0, 10).map(c => '<span class="oa-chip" style="background:' + mainColor + '18;color:' + mainColor + ';">' + esc(c) + '</span>').join('') + (oaCodes.length > 10 ? '<span class="oa-chip" style="background:#f1f5f9;color:#64748b;">+' + (oaCodes.length - 10) + ' mas</span>' : '') + '</div>' : ''}
+        <div class="doc-card">
+          <div class="doc-card-accent" style="background:${mainColor};"></div>
+          <div class="doc-card-body">
+            <div class="doc-card-title">
+              <span class="doc-card-icon" style="background:${mainColor};"><i class="fa-solid fa-file-lines"></i></span>
+              PACI &middot; ${esc(d.trimester || 'Sin trimestre')}
             </div>
-            <div style="display:flex;gap:0.375rem;flex-shrink:0;flex-wrap:wrap;align-items:center;">
-              ${d.approval_status === 'approved' ? '<span style="background:#d1fae5;color:#065f46;font-size:0.6rem;font-weight:700;padding:0.2rem 0.5rem;border-radius:1rem;"><i class="fa-solid fa-check-circle"></i> Aprobado</span>' : d.approval_status === 'rejected' ? '<span style="background:#fef2f2;color:#dc2626;font-size:0.6rem;font-weight:700;padding:0.2rem 0.5rem;border-radius:1rem;"><i class="fa-solid fa-times-circle"></i> Rechazado</span>' : '<span style="background:#fef3c7;color:#92400e;font-size:0.6rem;font-weight:700;padding:0.2rem 0.5rem;border-radius:1rem;"><i class="fa-solid fa-clock"></i> Pendiente</span>'}
+            <div class="doc-chips">${statusChip}</div>
+            <div class="doc-meta">
+              <span><i class="fa-solid fa-book"></i> ${esc(d.subject || 'Sin asignatura')}</span>
+              ${d.work_level ? '<span><i class="fa-solid fa-layer-group"></i> ' + esc(d.work_level) + '</span>' : ''}
+              <span><i class="fa-solid fa-chalkboard"></i> ${d.num_classes || 0} clases</span>
+              ${modCount > 1 ? '<span><i class="fa-solid fa-shapes"></i> ' + modCount + ' asignaturas</span>' : ''}
+              <span><i class="fa-solid fa-calendar"></i> ${formatDate(d.date_start)} – ${formatDate(d.date_end)}</span>
+              <span><i class="fa-regular fa-clock"></i> Creado ${formatDate(d.created_at)}</span>
+            </div>
+            ${oaCodes.length ? '<div style="display:flex;flex-wrap:wrap;gap:0.25rem;margin-top:0.6rem;">' + oaCodes.slice(0, 10).map(c => '<span class="oa-chip" style="background:' + mainColor + '18;color:' + mainColor + ';">' + esc(c) + '</span>').join('') + (oaCodes.length > 10 ? '<span class="oa-chip" style="background:#f1f5f9;color:#64748b;">+' + (oaCodes.length - 10) + ' mas</span>' : '') + '</div>' : ''}
+            <div class="doc-actions">
               <a href="/app.html?doc=${d.id}" class="btn btn-primary btn-sm" title="Abrir y editar"><i class="fa-solid fa-eye"></i> Ver</a>
               <a href="/app.html?doc=${d.id}&action=pdf" class="btn btn-green btn-sm" title="Descargar PDF"><i class="fa-solid fa-download"></i> PDF</a>
               <a href="/app.html?doc=${d.id}&action=print" class="btn btn-amber btn-sm" title="Imprimir"><i class="fa-solid fa-print"></i></a>
-              ${CAN_CREATE && d.trimester === '1er Trimestre' ? '<button class="btn btn-sm" style="background:#7c3aed;color:#fff;" onclick="clonarTrimestres(' + d.id + ', ' + id + ')" title="Crear el 2do y 3er trimestre copiando este PACI"><i class="fa-solid fa-copy"></i> Crear 2°/3°</button>' : ''}
+              ${CAN_CREATE && d.trimester === '1er Trimestre' ? '<button class="btn btn-violet btn-sm" onclick="clonarTrimestres(' + d.id + ', ' + id + ')" title="Crear el 2do y 3er trimestre copiando este PACI"><i class="fa-solid fa-copy"></i> Crear 2°/3°</button>' : ''}
               ${CAN_APPROVE && d.approval_status !== 'approved' ? '<button class="btn btn-green btn-sm" onclick="approveDoc(' + d.id + ', ' + id + ')" title="Aprobar PACI"><i class="fa-solid fa-check"></i> Aprobar</button>' : ''}
-              ${CAN_APPROVE && d.approval_status !== 'rejected' ? '<button class="btn btn-slate btn-sm" onclick="rejectDoc(' + d.id + ', ' + id + ')" title="Rechazar" style="padding:0.25rem 0.5rem;"><i class="fa-solid fa-times"></i></button>' : ''}
+              ${CAN_APPROVE && d.approval_status !== 'rejected' ? '<button class="btn btn-slate btn-sm" onclick="rejectDoc(' + d.id + ', ' + id + ')" title="Rechazar"><i class="fa-solid fa-times"></i></button>' : ''}
               ${CAN_DELETE ? '<button class="btn btn-red btn-sm" onclick="deleteDoc(' + d.id + ', ' + id + ')" title="Eliminar"><i class="fa-solid fa-trash"></i></button>' : ''}
-              <button class="btn btn-slate btn-sm" onclick="toggleComments(' + d.id + ')" title="Comentarios"><i class="fa-solid fa-comment"></i></button>
+              <button class="btn btn-ghost btn-sm" onclick="toggleComments(' + d.id + ')" title="Comentarios"><i class="fa-solid fa-comment"></i></button>
             </div>
             <div id="comments-${d.id}" style="display:none;margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid #e2e8f0;width:100%;">
               <div id="comments-list-${d.id}" style="margin-bottom:0.5rem;"></div>
               <div style="display:flex;gap:0.375rem;">
-                <input type="text" id="comment-input-${d.id}" placeholder="Agregar comentario..." style="flex:1;border:1.5px solid #e2e8f0;border-radius:0.5rem;padding:0.375rem 0.625rem;font-size:0.75rem;font-family:'Inter',sans-serif;">
+                <input type="text" id="comment-input-${d.id}" placeholder="Agregar comentario..." style="flex:1;border:1.5px solid #e2e8f0;border-radius:0.5rem;padding:0.5rem 0.625rem;font-size:0.75rem;font-family:'Inter',sans-serif;">
                 <button class="btn btn-primary btn-sm" onclick="addComment(${d.id})"><i class="fa-solid fa-paper-plane"></i></button>
               </div>
             </div>
