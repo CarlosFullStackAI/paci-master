@@ -1241,7 +1241,7 @@ table{border-collapse:collapse}
                         <div>
                             <!-- SE QUITO ONCHANGE PARA EVITAR FREEZE -->
                             <label class="text-[10px] font-black text-slate-500 uppercase mb-1 block">Inicio de Clases:</label>
-                            <input type="date" id="in-fecha-inicio" value="2026-03-01" class="w-full border p-2.5 rounded-lg text-xs outline-none">
+                            <input type="date" id="in-fecha-inicio" value="2026-03-04" class="w-full border p-2.5 rounded-lg text-xs outline-none">
                         </div>
                         <div>
                             <!-- SE QUITO ONCHANGE PARA EVITAR FREEZE -->
@@ -1299,7 +1299,7 @@ table{border-collapse:collapse}
 
                         <div class="col-span-2">
                             <label class="text-[10px] font-black text-slate-500 uppercase mb-1 block">Término de Clases:</label>
-                            <input type="date" id="in-fecha-fin" value="2026-06-04" class="w-full border p-2.5 rounded-lg text-xs outline-none">
+                            <input type="date" id="in-fecha-fin" value="2026-12-11" class="w-full border p-2.5 rounded-lg text-xs outline-none">
                         </div>
                     </div>
 
@@ -5285,15 +5285,43 @@ table{border-collapse:collapse}
         }
 
         // ==========================================
+        // VACACIONES (RECESOS) ESCOLARES 2026 - Region del Biobio
+        // ==========================================
+        // A diferencia de los feriados (dias sueltos), un receso es un RANGO
+        // de fechas. Las clases nunca se agendan dentro de un receso.
+        // Vacaciones de invierno Biobio 2026: lunes 22 jun -> viernes 3 jul
+        // (regreso a clases lunes 6 de julio). Fuente: REX-2159 / MINEDUC Biobio.
+        const VACACIONES_2026 = [
+            { inicio: '2026-06-22', fin: '2026-07-03', nombre: 'Vacaciones de invierno' }
+        ];
+
+        function enVacaciones(dateStr) {
+            return VACACIONES_2026.some(function(v) {
+                return dateStr >= v.inicio && dateStr <= v.fin;
+            });
+        }
+
+        function getNombreVacaciones(dateStr) {
+            const v = VACACIONES_2026.find(function(x) {
+                return dateStr >= x.inicio && dateStr <= x.fin;
+            });
+            return v ? v.nombre : '';
+        }
+
+        // ==========================================
         // MOTOR DE FECHAS SEGURO Y NO REACTIVO
         // ==========================================
-        function calcularFechasPlanificacion() {
+        // Acepta overrides opcionales (startOverride, endOverride, numOverride) para
+        // poder calcular fechas de un trimestre concreto sin depender del DOM. Si no
+        // se pasan, usa los inputs del formulario (comportamiento original).
+        function calcularFechasPlanificacion(startOverride, endOverride, numOverride) {
             try {
                 const startInput = document.getElementById('in-fecha-inicio');
 
-                if (!startInput || !startInput.value) return [];
+                const startVal = startOverride || (startInput && startInput.value);
+                if (!startVal) return [];
 
-                const parts = startInput.value.split('-');
+                const parts = startVal.split('-');
                 if(parts.length !== 3) return [];
 
                 const y = parseInt(parts[0], 10);
@@ -5304,7 +5332,9 @@ table{border-collapse:collapse}
                 if(isNaN(currentDate.getTime())) return [];
 
                 const numClasesInput = document.getElementById('in-num-clases');
-                let numClases = numClasesInput ? parseInt(numClasesInput.value, 10) : 4;
+                let numClases = (typeof numOverride === 'number' && numOverride > 0)
+                    ? numOverride
+                    : (numClasesInput ? parseInt(numClasesInput.value, 10) : 4);
                 if (isNaN(numClases) || numClases <= 0) numClases = 1;
                 if (numClases > 100) numClases = 100;
 
@@ -5320,11 +5350,12 @@ table{border-collapse:collapse}
                     selectedDays = [currentDate.getDay()];
                 }
 
-                // Obtener fecha límite del input de término (si existe)
+                // Obtener fecha límite: override del trimestre, o el input de término.
                 const endInput = document.getElementById('in-fecha-fin');
+                const endVal = endOverride || (endInput && endInput.value);
                 let endLimit = null;
-                if(endInput && endInput.value) {
-                    const ep = endInput.value.split('-');
+                if(endVal) {
+                    const ep = endVal.split('-');
                     if(ep.length === 3) {
                         endLimit = new Date(parseInt(ep[0],10), parseInt(ep[1],10)-1, parseInt(ep[2],10), 23, 59, 59);
                     }
@@ -5344,8 +5375,8 @@ table{border-collapse:collapse}
                         const mm = String(tempDate.getMonth() + 1).padStart(2, '0');
                         const dd = String(tempDate.getDate()).padStart(2, '0');
                         const dateStr = `${yyyy}-${mm}-${dd}`;
-                        // Saltar feriados
-                        if(!esFeriado(dateStr)) {
+                        // Saltar feriados y recesos (vacaciones de invierno)
+                        if(!esFeriado(dateStr) && !enVacaciones(dateStr)) {
                             dates.push(dateStr);
                             added++;
                         }
@@ -5392,47 +5423,66 @@ table{border-collapse:collapse}
             // Usar setTimeout para permitir que el UI se actualice antes del cálculo
             setTimeout(() => {
                 try {
-                    const fechas = calcularFechasPlanificacion();
-
-                    if (fechas.length === 0 || fechas.length < numClases) {
-                        alert("Error al proyectar el calendario. Por favor verifique que la fecha de inicio sea correcta.");
-                        return;
-                    }
-
+                    // Si la duracion es "Anual", se generan 3 bloques (uno por trimestre);
+                    // en caso contrario, 1 bloque con las fechas del formulario.
+                    const segmentos = getSegmentosPlanificacion();
                     const asigValue = aE.value;
-                    const clasesArray = [];
-
-                    for (let i = 0; i < numClases; i++) {
-                        const classDate = fechas[i];
-                        const content = generatePedagogicalContent(i, numClases, asigValue);
-
-                        clasesArray.push({
-                            n: i + 1,
-                            date: classDate,
-                            act: content.act,
-                            c: content.c,
-                            p: content.p,
-                            a: content.a,
-                            materiales: content.materiales || []
-                        });
-                    }
+                    const esAnual = segmentos.length > 1;
 
                     const uniqueUnits = [...new Set(state.bufferOAs.map(o => o.unit))];
                     const combinedUnitName = uniqueUnits.length > 1
                         ? 'Integración de Ejes: ' + uniqueUnits.map(u => u.replace('Eje: ', '').replace('Núcleo: ', '')).join(', ')
                         : uniqueUnits[0];
 
-                    const mod = {
-                        id: Date.now(),
-                        asig: aE.options[aE.selectedIndex].text,
-                        unit: combinedUnitName,
-                        nivelTrabajo: ntE.options[ntE.selectedIndex].text,
-                        oas: [...state.bufferOAs],
-                        start: dE.value,
-                        clases: clasesArray
-                    };
+                    const nuevosModulos = [];
+                    const segmentosVacios = [];
 
-                    state.modulos.push(mod);
+                    segmentos.forEach((seg, segIdx) => {
+                        const fechas = calcularFechasPlanificacion(seg.inicio, seg.fin, numClases);
+                        if (fechas.length === 0) {
+                            segmentosVacios.push(seg.label);
+                            return;
+                        }
+                        const totalClasesSeg = Math.min(numClases, fechas.length);
+                        const clasesArray = [];
+                        for (let i = 0; i < totalClasesSeg; i++) {
+                            const content = generatePedagogicalContent(i, totalClasesSeg, asigValue);
+                            clasesArray.push({
+                                n: i + 1,
+                                date: fechas[i],
+                                act: content.act,
+                                c: content.c,
+                                p: content.p,
+                                a: content.a,
+                                materiales: content.materiales || []
+                            });
+                        }
+                        nuevosModulos.push({
+                            id: Date.now() + segIdx,
+                            asig: aE.options[aE.selectedIndex].text,
+                            unit: combinedUnitName,
+                            nivelTrabajo: ntE.options[ntE.selectedIndex].text,
+                            // Copia independiente de los OAs por bloque para que se puedan
+                            // editar por trimestre sin afectar a los demas.
+                            oas: state.bufferOAs.map(o => Object.assign({}, o)),
+                            start: seg.inicio || dE.value,
+                            trimestre: esAnual ? seg.label : null,
+                            clases: clasesArray
+                        });
+                    });
+
+                    if (nuevosModulos.length === 0) {
+                        alert("Error al proyectar el calendario. Por favor verifique que la fecha de inicio sea correcta.");
+                        return;
+                    }
+
+                    nuevosModulos.forEach(m => state.modulos.push(m));
+
+                    if (segmentosVacios.length > 0) {
+                        setTimeout(() => {
+                            alert('No se pudieron agendar clases en: ' + segmentosVacios.join(', ') + '. Revisa las fechas de esos trimestres.');
+                        }, 150);
+                    }
 
                     state.bufferOAs = [];
                     renderOABuffer();
@@ -5678,20 +5728,30 @@ table{border-collapse:collapse}
                 return;
             }
 
-            const fechas = calcularFechasPlanificacion();
-            if (fechas.length < numClases) {
-                alert('Error al proyectar el calendario. Verifica que la fecha de inicio sea correcta y que haya suficientes dias habiles.');
+            // Segmentos a planificar: 3 (uno por trimestre) si es "Anual", 1 si no.
+            const segmentos = getSegmentosPlanificacion();
+            const esAnual = segmentos.length > 1;
+
+            // Fechas de cada segmento (saltando feriados y vacaciones de invierno).
+            const fechasPorSegmento = segmentos.map(seg =>
+                calcularFechasPlanificacion(seg.inicio, seg.fin, numClases));
+            if (fechasPorSegmento.some(f => f.length === 0)) {
+                alert('Error al proyectar el calendario. Verifica que las fechas sean correctas y que haya suficientes dias habiles.');
                 return;
             }
 
-            // Mensaje claro al usuario sobre lo que va a pasar
-            // Estimacion de tiempo: ~15s por lote de 12 clases.
-            const lotesEstimados = Math.ceil(numClases / 12);
+            // Mensaje claro al usuario sobre lo que va a pasar.
+            // Cada trimestre = 1 consulta de IA. Estimacion: ~15s por lote de 12 clases.
+            const lotesEstimados = Math.ceil(numClases / 12) * segmentos.length;
             const tiempoEstimado = lotesEstimados <= 1 ? '10-30 segundos'
                 : lotesEstimados === 2 ? '30-60 segundos'
                 : `${lotesEstimados * 15}-${lotesEstimados * 30} segundos (${lotesEstimados} lotes)`;
-            const confirmMsg = `La IA generara ${numClases} clase(s) personalizadas en base a los OAs (adaptados o originales).\n\n` +
-                `Esto consume 1 consulta de IA (de 100 diarias) y puede tardar ${tiempoEstimado}.\n\n¿Continuar?`;
+            const detalleAnual = esAnual
+                ? `Plan ANUAL: se generaran 3 bloques (1er, 2do y 3er trimestre), ${numClases} clase(s) cada uno.\n\n`
+                : '';
+            const confirmMsg = detalleAnual +
+                `La IA generara ${numClases * segmentos.length} clase(s) personalizadas en base a los OAs (adaptados o originales).\n\n` +
+                `Esto consume ${segmentos.length} consulta(s) de IA (de 100 diarias) y puede tardar ${tiempoEstimado}.\n\n¿Continuar?`;
             if (!confirm(confirmMsg)) return;
 
             if (btnIA) {
@@ -5711,85 +5771,107 @@ table{border-collapse:collapse}
                 const token = localStorage.getItem('paci_token');
 
                 const aiCtx = getAIContextPayload();
-                const res = await fetch('/api/ai/generate-classes', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        _token: token,
-                        oas: state.bufferOAs.map(o => ({
-                            code: o.code,
-                            textoOriginal: o.textoOriginal,
-                            textoAdecuado: o.textoAdecuado
-                        })),
-                        asignatura: asigName,
-                        nivel: targetLevel,
-                        studentLevel: studentLevel,
-                        diagnosisId: diagId,
-                        diagnosisName: diagName,
-                        numClases: numClases,
-                        esParvularia: esParvularia,
-                        contextoFormateado: aiCtx.contextoFormateado
-                    })
-                });
-
-                const data = await res.json();
-
-                if (!data.ok) {
-                    alert('Error IA: ' + (data.error || 'desconocido'));
-                    return;
-                }
-
-                // Si data.clases viene vacio pero data.ok=true, significa que la IA
-                // fallo y el backend pide rellenar con plantillas procedurales.
-                // El while loop mas abajo se encarga de completar todas las clases.
-                if (!Array.isArray(data.clases)) {
-                    alert('Respuesta inesperada de la IA. Intenta de nuevo.');
-                    return;
-                }
-
-                // Construir array de clases combinando lo que devolvio la IA con las fechas calculadas
-                const clasesArray = data.clases.slice(0, numClases).map((cl, i) => ({
-                    n: i + 1,
-                    date: fechas[i],
-                    act: cl.act || '',
-                    c: cl.c || '',
-                    p: cl.p || '',
-                    a: cl.a || '',
-                    materiales: Array.isArray(cl.materiales) ? cl.materiales : []
-                }));
-
-                // Si la IA genero menos clases que las pedidas, completar con plantillas procedurales
-                while (clasesArray.length < numClases) {
-                    const i = clasesArray.length;
-                    const content = generatePedagogicalContent(i, numClases, aE.value);
-                    clasesArray.push({
-                        n: i + 1,
-                        date: fechas[i],
-                        act: content.act,
-                        c: content.c,
-                        p: content.p,
-                        a: content.a,
-                        materiales: content.materiales || []
-                    });
-                }
 
                 const uniqueUnits = [...new Set(state.bufferOAs.map(o => o.unit))];
                 const combinedUnitName = uniqueUnits.length > 1
                     ? 'Integración de Ejes: ' + uniqueUnits.map(u => u.replace('Eje: ', '').replace('Núcleo: ', '')).join(', ')
                     : uniqueUnits[0];
 
-                const mod = {
-                    id: Date.now(),
-                    asig: asigName,
-                    unit: combinedUnitName,
-                    nivelTrabajo: targetLevel,
-                    oas: [...state.bufferOAs],
-                    start: dE.value,
-                    clases: clasesArray,
-                    generadoConIA: true
-                };
+                let ultimoData = null;
+                let algunoUsoPlantillas = false;
+                let avisoPlantillas = '';
+                const erroresLotesGlobal = [];
 
-                state.modulos.push(mod);
+                // Un bloque (módulo) por segmento: 1 si es trimestre puntual, 3 si es Anual.
+                for (let segIdx = 0; segIdx < segmentos.length; segIdx++) {
+                    const seg = segmentos[segIdx];
+                    const fechas = fechasPorSegmento[segIdx];
+
+                    const res = await fetch('/api/ai/generate-classes', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            _token: token,
+                            oas: state.bufferOAs.map(o => ({
+                                code: o.code,
+                                textoOriginal: o.textoOriginal,
+                                textoAdecuado: o.textoAdecuado
+                            })),
+                            asignatura: asigName,
+                            nivel: targetLevel,
+                            studentLevel: studentLevel,
+                            diagnosisId: diagId,
+                            diagnosisName: diagName,
+                            numClases: numClases,
+                            esParvularia: esParvularia,
+                            contextoFormateado: aiCtx.contextoFormateado
+                        })
+                    });
+
+                    const data = await res.json();
+                    ultimoData = data;
+
+                    if (!data.ok) {
+                        alert('Error IA' + (esAnual ? ' (' + seg.label + ')' : '') + ': ' + (data.error || 'desconocido'));
+                        return;
+                    }
+                    // Si data.clases viene vacio pero data.ok=true, la IA fallo y el backend
+                    // pide rellenar con plantillas procedurales (el while de abajo completa).
+                    if (!Array.isArray(data.clases)) {
+                        alert('Respuesta inesperada de la IA' + (esAnual ? ' (' + seg.label + ')' : '') + '. Intenta de nuevo.');
+                        return;
+                    }
+
+                    const totalClasesSeg = Math.min(numClases, fechas.length);
+
+                    // Combinar lo que devolvio la IA con las fechas calculadas del segmento.
+                    const clasesArray = data.clases.slice(0, totalClasesSeg).map((cl, i) => ({
+                        n: i + 1,
+                        date: fechas[i],
+                        act: cl.act || '',
+                        c: cl.c || '',
+                        p: cl.p || '',
+                        a: cl.a || '',
+                        materiales: Array.isArray(cl.materiales) ? cl.materiales : []
+                    }));
+
+                    // Si la IA genero menos clases que las pedidas, completar con plantillas.
+                    while (clasesArray.length < totalClasesSeg) {
+                        const i = clasesArray.length;
+                        const content = generatePedagogicalContent(i, totalClasesSeg, aE.value);
+                        clasesArray.push({
+                            n: i + 1,
+                            date: fechas[i],
+                            act: content.act,
+                            c: content.c,
+                            p: content.p,
+                            a: content.a,
+                            materiales: content.materiales || []
+                        });
+                    }
+
+                    state.modulos.push({
+                        id: Date.now() + segIdx,
+                        asig: asigName,
+                        unit: combinedUnitName,
+                        nivelTrabajo: targetLevel,
+                        // Copia independiente de los OAs por bloque (editables por trimestre).
+                        oas: state.bufferOAs.map(o => Object.assign({}, o)),
+                        start: seg.inicio || dE.value,
+                        trimestre: esAnual ? seg.label : null,
+                        clases: clasesArray,
+                        generadoConIA: true
+                    });
+
+                    if (data.usadasPlantillas) {
+                        algunoUsoPlantillas = true;
+                        const prefijo = esAnual ? (seg.label + ': ') : '';
+                        avisoPlantillas += prefijo + (data.clases.length === 0
+                            ? (data.mensajePlantillas || 'La IA no pudo generar clases; se completaron con plantillas pedagogicas.')
+                            : `${data.lotes - data.lotesExitosos} de ${data.lotes} lote(s) IA fallaron, completados con plantillas.`) + '\n';
+                        if (Array.isArray(data.erroresLotes)) erroresLotesGlobal.push(...data.erroresLotes);
+                    }
+                }
 
                 state.bufferOAs = [];
                 renderOABuffer();
@@ -5806,18 +5888,15 @@ table{border-collapse:collapse}
                     }
                 }, 100);
 
-                // Notificacion de cuota restante
-                const remaining = typeof data.remaining === 'number' ? data.remaining : '?';
-                console.log('Clases generadas con IA. Modelo:', data.model, '| Cuota IA restante hoy:', remaining);
+                // Notificacion de cuota restante (del ultimo segmento generado)
+                const remaining = (ultimoData && typeof ultimoData.remaining === 'number') ? ultimoData.remaining : '?';
+                console.log('Clases generadas con IA. Modelo:', ultimoData && ultimoData.model, '| Cuota IA restante hoy:', remaining);
 
-                // Aviso al usuario si hubo lotes que la IA no pudo completar (se rellenaron con plantillas)
-                if (data.usadasPlantillas) {
-                    const mensaje = data.clases.length === 0
-                        ? (data.mensajePlantillas || 'La IA no pudo generar clases para esta asignatura. Se completaron con plantillas pedagogicas — puedes editarlas o reintentar.')
-                        : `Aviso: ${data.lotes - data.lotesExitosos} de ${data.lotes} lote(s) IA fallaron. Las clases faltantes se completaron con plantillas pedagogicas — puedes editarlas o reintentar.`;
-                    setTimeout(() => alert(mensaje), 150);
-                    if (Array.isArray(data.erroresLotes)) {
-                        console.warn('Detalles de lotes IA fallidos:', data.erroresLotes);
+                // Aviso al usuario si algun bloque uso plantillas (la IA no pudo completar).
+                if (algunoUsoPlantillas) {
+                    setTimeout(() => alert('Aviso: ' + avisoPlantillas.trim() + '\n\nPuedes editar esas clases o reintentar.'), 150);
+                    if (erroresLotesGlobal.length > 0) {
+                        console.warn('Detalles de lotes IA fallidos:', erroresLotesGlobal);
                     }
                 }
 
@@ -5941,7 +6020,8 @@ table{border-collapse:collapse}
                             <div class="flex flex-col" style="gap:6px;">
                                 <span style="font-weight:900;font-size:14px;color:#ffffff;text-transform:uppercase;letter-spacing:-0.02em;line-height:1.2;">${m.unit}</span>
                                 <span style="font-size:10px;font-weight:700;text-transform:uppercase;font-style:italic;color:#93c5fd;line-height:1;">Adecuación Nivel Trabajo: ${m.nivelTrabajo}</span>
-                                <div style="display:flex;gap:8px;margin-top:6px;align-items:center;">
+                                <div style="display:flex;gap:8px;margin-top:6px;align-items:center;flex-wrap:wrap;">
+                                    ${m.trimestre ? `<span style="display:inline-flex;align-items:center;gap:5px;background-color:#b45309;color:#ffffff;font-size:10px;font-weight:800;padding:4px 12px;border-radius:6px;white-space:nowrap;text-transform:uppercase;letter-spacing:0.02em;"><i class="fa-solid fa-layer-group" style="font-size:9px;"></i> ${m.trimestre}</span>` : ''}
                                     <span style="display:inline-flex;align-items:center;gap:5px;background-color:#1e3a8a;color:#ffffff;font-size:10px;font-weight:700;padding:4px 12px;border-radius:6px;white-space:nowrap;">
                                         <i class="fa-solid fa-chalkboard" style="font-size:9px;"></i> ${totalClases} clases
                                     </span>
@@ -6172,13 +6252,49 @@ table{border-collapse:collapse}
             }
         }
 
-        // Calendario escolar trimestral Chile 2026
+        // Calendario escolar trimestral Region del Biobio 2026.
+        // Inicio clases estudiantes: 04-mar. Vacaciones de invierno: 22-jun a 03-jul
+        // (regreso 06-jul). Fin de ano escolar: ~11-dic. El receso de invierno cae
+        // ENTRE el 1er y el 2do trimestre, por eso el 2do parte el 06-jul.
+        // Estas fechas son editables por el establecimiento.
         const FECHAS_TRIMESTRE = {
-            '1er': { inicio: '2026-03-04', fin: '2026-06-04' },
-            '2do': { inicio: '2026-06-01', fin: '2026-08-28' },
-            '3er': { inicio: '2026-09-07', fin: '2026-12-11' },
+            '1er': { inicio: '2026-03-04', fin: '2026-06-19' },
+            '2do': { inicio: '2026-07-06', fin: '2026-09-18' },
+            '3er': { inicio: '2026-09-21', fin: '2026-12-11' },
             'Anual': { inicio: '2026-03-04', fin: '2026-12-11' }
         };
+
+        // Orden de los trimestres para generar un plan "Anual" como 3 bloques.
+        const TRIMESTRES_ANUAL = [
+            { key: '1er', label: '1er Trimestre' },
+            { key: '2do', label: '2do Trimestre' },
+            { key: '3er', label: '3er Trimestre' }
+        ];
+
+        // Devuelve la lista de "segmentos" a planificar segun la duracion elegida.
+        // - "Anual": 3 segmentos (uno por trimestre) con sus rangos de fecha.
+        // - Trimestre puntual: 1 segmento usando las fechas del formulario.
+        // Cada segmento: { inicio, fin, label }.
+        function getSegmentosPlanificacion() {
+            const durEl = document.getElementById('in-duracion');
+            const durVal = durEl ? durEl.value : '';
+            if (durVal.includes('Anual')) {
+                return TRIMESTRES_ANUAL.map(function(t) {
+                    return {
+                        inicio: FECHAS_TRIMESTRE[t.key].inicio,
+                        fin: FECHAS_TRIMESTRE[t.key].fin,
+                        label: t.label
+                    };
+                });
+            }
+            const dE = document.getElementById('in-fecha-inicio');
+            const fE = document.getElementById('in-fecha-fin');
+            return [{
+                inicio: dE ? dE.value : '',
+                fin: fE ? fE.value : '',
+                label: durVal || 'Trimestre'
+            }];
+        }
 
         function setFechasTrimestre() {
             const durEl = document.getElementById('in-duracion');
@@ -6939,6 +7055,13 @@ table{border-collapse:collapse}
     }
     .paci-dp-day.empty { cursor: default; }
     .paci-dp-day.disabled { opacity: 0.3; cursor: not-allowed; }
+    .paci-dp-day.vacation { color: #38bdf8; opacity: 0.55; cursor: not-allowed; }
+    .paci-dp-day.vacation::after {
+        content: ''; position: absolute; bottom: 2px; left: 50%;
+        transform: translateX(-50%); width: 4px; height: 4px;
+        background: #0ea5e9; border-radius: 50%;
+    }
+    .paci-dp-day.vacation:hover .paci-dp-tooltip { opacity: 1; }
     .paci-dp-day.other-month { color: #334155; }
     .paci-dp-tooltip {
         position: absolute; left: 50%;
@@ -7112,6 +7235,12 @@ table{border-collapse:collapse}
                     // Si esta en las ultimas 2 filas, tooltip arriba; si no, abajo
                     var tooltipPos = (row >= totalRows - 2) ? 'pos-above' : 'pos-below';
                     tooltip = '<span class="paci-dp-tooltip ' + tooltipPos + '">' + FERIADOS_CHILE[dateStr] + '</span>';
+                } else if (enVacaciones(dateStr)) {
+                    cls += ' vacation';
+                    var cellIndexV = firstDay + (d - 1);
+                    var rowV = Math.floor(cellIndexV / 7);
+                    var tooltipPosV = (rowV >= totalRows - 2) ? 'pos-above' : 'pos-below';
+                    tooltip = '<span class="paci-dp-tooltip ' + tooltipPosV + '">' + getNombreVacaciones(dateStr) + '</span>';
                 }
                 // Fines de semana (solo bloquear si el input no permite weekend)
                 var dow = new Date(currentYear, currentMonth, d).getDay();
