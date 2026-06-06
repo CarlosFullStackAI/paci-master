@@ -161,6 +161,7 @@
       <span class="topbar-user" id="user-name"></span>
       <button class="btn btn-amber btn-sm" onclick="showChangePassword()" title="Cambiar contrasena"><i class="fa-solid fa-key"></i></button>
       <a href="/app.html" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Nuevo PACI</a>
+      <a href="/pai.html" class="btn btn-green"><i class="fa-solid fa-plus"></i> Nuevo PAI</a>
       <button class="btn btn-slate" onclick="cerrarSesion()"><i class="fa-solid fa-right-from-bracket"></i></button>
     </div>
   </div>
@@ -168,7 +169,7 @@
   <div class="container">
     <div class="stats">
       <div class="stat-card"><i class="fa-solid fa-users icon"></i><div class="label">Estudiantes</div><div class="value" id="stat-students">-</div></div>
-      <div class="stat-card"><i class="fa-solid fa-file-lines icon"></i><div class="label">Documentos PACI</div><div class="value" id="stat-docs">-</div></div>
+      <div class="stat-card"><i class="fa-solid fa-file-lines icon"></i><div class="label">Documentos</div><div class="value" id="stat-docs">-</div></div>
       <div class="stat-card"><i class="fa-solid fa-bullseye icon"></i><div class="label">OAs Trabajados</div><div class="value" id="stat-oas">-</div></div>
     </div>
 
@@ -190,10 +191,12 @@
 
     document.getElementById('user-name').textContent = (USER.name || USER.email || '') + ' (' + USER_ROLE + ')';
 
-    // Ocultar boton "Nuevo PACI" si no tiene permiso de creacion
+    // Ocultar botones "Nuevo PACI" / "Nuevo PAI" si no tiene permiso de creacion
     if (!CAN_CREATE) {
       const newPaciBtn = document.querySelector('.topbar-actions a[href="/app.html"]');
       if (newPaciBtn) newPaciBtn.style.display = 'none';
+      const newPaiBtn = document.querySelector('.topbar-actions a[href="/pai.html"]');
+      if (newPaiBtn) newPaiBtn.style.display = 'none';
     }
 
     // Reglas de reevaluacion
@@ -548,6 +551,7 @@
         </div>
         ${CAN_CREATE ? `<div style="margin-top:1rem;display:flex;gap:0.5rem;">
           <a href="/app.html?student=${id}" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> Nuevo PACI</a>
+          <a href="/pai.html?student=${id}" class="btn btn-green btn-sm"><i class="fa-solid fa-plus"></i> Nuevo PAI</a>
         </div>` : ''}`;
 
       document.getElementById('tab-profile-' + id).innerHTML = html;
@@ -754,11 +758,13 @@
     function renderDocsTab(id, docs) {
       const c = document.getElementById('tab-docs-' + id);
       if (!docs || !docs.length) {
-        c.innerHTML = '<div class="empty-state"><i class="fa-solid fa-file-lines"></i><p>Sin documentos. <a href="/app.html?student=' + id + '" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> Crear PACI</a></p></div>';
+        c.innerHTML = '<div class="empty-state"><i class="fa-solid fa-file-lines"></i><p>Sin documentos. <a href="/app.html?student=' + id + '" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> Crear PACI</a> <a href="/pai.html?student=' + id + '" class="btn btn-green btn-sm"><i class="fa-solid fa-plus"></i> Crear PAI</a></p></div>';
         return;
       }
 
-      c.innerHTML = docs.map(d => {
+      // Renderiza la tarjeta de un documento (PACI o PAI). Se usa tanto para los
+      // documentos de nivel superior como para los trimestres hijos anidados.
+      const renderDocCard = (d) => {
         // Contar modulos dentro del documento
         let modCount = 0;
         let oaCodes = [];
@@ -769,9 +775,22 @@
           mods.forEach(m => { if (m.oas) oaCodes.push(...m.oas.map(o => o.code)); });
         } catch(e) {}
 
-        // Colores de asignaturas
+        // Tipo de documento: PACI (adapta curriculum) o PAI (organiza apoyos)
+        const isPai = d.plan_type === 'pai';
+        const baseUrl = isPai ? '/pai.html' : '/app.html';
+        const tipoLabel = isPai ? 'PAI' : 'PACI';
+        const titleIcon = isPai ? 'fa-hands-holding-child' : 'fa-file-lines';
+
+        // Chip de alcance: distingue plan anual (padre) de trimestre derivado
+        const scopeChip = d.plan_scope === 'anual'
+          ? '<span class="status-chip" style="background:#ede9fe;color:#6d28d9;"><i class="fa-solid fa-calendar-days"></i> Plan anual</span>'
+          : (d.parent_id
+            ? '<span class="status-chip" style="background:#e0f2fe;color:#0369a1;"><i class="fa-solid fa-link"></i> Trimestre de plan anual</span>'
+            : '');
+
+        // Colores de asignaturas (PAI usa verde fijo)
         const subjectKeys = (d.subject_key || '').split(',');
-        const mainColor = ASIG_COLORS[subjectKeys[0]] || '#1e3a8a';
+        const mainColor = isPai ? '#059669' : (ASIG_COLORS[subjectKeys[0]] || '#1e3a8a');
 
         const statusChip = d.approval_status === 'approved'
           ? '<span class="status-chip status-approved"><i class="fa-solid fa-circle-check"></i> Aprobado</span>'
@@ -784,24 +803,24 @@
           <div class="doc-card-accent" style="background:${mainColor};"></div>
           <div class="doc-card-body">
             <div class="doc-card-title">
-              <span class="doc-card-icon" style="background:${mainColor};"><i class="fa-solid fa-file-lines"></i></span>
-              PACI &middot; ${esc(d.trimester || 'Sin trimestre')}
+              <span class="doc-card-icon" style="background:${mainColor};"><i class="fa-solid ${titleIcon}"></i></span>
+              ${tipoLabel} &middot; ${esc(d.trimester || 'Sin período')}
             </div>
-            <div class="doc-chips">${statusChip}</div>
+            <div class="doc-chips">${scopeChip}${statusChip}</div>
             <div class="doc-meta">
-              <span><i class="fa-solid fa-book"></i> ${esc(d.subject || 'Sin asignatura')}</span>
+              <span><i class="fa-solid ${isPai ? 'fa-people-arrows' : 'fa-book'}"></i> ${esc(d.subject || (isPai ? 'Sin apoyos' : 'Sin asignatura'))}</span>
               ${d.work_level ? '<span><i class="fa-solid fa-layer-group"></i> ' + esc(d.work_level) + '</span>' : ''}
-              <span><i class="fa-solid fa-chalkboard"></i> ${d.num_classes || 0} clases</span>
-              ${modCount > 1 ? '<span><i class="fa-solid fa-shapes"></i> ' + modCount + ' asignaturas</span>' : ''}
-              <span><i class="fa-solid fa-calendar"></i> ${formatDate(d.date_start)} – ${formatDate(d.date_end)}</span>
+              <span><i class="fa-solid ${isPai ? 'fa-hands-holding-child' : 'fa-chalkboard'}"></i> ${d.num_classes || 0} ${isPai ? 'apoyos' : 'clases'}</span>
+              ${!isPai && modCount > 1 ? '<span><i class="fa-solid fa-shapes"></i> ' + modCount + ' asignaturas</span>' : ''}
+              ${!isPai ? '<span><i class="fa-solid fa-calendar"></i> ' + formatDate(d.date_start) + ' – ' + formatDate(d.date_end) + '</span>' : ''}
               <span><i class="fa-regular fa-clock"></i> Creado ${formatDate(d.created_at)}</span>
             </div>
-            ${oaCodes.length ? '<div style="display:flex;flex-wrap:wrap;gap:0.25rem;margin-top:0.6rem;">' + oaCodes.slice(0, 10).map(c => '<span class="oa-chip" style="background:' + mainColor + '18;color:' + mainColor + ';">' + esc(c) + '</span>').join('') + (oaCodes.length > 10 ? '<span class="oa-chip" style="background:#f1f5f9;color:#64748b;">+' + (oaCodes.length - 10) + ' mas</span>' : '') + '</div>' : ''}
+            ${!isPai && oaCodes.length ? '<div style="display:flex;flex-wrap:wrap;gap:0.25rem;margin-top:0.6rem;">' + oaCodes.slice(0, 10).map(c => '<span class="oa-chip" style="background:' + mainColor + '18;color:' + mainColor + ';">' + esc(c) + '</span>').join('') + (oaCodes.length > 10 ? '<span class="oa-chip" style="background:#f1f5f9;color:#64748b;">+' + (oaCodes.length - 10) + ' mas</span>' : '') + '</div>' : ''}
             <div class="doc-actions">
-              <a href="/app.html?doc=${d.id}" class="btn btn-primary btn-sm" title="Abrir y editar"><i class="fa-solid fa-eye"></i> Ver</a>
-              <a href="/app.html?doc=${d.id}&action=pdf" class="btn btn-green btn-sm" title="Descargar PDF"><i class="fa-solid fa-download"></i> PDF</a>
-              <a href="/app.html?doc=${d.id}&action=print" class="btn btn-amber btn-sm" title="Imprimir"><i class="fa-solid fa-print"></i></a>
-              ${CAN_CREATE && d.trimester === '1er Trimestre' ? '<button class="btn btn-violet btn-sm" onclick="clonarTrimestres(' + d.id + ', ' + id + ')" title="Crear el 2do y 3er trimestre copiando este PACI"><i class="fa-solid fa-copy"></i> Crear 2°/3°</button>' : ''}
+              <a href="${baseUrl}?doc=${d.id}" class="btn btn-primary btn-sm" title="Abrir y editar"><i class="fa-solid fa-eye"></i> Ver</a>
+              <a href="${baseUrl}?doc=${d.id}&action=pdf" class="btn btn-green btn-sm" title="Descargar PDF"><i class="fa-solid fa-download"></i> PDF</a>
+              <a href="${baseUrl}?doc=${d.id}&action=print" class="btn btn-amber btn-sm" title="Imprimir"><i class="fa-solid fa-print"></i></a>
+              ${!isPai && CAN_CREATE && d.trimester === '1er Trimestre' ? '<button class="btn btn-violet btn-sm" onclick="clonarTrimestres(' + d.id + ', ' + id + ')" title="Crear el 2do y 3er trimestre copiando este PACI"><i class="fa-solid fa-copy"></i> Crear 2°/3°</button>' : ''}
               ${CAN_APPROVE && d.approval_status !== 'approved' ? '<button class="btn btn-green btn-sm" onclick="approveDoc(' + d.id + ', ' + id + ')" title="Aprobar PACI"><i class="fa-solid fa-check"></i> Aprobar</button>' : ''}
               ${CAN_APPROVE && d.approval_status !== 'rejected' ? '<button class="btn btn-slate btn-sm" onclick="rejectDoc(' + d.id + ', ' + id + ')" title="Rechazar"><i class="fa-solid fa-times"></i></button>' : ''}
               ${CAN_DELETE ? '<button class="btn btn-red btn-sm" onclick="deleteDoc(' + d.id + ', ' + id + ')" title="Eliminar"><i class="fa-solid fa-trash"></i></button>' : ''}
@@ -816,6 +835,28 @@
             </div>
           </div>
         </div>`;
+      };
+
+      // Agrupar familias: un plan anual (padre) con sus trimestres (hijos por parent_id).
+      // Los hijos cuyo padre no este en la lista se muestran como documentos normales.
+      const docIds = new Set(docs.map(d => d.id));
+      const childrenByParent = {};
+      docs.forEach(d => {
+        if (d.parent_id && docIds.has(d.parent_id)) {
+          (childrenByParent[d.parent_id] = childrenByParent[d.parent_id] || []).push(d);
+        }
+      });
+      const topLevel = docs.filter(d => !d.parent_id || !docIds.has(d.parent_id));
+
+      c.innerHTML = topLevel.map(d => {
+        const kids = (childrenByParent[d.id] || []).sort((a, b) => (a.trimester_index || 0) - (b.trimester_index || 0));
+        if (!kids.length) return renderDocCard(d);
+        return '<div style="border:1px dashed #c4b5fd;border-radius:0.9rem;padding:0.6rem;margin-bottom:1rem;background:#faf5ff;">'
+          + renderDocCard(d)
+          + '<div style="border-left:3px solid #7c3aed;margin:0.4rem 0 0.2rem 0.75rem;padding-left:0.75rem;">'
+          + '<div style="font-size:0.7rem;font-weight:700;color:#6d28d9;margin:0.4rem 0;"><i class="fa-solid fa-diagram-project"></i> Trimestres vinculados a este plan anual</div>'
+          + kids.map(k => renderDocCard(k)).join('')
+          + '</div></div>';
       }).join('');
     }
 

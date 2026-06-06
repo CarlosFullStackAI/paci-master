@@ -10,6 +10,25 @@ export async function onRequestPost(context) {
 
     const body = await request.json();
 
+    // Cargar la "familia" completa de un plan anual: el padre + sus trimestres hijos.
+    if (body.parentId) {
+      const parent = await env.DB.prepare(
+        'SELECT * FROM documents WHERE id = ? AND user_email = ?'
+      ).bind(body.parentId, user.email).first();
+
+      if (!parent) return new Response(JSON.stringify({ ok: false, error: 'Plan anual no encontrado.' }), { status: 404, headers });
+
+      const children = await env.DB.prepare(
+        'SELECT * FROM documents WHERE parent_id = ? AND user_email = ? ORDER BY trimester_index ASC'
+      ).bind(body.parentId, user.email).all();
+
+      return new Response(JSON.stringify({
+        ok: true,
+        parent,
+        children: children.results || []
+      }), { status: 200, headers });
+    }
+
     // Cargar un documento especifico o todos los de un estudiante
     if (body.documentId) {
       const doc = await env.DB.prepare(
@@ -18,7 +37,20 @@ export async function onRequestPost(context) {
 
       if (!doc) return new Response(JSON.stringify({ ok: false, error: 'Documento no encontrado.' }), { status: 404, headers });
 
-      return new Response(JSON.stringify({ ok: true, document: doc }), { status: 200, headers });
+      // Si es un plan anual, adjuntar sus trimestres hijos para que el frontend
+      // pueda navegar la familia sin una segunda llamada (vacio para documentos sueltos).
+      const children = await env.DB.prepare(
+        `SELECT id, trimester, trimester_index, plan_scope, plan_type,
+                num_classes, date_start, date_end, approval_status
+         FROM documents WHERE parent_id = ? AND user_email = ?
+         ORDER BY trimester_index ASC`
+      ).bind(body.documentId, user.email).all();
+
+      return new Response(JSON.stringify({
+        ok: true,
+        document: doc,
+        children: children.results || []
+      }), { status: 200, headers });
     }
 
     // Cargar todos los documentos de un estudiante (opcionalmente filtrados por trimestre)

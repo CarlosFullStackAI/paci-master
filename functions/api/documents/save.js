@@ -2,6 +2,82 @@ import { getUser } from '../auth-helper.js';
 import { encrypt } from '../crypto-helper.js';
 import { checkPermission } from '../rbac-helper.js';
 
+const VALID_PLAN_TYPES = ['paci', 'pai'];
+
+// Inserta UN documento (anual, trimestral o suelto) junto con sus OAs.
+// Centraliza la logica para reutilizarla tanto en el caso de un solo documento
+// como en el de un plan anual con sus 3 trimestres hijos.
+// Devuelve { docId, numModules, numOas }.
+async function insertDocument(db, userEmail, studentId, opts) {
+  const {
+    student, team, trimester,
+    planType, planScope, parentId, trimesterIndex
+  } = opts;
+  const modules = opts.modules || [];
+  const apoyos = opts.apoyos || [];
+  const isPai = planType === 'pai';
+
+  // Calcular resumen para la vista de lista (dashboard).
+  // PACI resume por asignaturas y clases; PAI resume por tipos de apoyo.
+  const subjects = isPai
+    ? [...new Set(apoyos.map(a => a.tipoApoyo).filter(Boolean))].join(', ')
+    : [...new Set(modules.map(m => m.asig).filter(Boolean))].join(', ');
+  const subjectKeys = isPai
+    ? ''
+    : [...new Set(modules.map(m => m.asigKey).filter(Boolean))].join(',');
+  const allClases = modules.flatMap(m => m.clases || []);
+  const dateStart = allClases.length ? allClases[0].date || '' : '';
+  const dateEnd = allClases.length ? allClases[allClases.length - 1].date || '' : '';
+  const numClasses = isPai ? apoyos.length : allClases.length;
+
+  // El PAI guarda sus apoyos en document_json; el PACI guarda sus modulos.
+  const docJson = JSON.stringify({ student, team, modules, apoyos });
+
+  const docRes = await db.prepare(
+    `INSERT INTO documents
+       (user_email, student_id, trimester, subject, subject_key, work_level,
+        date_start, date_end, num_classes, document_json,
+        plan_type, plan_scope, parent_id, trimester_index)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).bind(
+    userEmail, studentId, trimester || '', subjects, subjectKeys,
+    student.workLevel || '', dateStart, dateEnd, numClasses, docJson,
+    planType, planScope, parentId, trimesterIndex
+  ).run();
+
+  const docId = docRes.meta.last_row_id;
+
+  // Guardar OAs de todos los modulos.
+  // Compatibilidad: acepta el formato nuevo (textoOriginal/textoAdecuado) y el legacy (text).
+  // oa_text se mantiene espejando textoAdecuado para no romper lecturas existentes.
+  const oaStmts = [];
+  for (const mod of modules) {
+    if (mod.oas && mod.oas.length) {
+      for (const oa of mod.oas) {
+        const original = oa.textoOriginal || oa.text || '';
+        const adapted = oa.textoAdecuado || oa.text || original;
+        oaStmts.push(
+          db.prepare(
+            `INSERT INTO document_oas (document_id, student_id, subject, subject_key, level, unit_name, oa_code, oa_text, oa_text_original, oa_text_adapted, trimester)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          ).bind(
+            docId, studentId, mod.asig || '', mod.asigKey || '',
+            mod.nivelTrabajo || '', oa.unit || '', oa.code || '',
+            adapted, original, adapted,
+            trimester || ''
+          )
+        );
+      }
+    }
+  }
+
+  if (oaStmts.length > 0) {
+    await db.batch(oaStmts);
+  }
+
+  return { docId, numModules: modules.length, numOas: oaStmts.length };
+}
+
 export async function onRequestPost(context) {
   const { request, env } = context;
   const headers = { 'Content-Type': 'application/json' };
@@ -10,14 +86,26 @@ export async function onRequestPost(context) {
     const user = await getUser(request, env);
     if (!user) return new Response(JSON.stringify({ ok: false, error: 'No autorizado.' }), { status: 401, headers });
 
-    // Solo educador_diferencial, teacher y admin pueden crear/editar PACI
+    // Solo educador_diferencial, teacher y admin pueden crear/editar PACI/PAI
     const denied = checkPermission(user.role, 'paci:create');
     if (denied) return denied;
 
     const body = await request.json();
-    const { student, modules, trimester, team } = body;
+    const { student, modules, trimester, team, trimesters, apoyos } = body;
 
-    if (!student || !student.name || !modules || !modules.length) {
+    // planType: 'paci' (adapta curriculum) o 'pai' (organiza apoyos). Default 'paci'.
+    const planType = VALID_PLAN_TYPES.includes(body.planType) ? body.planType : 'paci';
+    const isPai = planType === 'pai';
+
+    // Caso "familia": solo aplica a PACI. Llega un arreglo de trimestres -> 1 anual padre + N hijos.
+    const hasFamily = !isPai && Array.isArray(trimesters) && trimesters.length > 0;
+
+    // Validacion segun tipo de plan:
+    // - PAI requiere al menos un apoyo.
+    // - PACI requiere modulos (o un arreglo de trimestres en el caso familia).
+    const missingPai = isPai && (!Array.isArray(apoyos) || !apoyos.length);
+    const missingPaci = !isPai && !hasFamily && (!modules || !modules.length);
+    if (!student || !student.name || missingPai || missingPaci) {
       return new Response(JSON.stringify({ ok: false, error: 'Datos incompletos.' }), { status: 400, headers });
     }
 
@@ -57,64 +145,62 @@ export async function onRequestPost(context) {
 
     const studentId = studentRow.id;
 
-    // Calcular resumen: asignaturas, fechas, total clases
-    const subjects = [...new Set(modules.map(m => m.asig).filter(Boolean))].join(', ');
-    const subjectKeys = [...new Set(modules.map(m => m.asigKey).filter(Boolean))].join(',');
-    const allClases = modules.flatMap(m => m.clases || []);
-    const dateStart = allClases.length ? allClases[0].date || '' : '';
-    const dateEnd = allClases.length ? allClases[allClases.length - 1].date || '' : '';
-    const numClasses = allClases.length;
+    // --- Caso plan anual + trimestres vinculados ---
+    if (hasFamily) {
+      // 1) Crear el plan anual (padre). Sus modulos pueden venir en body.annual.modules
+      //    o, por compatibilidad, en el campo modules de nivel superior.
+      const annualModules = (body.annual && body.annual.modules) || modules || [];
+      const parent = await insertDocument(db, user.email, studentId, {
+        student, team, modules: annualModules,
+        trimester: (body.annual && body.annual.trimester) || 'Anual',
+        planType, planScope: 'anual', parentId: null, trimesterIndex: null
+      });
 
-    // Guardar TODO como UN solo documento
-    const docJson = JSON.stringify({
-      student,
-      team,
-      modules
+      // 2) Crear los trimestrales (hijos), cada uno vinculado al padre por parent_id.
+      const childIds = [];
+      let idx = 0;
+      for (const t of trimesters) {
+        idx += 1;
+        const child = await insertDocument(db, user.email, studentId, {
+          student, team, modules: (t && t.modules) || [],
+          trimester: (t && t.trimester) || `${idx}º Trimestre`,
+          planType, planScope: 'trimestral',
+          parentId: parent.docId,
+          trimesterIndex: (t && t.trimesterIndex) || idx
+        });
+        childIds.push(child.docId);
+      }
+
+      return new Response(JSON.stringify({
+        ok: true,
+        studentId,
+        documentId: parent.docId,
+        parentId: parent.docId,
+        childIds,
+        message: `Plan anual guardado con ${childIds.length} trimestre(s) vinculado(s).`
+      }), { status: 201, headers });
+    }
+
+    // --- Caso un solo documento (compatibilidad con el flujo actual) ---
+    // Si no llega plan_scope explicito, se infiere del trimestre.
+    const inferredScope = (trimester === 'Anual') ? 'anual' : 'trimestral';
+    const result = await insertDocument(db, user.email, studentId, {
+      student, team, modules, apoyos, trimester,
+      planType,
+      planScope: body.planScope || inferredScope,
+      parentId: body.parentId || null,
+      trimesterIndex: body.trimesterIndex || null
     });
 
-    const docRes = await db.prepare(
-      `INSERT INTO documents (user_email, student_id, trimester, subject, subject_key, work_level, date_start, date_end, num_classes, document_json)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).bind(
-      user.email, studentId, trimester || '', subjects, subjectKeys,
-      student.workLevel || '', dateStart, dateEnd, numClasses, docJson
-    ).run();
-
-    const docId = docRes.meta.last_row_id;
-
-    // Guardar OAs de todos los modulos
-    // Compatibilidad: acepta el formato nuevo (textoOriginal/textoAdecuado) y el legacy (text)
-    // oa_text se mantiene espejando textoAdecuado para no romper lecturas existentes
-    const oaStmts = [];
-    for (const mod of modules) {
-      if (mod.oas && mod.oas.length) {
-        for (const oa of mod.oas) {
-          const original = oa.textoOriginal || oa.text || '';
-          const adapted = oa.textoAdecuado || oa.text || original;
-          oaStmts.push(
-            db.prepare(
-              `INSERT INTO document_oas (document_id, student_id, subject, subject_key, level, unit_name, oa_code, oa_text, oa_text_original, oa_text_adapted, trimester)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-            ).bind(
-              docId, studentId, mod.asig || '', mod.asigKey || '',
-              mod.nivelTrabajo || '', oa.unit || '', oa.code || '',
-              adapted, original, adapted,
-              trimester || ''
-            )
-          );
-        }
-      }
-    }
-
-    if (oaStmts.length > 0) {
-      await db.batch(oaStmts);
-    }
+    const detalle = isPai
+      ? `${(apoyos || []).length} apoyo(s)`
+      : `${result.numModules} modulo(s) y ${result.numOas} OA(s)`;
 
     return new Response(JSON.stringify({
       ok: true,
       studentId,
-      documentId: docId,
-      message: `PACI guardado con ${modules.length} modulo(s) y ${oaStmts.length} OA(s).`
+      documentId: result.docId,
+      message: `${planType.toUpperCase()} guardado con ${detalle}.`
     }), { status: 201, headers });
 
   } catch (e) {

@@ -1079,6 +1079,9 @@ table{border-collapse:collapse}
                 <button onclick="guardarPACI()" id="btn-guardar" class="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-2.5 rounded-lg transition active:scale-95 shadow-lg text-xs font-bold flex items-center gap-1" title="Guardar en la nube">
                     <i class="fa-solid fa-cloud-arrow-up"></i> Guardar
                 </button>
+                <button onclick="guardarPlanAnualVinculado()" id="btn-guardar-anual" style="display:none;background:#7c3aed;" class="text-white px-3 py-2.5 rounded-lg transition active:scale-95 shadow-lg text-xs font-bold flex items-center gap-1" title="Guardar como plan anual padre + 3 trimestres vinculados">
+                    <i class="fa-solid fa-sitemap"></i> Anual + 3 trimestres
+                </button>
                 <button onclick="printPDF()" class="bg-slate-700 hover:bg-slate-600 text-white p-2.5 rounded-lg transition active:scale-95 shadow-lg text-xs font-bold" title="Imprimir directamente">
                     <i class="fa-solid fa-print"></i>
                 </button>
@@ -1128,7 +1131,7 @@ table{border-collapse:collapse}
                     <input type="text" id="in-escuela" class="w-full border p-2.5 rounded-lg text-sm" placeholder="Cargando establecimiento..." oninput="updatePreview()">
 
                     <div class="grid grid-cols-2 gap-3">
-                        <select id="in-duracion" class="border p-2.5 rounded-lg text-sm outline-none" onchange="updatePreview(); setFechasTrimestre()">
+                        <select id="in-duracion" class="border p-2.5 rounded-lg text-sm outline-none" onchange="updatePreview(); setFechasTrimestre(); actualizarBotonAnual()">
                             <option value="1er Trimestre">1er Trimestre</option>
                             <option value="2do Trimestre">2do Trimestre</option>
                             <option value="3er Trimestre">3er Trimestre</option>
@@ -1565,6 +1568,68 @@ table{border-collapse:collapse}
         // ==========================================
         // GUARDAR PACI EN LA NUBE (D1)
         // ==========================================
+        // Recolecta y normaliza los datos del formulario (estudiante, trimestre, equipo,
+        // modulos con asigKey). Devuelve el objeto listo para guardar, o null si falta
+        // algo obligatorio (mostrando el alert correspondiente). Reutilizado por el
+        // guardado normal y por el guardado de plan anual vinculado.
+        function recolectarDatosPACI() {
+            const nombre = document.getElementById('in-nombre') ? document.getElementById('in-nombre').value : '';
+            if (!nombre.trim()) { alert('Ingresa el nombre del estudiante antes de guardar.'); return null; }
+
+            const student = {
+                name: nombre.trim(),
+                school: document.getElementById('in-escuela') ? document.getElementById('in-escuela').value : '',
+                birthDate: document.getElementById('in-fnac') ? document.getElementById('in-fnac').value : '',
+                age: document.getElementById('in-edad') ? parseInt(document.getElementById('in-edad').value) || 0 : 0,
+                diagnosis: document.getElementById('in-diag') ? document.getElementById('in-diag').options[document.getElementById('in-diag').selectedIndex]?.text || '' : '',
+                diagnosisId: document.getElementById('in-diag') ? document.getElementById('in-diag').value : '',
+                realLevel: document.getElementById('in-nivel-real') ? document.getElementById('in-nivel-real').options[document.getElementById('in-nivel-real').selectedIndex]?.text || '' : '',
+                workLevel: document.getElementById('in-nivel-trabajo') ? document.getElementById('in-nivel-trabajo').options[document.getElementById('in-nivel-trabajo').selectedIndex]?.text || '' : ''
+            };
+
+            const trimester = document.getElementById('in-duracion') ? document.getElementById('in-duracion').options[document.getElementById('in-duracion').selectedIndex]?.text || '' : '';
+
+            // Recoger equipo
+            const team = state.equipo.map(m => ({ rol: m.rol, nom: m.nom }));
+
+            // Recoger modulos con asigKey
+            if (!state.modulos.length) { alert('Agrega al menos un modulo de planificacion antes de guardar.'); return null; }
+
+            const modules = state.modulos.map(m => {
+                // Buscar subject_key
+                let asigKey = '';
+                const asigSelect = document.getElementById('in-asig');
+                if (asigSelect) {
+                    for (const opt of asigSelect.options) {
+                        if (MINEDUC_DB.curriculum[opt.value]) {
+                            const currData = MINEDUC_DB.curriculum[opt.value];
+                            const anyLevel = Object.keys(currData)[0];
+                            // Match by asig name
+                            if (m.asig && opt.textContent.trim() === m.asig) {
+                                asigKey = opt.value;
+                                break;
+                            }
+                        }
+                    }
+                }
+                // Fallback: try to find key from ASIG_COLORS name match
+                if (!asigKey) {
+                    for (const [key, val] of Object.entries(MINEDUC_DB.curriculum || {})) {
+                        // key is the asig code
+                        asigKey = asigKey || key;
+                        break;
+                    }
+                }
+
+                return {
+                    ...m,
+                    asigKey: asigKey
+                };
+            });
+
+            return { student, trimester, team, modules };
+        }
+
         async function guardarPACI() {
             // Verificar permiso de edicion en frontend
             if (!PACI_CAN_EDIT) {
@@ -1581,60 +1646,9 @@ table{border-collapse:collapse}
                 const token = localStorage.getItem('paci_token');
                 if (!token) { alert('Sesion expirada. Inicia sesion de nuevo.'); window.location.href = '/login.html'; return; }
 
-                // Recoger datos del estudiante
-                const nombre = document.getElementById('in-nombre') ? document.getElementById('in-nombre').value : '';
-                if (!nombre.trim()) { alert('Ingresa el nombre del estudiante antes de guardar.'); return; }
-
-                const student = {
-                    name: nombre.trim(),
-                    school: document.getElementById('in-escuela') ? document.getElementById('in-escuela').value : '',
-                    birthDate: document.getElementById('in-fnac') ? document.getElementById('in-fnac').value : '',
-                    age: document.getElementById('in-edad') ? parseInt(document.getElementById('in-edad').value) || 0 : 0,
-                    diagnosis: document.getElementById('in-diag') ? document.getElementById('in-diag').options[document.getElementById('in-diag').selectedIndex]?.text || '' : '',
-                    diagnosisId: document.getElementById('in-diag') ? document.getElementById('in-diag').value : '',
-                    realLevel: document.getElementById('in-nivel-real') ? document.getElementById('in-nivel-real').options[document.getElementById('in-nivel-real').selectedIndex]?.text || '' : '',
-                    workLevel: document.getElementById('in-nivel-trabajo') ? document.getElementById('in-nivel-trabajo').options[document.getElementById('in-nivel-trabajo').selectedIndex]?.text || '' : ''
-                };
-
-                const trimester = document.getElementById('in-duracion') ? document.getElementById('in-duracion').options[document.getElementById('in-duracion').selectedIndex]?.text || '' : '';
-
-                // Recoger equipo
-                const team = state.equipo.map(m => ({ rol: m.rol, nom: m.nom }));
-
-                // Recoger modulos con asigKey
-                if (!state.modulos.length) { alert('Agrega al menos un modulo de planificacion antes de guardar.'); return; }
-
-                const modules = state.modulos.map(m => {
-                    // Buscar subject_key
-                    let asigKey = '';
-                    const asigSelect = document.getElementById('in-asig');
-                    if (asigSelect) {
-                        for (const opt of asigSelect.options) {
-                            if (MINEDUC_DB.curriculum[opt.value]) {
-                                const currData = MINEDUC_DB.curriculum[opt.value];
-                                const anyLevel = Object.keys(currData)[0];
-                                // Match by asig name
-                                if (m.asig && opt.textContent.trim() === m.asig) {
-                                    asigKey = opt.value;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                    // Fallback: try to find key from ASIG_COLORS name match
-                    if (!asigKey) {
-                        for (const [key, val] of Object.entries(MINEDUC_DB.curriculum || {})) {
-                            // key is the asig code
-                            asigKey = asigKey || key;
-                            break;
-                        }
-                    }
-
-                    return {
-                        ...m,
-                        asigKey: asigKey
-                    };
-                });
+                const datos = recolectarDatosPACI();
+                if (!datos) return;
+                const { student, trimester, team, modules } = datos;
 
                 const res = await fetch('/api/documents/save', {
                     method: 'POST',
@@ -1672,6 +1686,90 @@ table{border-collapse:collapse}
                 btn.disabled = false;
                 if (btn.innerHTML.includes('Guardando')) btn.innerHTML = originalHTML;
             }
+        }
+
+        // ==========================================
+        // GUARDAR PLAN ANUAL + 3 TRIMESTRES VINCULADOS
+        // ==========================================
+        // Crea un documento "padre" anual y 3 documentos "hijos" (uno por trimestre),
+        // enlazados en la base de datos por parent_id. Cada modulo generado en modo
+        // Anual ya viene etiquetado con m.trimestre, asi que repartimos los modulos
+        // a su trimestre correspondiente.
+        async function guardarPlanAnualVinculado() {
+            if (!PACI_CAN_EDIT) {
+              alert('No tienes permisos para guardar. Tu rol (' + PACI_ROLE + ') solo permite lectura.');
+              return;
+            }
+
+            const btn = document.getElementById('btn-guardar-anual');
+            const originalHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
+
+            try {
+                const token = localStorage.getItem('paci_token');
+                if (!token) { alert('Sesion expirada. Inicia sesion de nuevo.'); window.location.href = '/login.html'; return; }
+
+                const datos = recolectarDatosPACI();
+                if (!datos) return;
+
+                // Repartir los modulos por trimestre segun su etiqueta m.trimestre.
+                const labels = ['1er Trimestre', '2do Trimestre', '3er Trimestre'];
+                const trimesters = labels.map((label, i) => ({
+                    trimester: label,
+                    trimesterIndex: i + 1,
+                    modules: datos.modules.filter(m => (m.trimestre || '') === label)
+                }));
+
+                const conContenido = trimesters.filter(t => t.modules.length);
+                if (conContenido.length === 0) {
+                    alert('Para vincular trimestres necesitas una planificacion ANUAL.\n\nElige duracion "Anual" y genera la planificacion: se crearan bloques por trimestre que luego se vinculan.');
+                    return;
+                }
+
+                const res = await fetch('/api/documents/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        _token: token,
+                        planType: 'paci',
+                        student: datos.student,
+                        team: datos.team,
+                        annual: { trimester: 'Anual', modules: datos.modules },
+                        trimesters
+                    })
+                });
+
+                const data = await res.json();
+
+                if (data.ok) {
+                    const n = (data.childIds && data.childIds.length) || trimesters.length;
+                    btn.innerHTML = '<i class="fa-solid fa-check"></i> Vinculado!';
+                    autosave.dirty = false;
+                    try { localStorage.removeItem(autosave.getStorageKey()); } catch (e) {}
+                    setTimeout(() => {
+                        if (confirm('Plan anual creado con ' + n + ' trimestre(s) vinculado(s).\n\n¿Ir al panel para verlos agrupados?')) {
+                            window.location.href = '/dashboard.html';
+                        }
+                    }, 300);
+                } else {
+                    alert('Error al guardar: ' + (data.error || 'Intenta de nuevo.'));
+                }
+            } catch (e) {
+                alert('Error de conexion al guardar. Intenta de nuevo.');
+            } finally {
+                btn.disabled = false;
+                setTimeout(() => { btn.innerHTML = originalHTML; }, 2000);
+            }
+        }
+
+        // Muestra el boton "Anual + 3 trimestres" solo cuando la duracion es Anual.
+        function actualizarBotonAnual() {
+            const btn = document.getElementById('btn-guardar-anual');
+            if (!btn) return;
+            const sel = document.getElementById('in-duracion');
+            const esAnual = sel && (sel.options[sel.selectedIndex]?.text || '').toLowerCase().includes('anual');
+            btn.style.display = esAnual ? 'flex' : 'none';
         }
 
         // ==========================================
@@ -3879,6 +3977,9 @@ table{border-collapse:collapse}
 
         window.onload = () => {
             try {
+                // Mostrar/ocultar el boton de plan anual vinculado segun la duracion actual.
+                if (typeof actualizarBotonAnual === 'function') actualizarBotonAnual();
+
                 // Aplicar config del tenant al input #in-escuela cuando llegue.
                 // Solo setea si el input quedo vacio (caso documento nuevo). Si despues
                 // cargarDocumento() trae un valor guardado, el .value previo no se toca.
