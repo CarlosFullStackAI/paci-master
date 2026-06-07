@@ -419,7 +419,8 @@
         const res = await fetch('/api/documents/save', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(Object.assign({ _token: token }, data))
+          // Si ya existe (cargado o guardado antes), enviamos su id para ACTUALIZAR.
+          body: JSON.stringify(Object.assign({ _token: token, documentId: state.documentId || undefined }, data))
         });
         const out = await res.json();
         if (!out.ok) { toast(out.error || 'Error al guardar.', true); return; }

@@ -1658,7 +1658,10 @@ table{border-collapse:collapse}
                         student,
                         modules,
                         trimester,
-                        team
+                        team,
+                        // Si estamos editando un documento ya guardado, enviamos su id
+                        // para ACTUALIZARLO en vez de crear un duplicado.
+                        documentId: autosave.lastDocumentId || undefined
                     })
                 });
 
@@ -3866,6 +3869,8 @@ table{border-collapse:collapse}
                         }
                     }
                     documents = [data.document];
+                    // Recordar el id para que al re-guardar se ACTUALICE (no se duplique).
+                    autosave.lastDocumentId = data.document.id;
                 } else if (studentId) {
                     // Cargar todos los documentos de un estudiante
                     const res = await fetch('/api/documents/get', {

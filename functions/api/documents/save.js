@@ -78,6 +78,79 @@ async function insertDocument(db, userEmail, studentId, opts) {
   return { docId, numModules: modules.length, numOas: oaStmts.length };
 }
 
+// Actualiza un documento existente (editar y re-guardar) en lugar de crear uno
+// nuevo. Preserva el tipo, alcance y vinculo (plan_type, plan_scope, parent_id,
+// trimester_index) del documento salvo que vengan valores explicitos en opts,
+// de modo que editar un trimestre hijo NO lo desvincula de su plan anual.
+// Devuelve { docId, numModules, numOas } o null si el documento no existe / no
+// pertenece al usuario (el caller cae entonces a INSERT).
+async function updateDocument(db, userEmail, documentId, opts) {
+  const existing = await db.prepare(
+    'SELECT id, student_id, plan_type, plan_scope, parent_id, trimester_index FROM documents WHERE id = ? AND user_email = ?'
+  ).bind(documentId, userEmail).first();
+  if (!existing) return null;
+
+  const { student, team, trimester } = opts;
+  const modules = opts.modules || [];
+  const apoyos = opts.apoyos || [];
+  const studentId = existing.student_id;
+
+  const planType = opts.planType || existing.plan_type || 'paci';
+  const isPai = planType === 'pai';
+  const planScope = opts.planScope || existing.plan_scope || 'trimestral';
+  const parentId = (opts.parentId != null) ? opts.parentId : (existing.parent_id != null ? existing.parent_id : null);
+  const trimesterIndex = (opts.trimesterIndex != null) ? opts.trimesterIndex : (existing.trimester_index != null ? existing.trimester_index : null);
+
+  const subjects = isPai
+    ? [...new Set(apoyos.map(a => a.tipoApoyo).filter(Boolean))].join(', ')
+    : [...new Set(modules.map(m => m.asig).filter(Boolean))].join(', ');
+  const subjectKeys = isPai
+    ? ''
+    : [...new Set(modules.map(m => m.asigKey).filter(Boolean))].join(',');
+  const allClases = modules.flatMap(m => m.clases || []);
+  const dateStart = allClases.length ? allClases[0].date || '' : '';
+  const dateEnd = allClases.length ? allClases[allClases.length - 1].date || '' : '';
+  const numClasses = isPai ? apoyos.length : allClases.length;
+  const docJson = JSON.stringify({ student, team, modules, apoyos });
+
+  await db.prepare(
+    `UPDATE documents SET trimester = ?, subject = ?, subject_key = ?, work_level = ?,
+       date_start = ?, date_end = ?, num_classes = ?, document_json = ?,
+       plan_type = ?, plan_scope = ?, parent_id = ?, trimester_index = ?, updated_at = datetime('now')
+     WHERE id = ? AND user_email = ?`
+  ).bind(
+    trimester || '', subjects, subjectKeys, student.workLevel || '',
+    dateStart, dateEnd, numClasses, docJson,
+    planType, planScope, parentId, trimesterIndex,
+    documentId, userEmail
+  ).run();
+
+  // Reemplazar los OAs: borrar los viejos e insertar los actuales.
+  const stmts = [db.prepare('DELETE FROM document_oas WHERE document_id = ?').bind(documentId)];
+  for (const mod of modules) {
+    if (mod.oas && mod.oas.length) {
+      for (const oa of mod.oas) {
+        const original = oa.textoOriginal || oa.text || '';
+        const adapted = oa.textoAdecuado || oa.text || original;
+        stmts.push(
+          db.prepare(
+            `INSERT INTO document_oas (document_id, student_id, subject, subject_key, level, unit_name, oa_code, oa_text, oa_text_original, oa_text_adapted, trimester)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          ).bind(
+            documentId, studentId, mod.asig || '', mod.asigKey || '',
+            mod.nivelTrabajo || '', oa.unit || '', oa.code || '',
+            adapted, original, adapted,
+            trimester || ''
+          )
+        );
+      }
+    }
+  }
+  await db.batch(stmts);
+
+  return { docId: documentId, numModules: modules.length, numOas: stmts.length - 1 };
+}
+
 export async function onRequestPost(context) {
   const { request, env } = context;
   const headers = { 'Content-Type': 'application/json' };
@@ -179,6 +252,30 @@ export async function onRequestPost(context) {
         childIds,
         message: `Plan anual guardado con ${childIds.length} trimestre(s) vinculado(s).`
       }), { status: 201, headers });
+    }
+
+    // --- Caso editar: si llega documentId y el documento existe, ACTUALIZA ---
+    // Evita crear duplicados al re-guardar y preserva el vinculo (parent_id).
+    if (body.documentId) {
+      const updated = await updateDocument(db, user.email, body.documentId, {
+        student, team, modules, apoyos, trimester, planType,
+        planScope: body.planScope,
+        parentId: body.parentId,
+        trimesterIndex: body.trimesterIndex
+      });
+      if (updated) {
+        const detalleUpd = isPai
+          ? `${(apoyos || []).length} apoyo(s)`
+          : `${updated.numModules} modulo(s) y ${updated.numOas} OA(s)`;
+        return new Response(JSON.stringify({
+          ok: true,
+          studentId,
+          documentId: updated.docId,
+          updated: true,
+          message: `${planType.toUpperCase()} actualizado con ${detalleUpd}.`
+        }), { status: 200, headers });
+      }
+      // Si el documento no existe o no es del usuario, cae a INSERT abajo.
     }
 
     // --- Caso un solo documento (compatibilidad con el flujo actual) ---
