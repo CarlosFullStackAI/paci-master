@@ -26,6 +26,19 @@
   })();
   </script>
 
+  <script>
+    // Tema dia/noche: fijar el atributo ANTES de pintar (evita parpadeo).
+    (function () {
+      try {
+        var t = localStorage.getItem('paci_theme');
+        if (t !== 'dark' && t !== 'light') {
+          t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+        }
+        document.documentElement.setAttribute('data-theme', t);
+      } catch (e) {}
+    })();
+  </script>
+
   <!-- Config del establecimiento (tenant). Mismo patron que app.html. -->
   <script>
   window.TENANT_SLUG = 'lcm-pulebu';
@@ -50,7 +63,7 @@
     body {
       margin: 0;
       font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
-      background: #0c1222;
+      background: #f1f5f9;
       color: #1e293b;
     }
     .topbar {
@@ -184,9 +197,33 @@
       .apoyo-head { flex-wrap: wrap; gap: 0.5rem; }
     }
 
+    /* ===== EFECTOS ===== */
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+    .card { animation: fadeInUp 0.45s cubic-bezier(0.16, 0.84, 0.44, 1) both; }
+    body { transition: background-color 0.35s ease, color 0.35s ease; }
+    #theme-toggle i { transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    #theme-toggle:hover i { transform: rotate(25deg) scale(1.15); }
+
+    /* ===== MODO OSCURO (dia/noche) ===== */
+    [data-theme="dark"] body { background: #0b1120; color: #e8eef6; }
+    [data-theme="dark"] .card { background: #131c2e; box-shadow: 0 10px 25px -10px rgba(0,0,0,0.6); }
+    [data-theme="dark"] .card h2 { color: #bcd4ff; border-bottom-color: #243049; }
+    [data-theme="dark"] label { color: #93a4bd; }
+    [data-theme="dark"] input,
+    [data-theme="dark"] select,
+    [data-theme="dark"] textarea { background: #0f1726; border-color: #2a3854; color: #e8eef6; }
+    [data-theme="dark"] input:hover:not(:focus),
+    [data-theme="dark"] select:hover:not(:focus),
+    [data-theme="dark"] textarea:hover:not(:focus) { border-color: #3a4a68; }
+    [data-theme="dark"] .apoyo { background: #0f1726; border-color: #243049; }
+    [data-theme="dark"] .apoyo:hover { border-left-color: #3b82f6; }
+    [data-theme="dark"] .apoyo-head .titulo { color: #bcd4ff; }
+    [data-theme="dark"] .empty { border-color: #2a3854; color: #93a4bd; }
+
     /* Accesibilidad: respetar usuarios que prefieren menos movimiento */
     @media (prefers-reduced-motion: reduce) {
-      * { transition: none !important; }
+      * { transition: none !important; animation: none !important; }
+      #theme-toggle:hover i { transform: none !important; }
     }
   </style>
 </head>
@@ -198,6 +235,7 @@
     </div>
     <nav class="topbar-actions" aria-label="Acciones del documento">
       <a href="/dashboard.html" class="btn btn-ghost btn-sm"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Volver</a>
+      <button type="button" id="theme-toggle" class="btn btn-ghost btn-sm" onclick="toggleTheme()" title="Cambiar entre modo claro y oscuro" aria-label="Cambiar entre modo claro y oscuro"><i class="fa-solid fa-moon" aria-hidden="true"></i></button>
       <button type="button" class="btn btn-green btn-sm" onclick="descargarPDF()"><i class="fa-solid fa-download" aria-hidden="true"></i> PDF</button>
       <button type="button" class="btn btn-amber btn-sm" onclick="imprimir()"><i class="fa-solid fa-print" aria-hidden="true"></i> Imprimir</button>
       <button type="button" id="btn-guardar" class="btn btn-primary btn-sm" onclick="guardar()"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Guardar</button>
@@ -298,6 +336,19 @@
     const CAN_CREATE = ['admin', 'teacher', 'educador_diferencial'].includes(USER.role || 'teacher');
 
     const $ = (id) => document.getElementById(id);
+
+    // ===== Tema dia/noche =====
+    function toggleTheme() {
+      const cur = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+      const next = cur === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      try { localStorage.setItem('paci_theme', next); } catch (e) {}
+      syncThemeIcon();
+    }
+    function syncThemeIcon() {
+      const ic = document.querySelector('#theme-toggle i');
+      if (ic) ic.className = (document.documentElement.getAttribute('data-theme') === 'dark') ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+    }
 
     // Escapar texto para insertarlo de forma segura en HTML (PDF/impresion).
     const escapeHtml = (s) => String(s == null ? '' : s)
@@ -628,6 +679,7 @@
     (async function init() {
       const cfg = await window.TENANT_CONFIG_READY;
       $('tenant-name').textContent = cfg.nombre || 'Establecimiento';
+      syncThemeIcon();
       if (cfg.calendario && cfg.calendario.ano_actual) $('in-ano').value = cfg.calendario.ano_actual;
 
       // Roles de solo lectura: deshabilitar el boton Guardar (coherente con app.html).
