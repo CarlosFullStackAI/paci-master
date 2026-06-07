@@ -16,6 +16,11 @@ async function insertDocument(db, userEmail, studentId, opts) {
   const modules = opts.modules || [];
   const apoyos = opts.apoyos || [];
   const isPai = planType === 'pai';
+  // skipOas: el plan anual PADRE de una familia NO materializa sus OAs en
+  // document_oas (sus OAs viven en los trimestres hijos). Evita el doble conteo
+  // en reportes y estados de progreso contradictorios. El padre conserva todo
+  // en document_json para impresion.
+  const skipOas = opts.skipOas === true;
 
   // Calcular resumen para la vista de lista (dashboard).
   // PACI resume por asignaturas y clases; PAI resume por tipos de apoyo.
@@ -51,22 +56,24 @@ async function insertDocument(db, userEmail, studentId, opts) {
   // Compatibilidad: acepta el formato nuevo (textoOriginal/textoAdecuado) y el legacy (text).
   // oa_text se mantiene espejando textoAdecuado para no romper lecturas existentes.
   const oaStmts = [];
-  for (const mod of modules) {
-    if (mod.oas && mod.oas.length) {
-      for (const oa of mod.oas) {
-        const original = oa.textoOriginal || oa.text || '';
-        const adapted = oa.textoAdecuado || oa.text || original;
-        oaStmts.push(
-          db.prepare(
-            `INSERT INTO document_oas (document_id, student_id, subject, subject_key, level, unit_name, oa_code, oa_text, oa_text_original, oa_text_adapted, trimester)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-          ).bind(
-            docId, studentId, mod.asig || '', mod.asigKey || '',
-            mod.nivelTrabajo || '', oa.unit || '', oa.code || '',
-            adapted, original, adapted,
-            trimester || ''
-          )
-        );
+  if (!skipOas) {
+    for (const mod of modules) {
+      if (mod.oas && mod.oas.length) {
+        for (const oa of mod.oas) {
+          const original = oa.textoOriginal || oa.text || '';
+          const adapted = oa.textoAdecuado || oa.text || original;
+          oaStmts.push(
+            db.prepare(
+              `INSERT INTO document_oas (document_id, student_id, subject, subject_key, level, unit_name, oa_code, oa_text, oa_text_original, oa_text_adapted, trimester)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+            ).bind(
+              docId, studentId, mod.asig || '', mod.asigKey || '',
+              mod.nivelTrabajo || '', oa.unit || '', oa.code || '',
+              adapted, original, adapted,
+              trimester || ''
+            )
+          );
+        }
       }
     }
   }
@@ -94,6 +101,11 @@ async function updateDocument(db, userEmail, documentId, opts) {
   const modules = opts.modules || [];
   const apoyos = opts.apoyos || [];
   const studentId = existing.student_id;
+
+  // Si este documento es un plan anual PADRE (tiene trimestres hijos), no
+  // materializa OAs en document_oas: sus OAs viven en los hijos (evita doble conteo).
+  const kids = await db.prepare('SELECT COUNT(*) AS n FROM documents WHERE parent_id = ?').bind(documentId).first();
+  const isFamilyParent = !!(kids && kids.n > 0);
 
   const planType = opts.planType || existing.plan_type || 'paci';
   const isPai = planType === 'pai';
@@ -126,23 +138,26 @@ async function updateDocument(db, userEmail, documentId, opts) {
   ).run();
 
   // Reemplazar los OAs: borrar los viejos e insertar los actuales.
+  // Si es un plan anual padre, solo se borran (no se re-insertan): no debe tener OAs propios.
   const stmts = [db.prepare('DELETE FROM document_oas WHERE document_id = ?').bind(documentId)];
-  for (const mod of modules) {
-    if (mod.oas && mod.oas.length) {
-      for (const oa of mod.oas) {
-        const original = oa.textoOriginal || oa.text || '';
-        const adapted = oa.textoAdecuado || oa.text || original;
-        stmts.push(
-          db.prepare(
-            `INSERT INTO document_oas (document_id, student_id, subject, subject_key, level, unit_name, oa_code, oa_text, oa_text_original, oa_text_adapted, trimester)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-          ).bind(
-            documentId, studentId, mod.asig || '', mod.asigKey || '',
-            mod.nivelTrabajo || '', oa.unit || '', oa.code || '',
-            adapted, original, adapted,
-            trimester || ''
-          )
-        );
+  if (!isFamilyParent) {
+    for (const mod of modules) {
+      if (mod.oas && mod.oas.length) {
+        for (const oa of mod.oas) {
+          const original = oa.textoOriginal || oa.text || '';
+          const adapted = oa.textoAdecuado || oa.text || original;
+          stmts.push(
+            db.prepare(
+              `INSERT INTO document_oas (document_id, student_id, subject, subject_key, level, unit_name, oa_code, oa_text, oa_text_original, oa_text_adapted, trimester)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+            ).bind(
+              documentId, studentId, mod.asig || '', mod.asigKey || '',
+              mod.nivelTrabajo || '', oa.unit || '', oa.code || '',
+              adapted, original, adapted,
+              trimester || ''
+            )
+          );
+        }
       }
     }
   }
@@ -226,7 +241,9 @@ export async function onRequestPost(context) {
       const parent = await insertDocument(db, user.email, studentId, {
         student, team, modules: annualModules,
         trimester: (body.annual && body.annual.trimester) || 'Anual',
-        planType, planScope: 'anual', parentId: null, trimesterIndex: null
+        planType, planScope: 'anual', parentId: null, trimesterIndex: null,
+        // El padre no materializa OAs: viven en los trimestres hijos (evita doble conteo).
+        skipOas: true
       });
 
       // 2) Crear los trimestrales (hijos), cada uno vinculado al padre por parent_id.

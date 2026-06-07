@@ -1,4 +1,5 @@
 import { getUser } from '../auth-helper.js';
+import { canReadAllDocuments } from '../rbac-helper.js';
 
 // POST /api/students/oa-summary
 // Resumen agregado de progreso de OAs por estudiante
@@ -18,18 +19,27 @@ export async function onRequestPost(context) {
       return new Response(JSON.stringify({ ok: false, error: 'studentId requerido.' }), { status: 400, headers });
     }
 
-    // Obtener todos los OAs del estudiante con su progreso
+    // Obtener todos los OAs del estudiante con su progreso.
+    // Control de acceso: solo roles con lectura global (admin/utp/coordinator) ven
+    // datos de cualquier estudiante; el resto solo los de sus propios documentos.
+    // (Mismo patron que students/oas.js; evita IDOR sobre datos NEE sensibles.)
     // oa_text_original: texto MINEDUC inmutable; oa_text_adapted: texto editado por el educador
-    const oas = await env.DB.prepare(
+    const seeAll = canReadAllDocuments(user.role);
+    let query =
       `SELECT do.id, do.subject, do.subject_key, do.level, do.unit_name,
               do.oa_code, do.oa_text, do.oa_text_original, do.oa_text_adapted, do.trimester,
               do.progress_status, do.progress_observations, do.evaluated_at, do.evaluated_by,
               d.id as document_id
        FROM document_oas do
        JOIN documents d ON do.document_id = d.id
-       WHERE do.student_id = ?
-       ORDER BY do.subject_key, do.trimester, do.oa_code`
-    ).bind(studentId).all();
+       WHERE do.student_id = ?`;
+    const params = [studentId];
+    if (!seeAll) {
+      query += ' AND d.user_email = ?';
+      params.push(user.email);
+    }
+    query += ' ORDER BY do.subject_key, do.trimester, do.oa_code';
+    const oas = await env.DB.prepare(query).bind(...params).all();
 
     const allOas = oas.results || [];
 

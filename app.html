@@ -1820,15 +1820,15 @@ table{border-collapse:collapse}
         // CERRAR SESIÓN
         // ==========================================
         function cerrarSesion() {
-            var token = localStorage.getItem('paci_token');
-            if (token) {
-                fetch('/api/logout', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ token: token })
-                }).catch(function() {});
-            }
-            localStorage.removeItem('paci_token');
+            // La sesion vive en la cookie httpOnly: llamamos a /api/logout SIEMPRE
+            // (la cookie viaja sola en same-origin) para que el servidor borre la
+            // sesion en KV y limpie la cookie. No depende de un token en localStorage.
+            fetch('/api/logout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify({})
+            }).catch(function() {});
             localStorage.removeItem('paci_user');
             window.location.href = '/login.html';
         }

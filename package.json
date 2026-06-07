@@ -7,7 +7,7 @@
     "build:css": "tailwindcss -i input.css -o styles.css --minify",
     "watch:css": "tailwindcss -i input.css -o styles.css --watch",
     "security:sast": "eslint functions/ --format compact",
-    "security:sca": "npm audit",
+    "security:sca": "npm audit --omit=dev --audit-level=high",
     "security:all": "npm run security:sca && npm run security:sast",
     "deploy": "npm run security:all && npx wrangler pages deploy . --project-name proyecto-paci --branch master --commit-dirty=true"
   },

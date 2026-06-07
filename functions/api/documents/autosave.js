@@ -95,9 +95,13 @@ export async function onRequestPost(context) {
     }
 
     if (!docId) {
-      // Buscar documento existente para mismo estudiante + trimestre (UPSERT logic)
+      // Buscar documento existente para mismo estudiante + trimestre (UPSERT logic).
+      // Excluir miembros de una familia (plan anual padre o trimestres hijos) para
+      // que el autoguardado a ciegas NUNCA sobreescriba un documento vinculado.
       const existingDoc = await db.prepare(
-        'SELECT id FROM documents WHERE user_email = ? AND student_id = ? AND trimester = ?'
+        `SELECT id FROM documents
+         WHERE user_email = ? AND student_id = ? AND trimester = ?
+           AND parent_id IS NULL AND (plan_scope IS NULL OR plan_scope <> 'anual')`
       ).bind(user.email, studentId, trimester || '').first();
 
       if (existingDoc) {
