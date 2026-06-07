@@ -30,8 +30,11 @@ export async function onRequestPost(context) {
     if (!userData) return new Response(JSON.stringify({ ok: false, error: 'Usuario no encontrado.' }), { status: 404, headers });
     const user = JSON.parse(userData);
 
+    // Comparacion en tiempo constante para evitar timing attacks (igual que login.js)
     const currentHash = await hashPasswordPBKDF2(currentPassword, user.salt);
-    if (currentHash !== user.passwordHash) {
+    const currentBytes = new TextEncoder().encode(currentHash);
+    const storedBytes = new TextEncoder().encode(user.passwordHash);
+    if (!timingSafeCompare(currentBytes, storedBytes)) {
       return new Response(JSON.stringify({ ok: false, error: 'Contrasena actual incorrecta.' }), { status: 401, headers });
     }
 
@@ -47,6 +50,16 @@ export async function onRequestPost(context) {
   } catch (e) {
     return new Response(JSON.stringify({ ok: false, error: 'Error interno del servidor.' }), { status: 500, headers });
   }
+}
+
+// Comparacion en tiempo constante de dos Uint8Array (evita timing attacks).
+function timingSafeCompare(a, b) {
+  if (a.length !== b.length) return false;
+  let result = 0;
+  for (let i = 0; i < a.length; i++) {
+    result |= a.at(i) ^ b.at(i);
+  }
+  return result === 0;
 }
 
 function getCookieValue(cookieStr, name) {

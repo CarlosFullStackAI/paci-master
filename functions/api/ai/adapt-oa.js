@@ -107,6 +107,7 @@ Genera exactamente este JSON:
     }), { status: 200, headers });
 
   } catch (e) {
-    return new Response(JSON.stringify({ ok: false, error: 'Error IA: ' + e.message }), { status: 500, headers });
+    console.error('Error en adapt-oa:', e);
+    return new Response(JSON.stringify({ ok: false, error: 'Error al generar la adaptacion con IA.' }), { status: 500, headers });
   }
 }

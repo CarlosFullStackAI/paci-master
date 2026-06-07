@@ -70,6 +70,7 @@ export async function onRequestPost(context) {
     }), { status: 200, headers });
 
   } catch (e) {
-    return new Response(JSON.stringify({ ok: false, error: 'Error: ' + e.message }), { status: 500, headers });
+    console.error('Error en oa-progress:', e);
+    return new Response(JSON.stringify({ ok: false, error: 'Error al actualizar el progreso.' }), { status: 500, headers });
   }
 }

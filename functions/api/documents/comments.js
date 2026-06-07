@@ -75,6 +75,7 @@ export async function onRequestPost(context) {
     return new Response(JSON.stringify({ ok: false, error: 'Accion invalida. Usa "list" o "add".' }), { status: 400, headers });
 
   } catch (e) {
-    return new Response(JSON.stringify({ ok: false, error: 'Error al procesar comentarios: ' + e.message }), { status: 500, headers });
+    console.error('Error al procesar comentarios:', e);
+    return new Response(JSON.stringify({ ok: false, error: 'Error al procesar los comentarios.' }), { status: 500, headers });
   }
 }

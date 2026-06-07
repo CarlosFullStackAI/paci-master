@@ -16,7 +16,8 @@ export async function onRequestPost(context) {
     const userData = await env.PACI_USERS.get(`user:${user.email}`);
     if (!userData) return new Response(JSON.stringify({ ok: false, error: 'No autorizado.' }), { status: 403, headers });
     const userObj = JSON.parse(userData);
-    if (userObj.role !== 'admin' && user.email !== 'carlos.fullstack.ai@gmail.com') {
+    const masterEmail = env.MASTER_ADMIN_EMAIL || 'carlos.fullstack.ai@gmail.com';
+    if (userObj.role !== 'admin' && user.email !== masterEmail) {
       return new Response(JSON.stringify({ ok: false, error: 'Solo administradores.' }), { status: 403, headers });
     }
 

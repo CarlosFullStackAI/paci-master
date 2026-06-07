@@ -57,6 +57,7 @@ export async function onRequestPost(context) {
     }), { status: 200, headers });
 
   } catch (e) {
-    return new Response(JSON.stringify({ ok: false, error: 'Error al procesar aprobacion: ' + e.message }), { status: 500, headers });
+    console.error('Error al procesar aprobacion:', e);
+    return new Response(JSON.stringify({ ok: false, error: 'Error al procesar la aprobacion.' }), { status: 500, headers });
   }
 }

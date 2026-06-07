@@ -132,6 +132,7 @@ export async function onRequestPost(context) {
     }), { status: 200, headers });
 
   } catch (e) {
-    return new Response(JSON.stringify({ ok: false, error: 'Error en autosave: ' + e.message }), { status: 500, headers });
+    console.error('Error en autosave:', e);
+    return new Response(JSON.stringify({ ok: false, error: 'Error en el autoguardado.' }), { status: 500, headers });
   }
 }

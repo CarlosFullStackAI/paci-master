@@ -11,9 +11,10 @@ export async function onRequestPost(context) {
     const user = await getUser(request, env);
     if (!user) return new Response(JSON.stringify({ ok: false, error: 'No autorizado.' }), { status: 401, headers });
 
-    // Solo admin o la cuenta maestra
+    // Solo admin o la cuenta maestra (configurable via env, con fallback)
+    const masterEmail = env.MASTER_ADMIN_EMAIL || 'carlos.fullstack.ai@gmail.com';
     const denied = checkPermission(user.role, 'admin:set-role');
-    if (denied && user.email !== 'carlos.fullstack.ai@gmail.com') {
+    if (denied && user.email !== masterEmail) {
       return denied;
     }
 

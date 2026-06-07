@@ -131,7 +131,8 @@ export async function onRequestPost(context) {
     }), { status: 200, headers });
 
   } catch (e) {
-    return new Response(JSON.stringify({ ok: false, error: 'Error IA: ' + e.message }), { status: 500, headers });
+    console.error('Error en generate-classes:', e);
+    return new Response(JSON.stringify({ ok: false, error: 'Error al generar las clases con IA.' }), { status: 500, headers });
   }
 }
 
