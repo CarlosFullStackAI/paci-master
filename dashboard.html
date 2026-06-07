@@ -13,6 +13,19 @@
     // Si la cookie es invalida, las llamadas a la API devuelven 401 y redirigen.
     if (!localStorage.getItem('paci_user')) window.location.href = '/login.html';
   </script>
+  <script>
+    // Tema dia/noche: fijar el atributo ANTES de pintar para evitar parpadeo.
+    // Usa la preferencia guardada o, si no hay, la del sistema operativo.
+    (function () {
+      try {
+        var t = localStorage.getItem('paci_theme');
+        if (t !== 'dark' && t !== 'light') {
+          t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+        }
+        document.documentElement.setAttribute('data-theme', t);
+      } catch (e) {}
+    })();
+  </script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Inter', sans-serif; background: #f1f5f9; color: #0f172a; min-height: 100vh; }
@@ -156,10 +169,68 @@
       .stats { grid-template-columns: repeat(3, 1fr); }
     }
 
+    /* ========================= EFECTOS ========================= */
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+    .stat-card, .student-card, .doc-card, .empty-state {
+      animation: fadeInUp 0.45s cubic-bezier(0.16, 0.84, 0.44, 1) both;
+    }
+    .stats .stat-card:nth-child(2) { animation-delay: 0.06s; }
+    .stats .stat-card:nth-child(3) { animation-delay: 0.12s; }
+    .stat-card { position: relative; overflow: hidden; transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.3s ease, border-color 0.3s ease; }
+    .stat-card:hover { transform: translateY(-3px); box-shadow: 0 12px 30px rgba(15,23,42,0.12); }
+    .stat-card .icon { transition: opacity 0.2s ease, transform 0.35s ease; }
+    .stat-card:hover .icon { opacity: 0.4; transform: scale(1.12) rotate(-6deg); }
+    .btn:hover { transform: translateY(-1px); }
+    body { transition: background-color 0.35s ease, color 0.35s ease; }
+    #theme-toggle i { transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    #theme-toggle:hover i { transform: rotate(25deg) scale(1.15); }
+
+    /* ========================= MODO OSCURO (dia/noche) ========================= */
+    [data-theme="dark"] body { background: #0b1120; color: #e8eef6; }
+    [data-theme="dark"] .topbar { background: linear-gradient(120deg, #0a1020, #111c33); box-shadow: 0 4px 24px rgba(0,0,0,0.6); }
+    [data-theme="dark"] .stat-card { background: #131c2e; border-color: #243049; box-shadow: 0 1px 3px rgba(0,0,0,0.4); }
+    [data-theme="dark"] .stat-card .value { color: #f1f5f9; }
+    [data-theme="dark"] .stat-card .label { color: #93a4bd; }
+    [data-theme="dark"] .section-title { color: #93a4bd; }
+    [data-theme="dark"] .student-card { background: #131c2e; border-color: #243049; box-shadow: 0 1px 3px rgba(0,0,0,0.4); }
+    [data-theme="dark"] .student-card:hover { border-color: #3b6fd4; box-shadow: 0 14px 32px rgba(0,0,0,0.55); }
+    [data-theme="dark"] .tabs { background: #0f1726; border-bottom-color: #243049; }
+    [data-theme="dark"] .tab { color: #7e8ca3; }
+    [data-theme="dark"] .tab:hover { color: #93c5fd; }
+    [data-theme="dark"] .tab.active { color: #bcd4ff; background: #131c2e; border-bottom-color: #3b82f6; }
+    [data-theme="dark"] .profile-field label { color: #93a4bd; }
+    [data-theme="dark"] .profile-field input,
+    [data-theme="dark"] .profile-field select,
+    [data-theme="dark"] .profile-field textarea { background: #0f1726; border-color: #2a3854; color: #e8eef6; }
+    [data-theme="dark"] .profile-field input:focus,
+    [data-theme="dark"] .profile-field select:focus,
+    [data-theme="dark"] .profile-field textarea:focus { border-color: #3b82f6; }
+    [data-theme="dark"] .profile-field .auto-tag { background: rgba(59,130,246,0.18); color: #93c5fd; }
+    [data-theme="dark"] .profile-field .manual-tag { background: rgba(245,158,11,0.18); color: #fcd34d; }
+    [data-theme="dark"] .profile-section { color: #93c5fd; border-bottom-color: #243049; }
+    [data-theme="dark"] .oa-table th { background: #0f1726; color: #93a4bd; border-bottom-color: #243049; }
+    [data-theme="dark"] .oa-table td { border-bottom-color: #1c2842; color: #cdd7e5; }
+    [data-theme="dark"] .doc-item { background: #0f1726; border-color: #243049; }
+    [data-theme="dark"] .doc-item-info .title { color: #e8eef6; }
+    [data-theme="dark"] .doc-item-info .meta { color: #93a4bd; }
+    [data-theme="dark"] .doc-card { background: #131c2e; border-color: #243049; box-shadow: 0 1px 3px rgba(0,0,0,0.4); }
+    [data-theme="dark"] .doc-card:hover { border-color: #34507e; box-shadow: 0 16px 34px rgba(0,0,0,0.55); }
+    [data-theme="dark"] .doc-card-title { color: #f1f5f9; }
+    [data-theme="dark"] .doc-meta { color: #93a4bd; }
+    [data-theme="dark"] .doc-actions { border-top-color: #243049; }
+    [data-theme="dark"] .btn-ghost { background: #1c2842; color: #cdd7e5; }
+    [data-theme="dark"] .btn-ghost:hover { background: #243049; }
+    [data-theme="dark"] .empty-state { background: #131c2e; border-color: #243049; color: #93a4bd; }
+    [data-theme="dark"] .empty-state i { color: #5b6b86; }
+    [data-theme="dark"] .reeval-alert.info { background: rgba(37,99,235,0.12); border-color: rgba(59,130,246,0.35); color: #93c5fd; }
+    [data-theme="dark"] .reeval-alert.warning { background: rgba(245,158,11,0.12); border-color: rgba(251,191,36,0.35); color: #fcd34d; }
+    [data-theme="dark"] .reeval-alert.danger { background: rgba(239,68,68,0.12); border-color: rgba(248,113,113,0.35); color: #fca5a5; }
+    [data-theme="dark"] .save-status { color: #34d399; }
+
     /* Accesibilidad: respetar usuarios que prefieren menos movimiento */
     @media (prefers-reduced-motion: reduce) {
-      *, .student-card-header:hover, .doc-card:hover { transition: none !important; transform: none !important; }
-      .loading i { animation: none !important; }
+      *, .student-card-header:hover, .doc-card:hover, .stat-card:hover, .btn:hover, #theme-toggle:hover i { transition: none !important; transform: none !important; }
+      .loading i, .stat-card, .student-card, .doc-card, .empty-state { animation: none !important; }
     }
   </style>
 </head>
@@ -171,6 +242,7 @@
     </div>
     <nav class="topbar-actions" aria-label="Acciones de la cuenta">
       <span class="topbar-user" id="user-name"></span>
+      <button type="button" id="theme-toggle" class="btn btn-slate btn-sm" onclick="toggleTheme()" title="Cambiar entre modo claro y oscuro" aria-label="Cambiar entre modo claro y oscuro"><i class="fa-solid fa-moon" aria-hidden="true"></i></button>
       <button type="button" class="btn btn-amber btn-sm" onclick="showChangePassword()" title="Cambiar contrasena" aria-label="Cambiar contrasena"><i class="fa-solid fa-key" aria-hidden="true"></i></button>
       <a href="/app.html" class="btn btn-primary"><i class="fa-solid fa-plus" aria-hidden="true"></i> Nuevo PACI</a>
       <a href="/pai.html" class="btn btn-green"><i class="fa-solid fa-plus" aria-hidden="true"></i> Nuevo PAI</a>
@@ -202,6 +274,20 @@
     const CAN_MANAGE_STUDENTS = ['admin', 'teacher', 'educador_diferencial'].includes(USER_ROLE);
 
     document.getElementById('user-name').textContent = (USER.name || USER.email || '') + ' (' + USER_ROLE + ')';
+
+    // ===== Tema dia/noche =====
+    function toggleTheme() {
+      const cur = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+      const next = cur === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      try { localStorage.setItem('paci_theme', next); } catch (e) {}
+      syncThemeIcon();
+    }
+    function syncThemeIcon() {
+      const ic = document.querySelector('#theme-toggle i');
+      if (ic) ic.className = (document.documentElement.getAttribute('data-theme') === 'dark') ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+    }
+    syncThemeIcon();
 
     // Ocultar botones "Nuevo PACI" / "Nuevo PAI" si no tiene permiso de creacion
     if (!CAN_CREATE) {
