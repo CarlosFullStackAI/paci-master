@@ -26,6 +26,19 @@
     })();
     </script>
     <script>
+    // Tema dia/noche: fijar el atributo ANTES de pintar (evita parpadeo).
+    // Comparte la clave 'paci_theme' con dashboard y pai (toggle consistente en toda la app).
+    (function () {
+      try {
+        var t = localStorage.getItem('paci_theme');
+        if (t !== 'dark' && t !== 'light') {
+          t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+        }
+        document.documentElement.setAttribute('data-theme', t);
+      } catch (e) {}
+    })();
+    </script>
+    <script>
     // Carga del config del establecimiento (tenant). Hoy hay 1 solo tenant hardcoded;
     // cuando exista un segundo colegio, TENANT_SLUG pasara a venir de la sesion del usuario.
     window.TENANT_SLUG = 'lcm-pulebu';
@@ -1031,6 +1044,135 @@ table{border-collapse:collapse}
             padding-bottom: 80px !important;
           }
         }
+
+        /* ===================================================== */
+        /* MODO CLARO (dia) — overrides con data-theme="light".    */
+        /* El tema oscuro (default / data-theme="dark") NO cambia. */
+        /* La hoja #documento NO se toca (siempre blanca).         */
+        /* ===================================================== */
+        [data-theme="light"] body { background: #f1f5f9; color: #0f172a; transition: background-color 0.35s ease, color 0.35s ease; }
+
+        [data-theme="light"] ::-webkit-scrollbar-track { background: rgba(0,0,0,0.04); }
+        [data-theme="light"] ::-webkit-scrollbar-thumb { background: rgba(37,99,235,0.3); }
+        [data-theme="light"] ::-webkit-scrollbar-thumb:hover { background: rgba(37,99,235,0.55); }
+
+        [data-theme="light"] #control-panel {
+          background: rgba(255,255,255,0.92) !important;
+          border-right: 1px solid rgba(37,99,235,0.12) !important;
+        }
+        [data-theme="light"] #control-panel .bg-white.border.border-slate-200.rounded-xl {
+          background: rgba(255,255,255,0.85) !important;
+          border: 1px solid #e2e8f0 !important;
+          box-shadow: 0 2px 12px rgba(15,23,42,0.06), inset 0 1px 0 rgba(255,255,255,0.6) !important;
+        }
+        [data-theme="light"] #control-panel .bg-white.border.border-slate-200.rounded-xl:hover {
+          border-color: rgba(37,99,235,0.3) !important;
+          box-shadow: 0 4px 20px rgba(37,99,235,0.1), inset 0 1px 0 rgba(255,255,255,0.7) !important;
+        }
+        [data-theme="light"] #control-panel .bg-slate-50 { background: #f1f5f9 !important; color: #475569 !important; }
+        [data-theme="light"] #control-panel .bg-slate-50:hover { color: #0f172a !important; }
+        [data-theme="light"] #control-panel .bg-slate-50 i { color: #2563eb !important; }
+
+        [data-theme="light"] #control-panel input[type="text"],
+        [data-theme="light"] #control-panel input[type="number"],
+        [data-theme="light"] #control-panel input[type="date"],
+        [data-theme="light"] #control-panel select,
+        [data-theme="light"] #control-panel textarea {
+          border: 1px solid #cbd5e1 !important;
+          background: #ffffff !important;
+          color: #0f172a !important;
+        }
+        [data-theme="light"] #control-panel input::placeholder,
+        [data-theme="light"] #control-panel textarea::placeholder { color: #94a3b8 !important; }
+        [data-theme="light"] #control-panel input:focus,
+        [data-theme="light"] #control-panel select:focus,
+        [data-theme="light"] #control-panel textarea:focus {
+          border-color: rgba(37,99,235,0.5) !important;
+          box-shadow: 0 0 0 3px rgba(37,99,235,0.12) !important;
+          background: #ffffff !important;
+        }
+        [data-theme="light"] #control-panel select {
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
+        }
+        [data-theme="light"] #control-panel select option { background: #ffffff; color: #0f172a; }
+
+        [data-theme="light"] #control-panel label,
+        [data-theme="light"] #control-panel .text-slate-600,
+        [data-theme="light"] #control-panel .text-slate-500 { color: #64748b !important; }
+        [data-theme="light"] #control-panel .font-black { color: #475569 !important; }
+        [data-theme="light"] #control-panel .text-blue-600,
+        [data-theme="light"] #control-panel .text-blue-800 { color: #2563eb !important; }
+        [data-theme="light"] #control-panel .text-slate-700,
+        [data-theme="light"] #control-panel .text-slate-800 { color: #334155 !important; }
+        [data-theme="light"] #control-panel .text-slate-900 { color: #0f172a !important; }
+
+        [data-theme="light"] .oa-card { border: 1px solid #e2e8f0 !important; background: #ffffff !important; }
+        [data-theme="light"] .oa-card:hover { border-color: rgba(37,99,235,0.35) !important; background: rgba(37,99,235,0.05) !important; }
+        [data-theme="light"] .oa-card.selected { border-color: #2563eb !important; background: rgba(37,99,235,0.1) !important; box-shadow: 0 0 16px rgba(37,99,235,0.12) !important; }
+        [data-theme="light"] .oa-card label,
+        [data-theme="light"] .oa-card .text-slate-700 { color: #334155 !important; }
+        [data-theme="light"] .oa-card .text-blue-700 { color: #2563eb !important; }
+
+        /* El header del editor (.p-5.bg-slate-900) se mantiene OSCURO en modo claro
+           (barra de marca, igual que el topbar del dashboard). Asi sus botones de
+           iconos blancos siguen legibles y no hay fugas oscuro-sobre-oscuro. */
+
+        /* Boton principal "Agregar/Generar" (era navy) -> azul de acento en claro */
+        [data-theme="light"] #control-panel #btn-generar { background: #2563eb !important; border-color: #2563eb !important; color: #ffffff !important; }
+        [data-theme="light"] #control-panel #btn-generar:hover { background: #1d4ed8 !important; }
+        [data-theme="light"] #control-panel #btn-generar:disabled { background: #94a3b8 !important; border-color: #94a3b8 !important; }
+
+        /* Texto/iconos gris muy claro (.text-slate-400) -> gris medio legible sobre claro */
+        [data-theme="light"] #control-panel .text-slate-400 { color: #64748b !important; }
+
+        /* Badge de cifrado: verde oscuro legible sobre fondo claro (WCAG AA) */
+        [data-theme="light"] #security-status { background: rgba(16,185,129,0.12) !important; border-color: rgba(16,185,129,0.35) !important; color: #047857 !important; }
+
+        /* Barras de navegacion movil (fondo inline #0f172a) -> claras (solo se ven en movil) */
+        [data-theme="light"] #mobile-nav,
+        [data-theme="light"] #mobile-actions { background: #ffffff !important; }
+        [data-theme="light"] #mobile-nav { border-top-color: #2563eb !important; box-shadow: 0 -2px 10px rgba(15,23,42,0.08) !important; }
+        [data-theme="light"] #mobile-nav button { color: #64748b !important; }
+        [data-theme="light"] #mobile-nav button.active,
+        [data-theme="light"] #mobile-nav #mob-btn-form { color: #2563eb !important; }
+
+        /* Skeleton de carga (fondos inline oscuros) -> claros para no parpadear en modo dia */
+        [data-theme="light"] #skeleton-screen { background: #f1f5f9 !important; }
+        [data-theme="light"] #skeleton-screen > div:first-child { background: rgba(255,255,255,0.92) !important; border-right-color: #e2e8f0 !important; }
+        [data-theme="light"] #skeleton-screen > div:last-child { background: #e2e8f0 !important; }
+
+        [data-theme="light"] #preview-panel { background: #e2e8f0 !important; }
+
+        [data-theme="light"] .skeleton {
+          background: linear-gradient(90deg, rgba(226,232,240,0.8) 0%, rgba(241,245,249,0.5) 40%, rgba(226,232,240,0.8) 80%);
+          background-size: 200px 100%;
+        }
+
+        [data-theme="light"] #control-panel input[type="checkbox"] { border: 1.5px solid #cbd5e1 !important; background: #ffffff !important; }
+        [data-theme="light"] #control-panel input[type="checkbox"]:checked {
+          background: linear-gradient(135deg, #2563eb, #0ea5e9) !important;
+          border-color: #2563eb !important;
+          box-shadow: 0 2px 8px rgba(37,99,235,0.3) !important;
+        }
+
+        [data-theme="light"] #control-panel .border-slate-200 { border-color: #e2e8f0 !important; }
+        [data-theme="light"] #control-panel .bg-white { background: #ffffff !important; }
+        [data-theme="light"] #control-panel .border { border-color: #e2e8f0 !important; }
+        [data-theme="light"] #control-panel .bg-blue-50,
+        [data-theme="light"] #control-panel .bg-slate-100 { background: #eff6ff !important; }
+        [data-theme="light"] #control-panel .border-blue-200 { border-color: rgba(37,99,235,0.25) !important; }
+        [data-theme="light"] #control-panel .shadow-sm,
+        [data-theme="light"] #control-panel .shadow-md { box-shadow: 0 2px 8px rgba(15,23,42,0.08) !important; }
+
+        [data-theme="light"] *:focus-visible { outline: 2px solid rgba(37,99,235,0.5); }
+
+        [data-theme="light"] #cmd-palette-overlay { background: rgba(15,23,42,0.25) !important; }
+        [data-theme="light"] #session-timeout-overlay { background: rgba(15,23,42,0.2) !important; }
+
+        /* Boton de tema en el header del editor */
+        #theme-toggle i { transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        #theme-toggle:hover i { transform: rotate(25deg) scale(1.15); }
+        @media (prefers-reduced-motion: reduce) { #theme-toggle:hover i { transform: none !important; } }
     </style>
 </head>
 <body style="display:flex;flex-direction:row;height:100vh;overflow:hidden;margin:0">
@@ -1092,6 +1234,9 @@ table{border-collapse:collapse}
                 </button>
                 <button onclick="downloadWord()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2.5 rounded-lg transition active:scale-95 shadow-lg text-xs font-bold flex items-center gap-1" title="Descargar como archivo Word (.docx)">
                     <i class="fa-solid fa-file-word"></i> Word
+                </button>
+                <button type="button" id="theme-toggle" onclick="toggleTheme()" class="bg-slate-700 hover:bg-slate-600 text-white p-2.5 rounded-lg transition active:scale-95 shadow-lg text-xs font-bold" title="Cambiar entre modo claro y oscuro" aria-label="Cambiar entre modo claro y oscuro">
+                    <i class="fa-solid fa-moon"></i>
                 </button>
                 <button onclick="cerrarSesion()" class="bg-red-400 hover:bg-red-500 text-white p-2.5 rounded-lg transition active:scale-95 shadow-lg text-xs font-bold" title="Cerrar sesion">
                     <i class="fa-solid fa-right-from-bracket"></i>
@@ -1831,6 +1976,19 @@ table{border-collapse:collapse}
             }).catch(function() {});
             localStorage.removeItem('paci_user');
             window.location.href = '/login.html';
+        }
+
+        // ===== Tema dia/noche (comparte 'paci_theme' con dashboard y pai) =====
+        function toggleTheme() {
+            const cur = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+            const next = cur === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            try { localStorage.setItem('paci_theme', next); } catch (e) {}
+            syncThemeIcon();
+        }
+        function syncThemeIcon() {
+            const ic = document.querySelector('#theme-toggle i');
+            if (ic) ic.className = (document.documentElement.getAttribute('data-theme') === 'dark') ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
         }
 
         // ==========================================
@@ -4001,6 +4159,9 @@ table{border-collapse:collapse}
             try {
                 // Mostrar/ocultar el boton de plan anual vinculado segun la duracion actual.
                 if (typeof actualizarBotonAnual === 'function') actualizarBotonAnual();
+
+                // Sincronizar el icono del toggle de tema (sol/luna) con el tema actual.
+                if (typeof syncThemeIcon === 'function') syncThemeIcon();
 
                 // Aplicar config del tenant al input #in-escuela cuando llegue.
                 // Solo setea si el input quedo vacio (caso documento nuevo). Si despues
