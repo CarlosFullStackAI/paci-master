@@ -62,8 +62,8 @@
       justify-content: space-between;
       gap: 1rem;
     }
-    .topbar h1 { font-size: 1.05rem; margin: 0; font-weight: 700; }
-    .topbar .sub { font-size: 0.75rem; color: #93c5fd; }
+    .topbar h1 { font-size: 1.05rem; margin: 0; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; }
+    .topbar .sub { font-size: 0.75rem; color: #93c5fd; margin-top: 0.15rem; }
     .topbar-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
     .btn {
       border: none;
@@ -76,13 +76,16 @@
       align-items: center;
       gap: 0.4rem;
       text-decoration: none;
-      transition: transform 0.1s, opacity 0.15s;
+      transition: transform 0.1s, opacity 0.15s, filter 0.15s, box-shadow 0.15s;
     }
-    .btn:active { transform: scale(0.97); }
+    .btn:hover:not(:disabled) { filter: brightness(1.08); }
+    .btn:active:not(:disabled) { transform: scale(0.97); }
+    .btn:focus-visible { outline: 3px solid #93c5fd; outline-offset: 2px; }
     .btn-primary { background: var(--azul); color: #fff; }
     .btn-green { background: #059669; color: #fff; }
     .btn-amber { background: #d97706; color: #fff; }
     .btn-ghost { background: rgba(255,255,255,0.12); color: #fff; }
+    .btn-ghost:hover:not(:disabled) { background: rgba(255,255,255,0.22); filter: none; }
     .btn-danger { background: #dc2626; color: #fff; }
     .btn-sm { padding: 0.4rem 0.65rem; font-size: 0.72rem; }
     .btn:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -118,9 +121,13 @@
       font-size: 0.85rem;
       font-family: inherit;
       outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
     }
-    input:focus, select:focus, textarea:focus { border-color: var(--azul); box-shadow: 0 0 0 2px rgba(18,64,196,0.15); }
+    input:hover:not(:focus), select:hover:not(:focus), textarea:hover:not(:focus) { border-color: #cbd5e1; }
+    input:focus, select:focus, textarea:focus { border-color: var(--azul); box-shadow: 0 0 0 3px rgba(18,64,196,0.2); }
     textarea { resize: vertical; min-height: 60px; }
+    /* Marca de campos obligatorios */
+    label .req { color: #dc2626; font-weight: 700; }
 
     .apoyo {
       border: 1px solid var(--borde);
@@ -129,7 +136,9 @@
       padding: 1rem;
       margin-bottom: 1rem;
       background: #f8fafc;
+      transition: box-shadow 0.15s, border-color 0.15s;
     }
+    .apoyo:hover { box-shadow: 0 2px 10px -4px rgba(0,0,0,0.25); border-left-color: var(--azul-oscuro); }
     .apoyo-head {
       display: flex;
       justify-content: space-between;
@@ -140,10 +149,11 @@
     .empty {
       text-align: center;
       color: var(--gris);
-      padding: 1.5rem;
+      padding: 1.75rem 1.5rem;
       border: 2px dashed var(--borde);
       border-radius: 10px;
       font-size: 0.85rem;
+      line-height: 1.5;
     }
     .toast {
       position: fixed;
@@ -163,49 +173,64 @@
     }
     .toast.show { opacity: 1; }
     .toast.error { background: #b91c1c; }
+
+    /* Responsividad movil: el topbar pasa a columna y los botones se reparten */
+    @media (max-width: 600px) {
+      .topbar { flex-direction: column; align-items: stretch; padding: 0.75rem 1rem; }
+      .topbar-actions { width: 100%; }
+      .topbar-actions .btn { flex: 1; justify-content: center; }
+      .wrap { margin-top: 1rem; }
+      .card { padding: 1.1rem; }
+      .apoyo-head { flex-wrap: wrap; gap: 0.5rem; }
+    }
+
+    /* Accesibilidad: respetar usuarios que prefieren menos movimiento */
+    @media (prefers-reduced-motion: reduce) {
+      * { transition: none !important; }
+    }
   </style>
 </head>
 <body>
-  <div class="topbar">
+  <header class="topbar">
     <div>
-      <h1><i class="fa-solid fa-hands-holding-child"></i> Plan de Apoyo Individual (PAI)</h1>
+      <h1><i class="fa-solid fa-hands-holding-child" aria-hidden="true"></i> Plan de Apoyo Individual (PAI)</h1>
       <div class="sub" id="tenant-name">Cargando establecimiento…</div>
     </div>
-    <div class="topbar-actions">
-      <a href="/dashboard.html" class="btn btn-ghost btn-sm"><i class="fa-solid fa-arrow-left"></i> Volver</a>
-      <button class="btn btn-green btn-sm" onclick="descargarPDF()"><i class="fa-solid fa-download"></i> PDF</button>
-      <button class="btn btn-amber btn-sm" onclick="imprimir()"><i class="fa-solid fa-print"></i> Imprimir</button>
-      <button id="btn-guardar" class="btn btn-primary btn-sm" onclick="guardar()"><i class="fa-solid fa-floppy-disk"></i> Guardar</button>
-    </div>
-  </div>
+    <nav class="topbar-actions" aria-label="Acciones del documento">
+      <a href="/dashboard.html" class="btn btn-ghost btn-sm"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Volver</a>
+      <button type="button" class="btn btn-green btn-sm" onclick="descargarPDF()"><i class="fa-solid fa-download" aria-hidden="true"></i> PDF</button>
+      <button type="button" class="btn btn-amber btn-sm" onclick="imprimir()"><i class="fa-solid fa-print" aria-hidden="true"></i> Imprimir</button>
+      <button type="button" id="btn-guardar" class="btn btn-primary btn-sm" onclick="guardar()"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Guardar</button>
+    </nav>
+  </header>
 
   <div class="wrap">
     <!-- Datos del estudiante -->
     <div class="card">
-      <h2><i class="fa-solid fa-user-graduate"></i> Datos del estudiante</h2>
+      <h2><i class="fa-solid fa-user-graduate" aria-hidden="true"></i> Datos del estudiante</h2>
       <div class="grid grid-2">
         <div>
-          <label>Nombre completo *</label>
-          <input id="in-nombre" type="text" placeholder="Nombre del estudiante">
+          <label for="in-nombre">Nombre completo <span class="req" aria-hidden="true">*</span></label>
+          <input id="in-nombre" type="text" placeholder="Nombre del estudiante" autocomplete="off" required aria-required="true">
         </div>
         <div>
-          <label>RUT</label>
-          <input id="in-rut" type="text" placeholder="12.345.678-9">
+          <label for="in-rut">RUT</label>
+          <input id="in-rut" type="text" placeholder="12.345.678-9" autocomplete="off" inputmode="text">
         </div>
         <div>
-          <label>Curso / Nivel</label>
-          <input id="in-curso" type="text" placeholder="Ej: 3° Básico">
+          <label for="in-curso">Curso / Nivel</label>
+          <input id="in-curso" type="text" placeholder="Ej: 3° Básico" autocomplete="off">
         </div>
         <div>
-          <label>Diagnóstico / NEE</label>
-          <input id="in-diagnostico" type="text" placeholder="Ej: TEL Mixto">
+          <label for="in-diagnostico">Diagnóstico / NEE</label>
+          <input id="in-diagnostico" type="text" placeholder="Ej: TEL Mixto" autocomplete="off">
         </div>
         <div>
-          <label>Año escolar</label>
-          <input id="in-ano" type="number" value="2026">
+          <label for="in-ano">Año escolar</label>
+          <input id="in-ano" type="number" value="2026" inputmode="numeric" min="2020" max="2100">
         </div>
         <div>
-          <label>Período del plan</label>
+          <label for="in-periodo">Período del plan</label>
           <select id="in-periodo">
             <option value="Anual" selected>Anual</option>
             <option value="1er Trimestre">1er Trimestre</option>
@@ -219,9 +244,9 @@
     <!-- Apoyos -->
     <div class="card">
       <h2>
-        <i class="fa-solid fa-people-arrows"></i> Apoyos del estudiante
-        <button class="btn btn-primary btn-sm" style="margin-left:auto;" onclick="agregarApoyo()">
-          <i class="fa-solid fa-plus"></i> Agregar apoyo
+        <i class="fa-solid fa-people-arrows" aria-hidden="true"></i> Apoyos del estudiante
+        <button type="button" class="btn btn-primary btn-sm" style="margin-left:auto;" onclick="agregarApoyo()">
+          <i class="fa-solid fa-plus" aria-hidden="true"></i> Agregar apoyo
         </button>
       </h2>
       <div id="apoyos-list"></div>
@@ -230,16 +255,16 @@
     <!-- Equipo de apoyo -->
     <div class="card">
       <h2>
-        <i class="fa-solid fa-user-group"></i> Equipo de apoyo (PIE)
-        <button class="btn btn-primary btn-sm" style="margin-left:auto;" onclick="agregarMiembro()">
-          <i class="fa-solid fa-plus"></i> Agregar profesional
+        <i class="fa-solid fa-user-group" aria-hidden="true"></i> Equipo de apoyo (PIE)
+        <button type="button" class="btn btn-primary btn-sm" style="margin-left:auto;" onclick="agregarMiembro()">
+          <i class="fa-solid fa-plus" aria-hidden="true"></i> Agregar profesional
         </button>
       </h2>
       <div id="equipo-list"></div>
     </div>
   </div>
 
-  <div class="toast" id="toast"></div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script>
     // ====== Constantes de dominio (PIE chileno) ======

@@ -81,6 +81,7 @@
       border-right: none;
     }
     .tab:hover { color: #1e3a8a; }
+    .tab:focus-visible { outline: 3px solid #93c5fd; outline-offset: -3px; border-radius: 4px; }
     .tab.active {
       color: #1e3a8a;
       border-bottom-color: #2563eb;
@@ -119,7 +120,7 @@
       font-family: 'Inter', sans-serif;
       color: #0f172a;
     }
-    .field .input-wrap input::placeholder { color: #cbd5e1; }
+    .field .input-wrap input::placeholder { color: #94a3b8; }
     .field .input-wrap .toggle-pass {
       cursor: pointer;
       color: #94a3b8;
@@ -127,8 +128,10 @@
       background: none;
       border: none;
       font-size: 0.875rem;
+      border-radius: 4px;
     }
     .field .input-wrap .toggle-pass:hover { color: #475569; }
+    .field .input-wrap .toggle-pass:focus-visible { outline: 2px solid #2563eb; outline-offset: 1px; }
 
     .btn {
       width: 100%;
@@ -172,6 +175,8 @@
       cursor: pointer;
     }
     .link-forgot:hover { text-decoration: underline; }
+    .link-forgot:focus-visible, .back-link:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; border-radius: 4px; text-decoration: underline; }
+    .btn-primary:focus-visible { outline: 3px solid #93c5fd; outline-offset: 2px; }
 
     .google-signin-wrap { display: flex; justify-content: center; }
     .google-signin-wrap:empty { display: none; }
@@ -246,6 +251,12 @@
     @media (max-width: 768px) {
       .card { margin: 1rem; max-width: 100%; border-radius: 1.25rem; }
     }
+
+    /* Accesibilidad: respetar usuarios que prefieren menos movimiento */
+    @media (prefers-reduced-motion: reduce) {
+      *, .btn-primary:hover { transition: none !important; transform: none !important; }
+      .spinner { animation: none !important; }
+    }
   </style>
 </head>
 <body>
@@ -259,82 +270,82 @@
 
     <!-- Tabs -->
     <div class="tabs" id="auth-tabs">
-      <button class="tab active" onclick="showTab('login')">Iniciar Sesion</button>
-      <button class="tab" onclick="showTab('register')">Registrarse</button>
+      <button type="button" class="tab active" onclick="showTab('login')">Iniciar Sesion</button>
+      <button type="button" class="tab" onclick="showTab('register')">Registrarse</button>
     </div>
 
     <!-- Auth Forms -->
     <div id="auth-forms">
       <!-- Login -->
       <div class="form-body form-section active" id="form-login">
-        <div class="msg" id="msg-login"></div>
+        <div class="msg" id="msg-login" role="alert" aria-live="assertive"></div>
 
         <!-- Google Sign-In: se renderiza dinamicamente via JS si GOOGLE_CLIENT_ID esta configurado -->
         <div id="google-signin-login" class="google-signin-wrap" style="margin-bottom: 1rem;"></div>
         <div id="google-divider-login" class="google-divider" style="display:none;"><span>o continua con tu correo</span></div>
 
         <div class="field">
-          <label>Correo electronico</label>
+          <label for="login-email">Correo electronico</label>
           <div class="input-wrap">
-            <i class="fa-solid fa-envelope"></i>
+            <i class="fa-solid fa-envelope" aria-hidden="true"></i>
             <input type="email" id="login-email" placeholder="tu@correo.com" autocomplete="email">
           </div>
         </div>
         <div class="field">
-          <label>Contrasena</label>
+          <label for="login-pass">Contrasena</label>
           <div class="input-wrap">
-            <i class="fa-solid fa-lock"></i>
+            <i class="fa-solid fa-lock" aria-hidden="true"></i>
             <input type="password" id="login-pass" placeholder="Tu contrasena" autocomplete="current-password">
-            <button class="toggle-pass" onclick="togglePassword('login-pass', this)"><i class="fa-solid fa-eye"></i></button>
+            <button type="button" class="toggle-pass" onclick="togglePassword('login-pass', this)" aria-label="Mostrar u ocultar contrasena"><i class="fa-solid fa-eye" aria-hidden="true"></i></button>
           </div>
         </div>
-        <a class="link-forgot" onclick="showForgot()">Olvidaste tu contrasena?</a>
-        <button class="btn btn-primary" id="btn-login" onclick="handleLogin()">
-          <span class="spinner" id="spin-login"></span>
-          <i class="fa-solid fa-right-to-bracket"></i> Iniciar Sesion
+        <a class="link-forgot" role="button" tabindex="0" onclick="showForgot()">Olvidaste tu contrasena?</a>
+        <button type="button" class="btn btn-primary" id="btn-login" onclick="handleLogin()">
+          <span class="spinner" id="spin-login" aria-hidden="true"></span>
+          <i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i> Iniciar Sesion
         </button>
       </div>
 
       <!-- Register -->
       <div class="form-body form-section" id="form-register">
-        <div class="msg" id="msg-register"></div>
+        <div class="msg" id="msg-register" role="alert" aria-live="assertive"></div>
 
         <!-- Google Sign-In tambien sirve para registrarse (crea cuenta si no existe) -->
         <div id="google-signin-register" class="google-signin-wrap" style="margin-bottom: 1rem;"></div>
         <div id="google-divider-register" class="google-divider" style="display:none;"><span>o crea tu cuenta con correo</span></div>
 
         <div class="field">
-          <label>Nombre completo</label>
+          <label for="reg-name">Nombre completo</label>
           <div class="input-wrap">
-            <i class="fa-solid fa-user"></i>
+            <i class="fa-solid fa-user" aria-hidden="true"></i>
             <input type="text" id="reg-name" placeholder="Tu nombre" autocomplete="name">
           </div>
         </div>
         <div class="field">
-          <label>Correo electronico</label>
+          <label for="reg-email">Correo electronico</label>
           <div class="input-wrap">
-            <i class="fa-solid fa-envelope"></i>
+            <i class="fa-solid fa-envelope" aria-hidden="true"></i>
             <input type="email" id="reg-email" placeholder="tu@correo.com" autocomplete="email">
           </div>
         </div>
         <div class="field">
-          <label>Contrasena</label>
+          <label for="reg-pass">Contrasena</label>
           <div class="input-wrap">
-            <i class="fa-solid fa-lock"></i>
+            <i class="fa-solid fa-lock" aria-hidden="true"></i>
             <input type="password" id="reg-pass" placeholder="Min 8 chars, 1 mayuscula, 1 numero" autocomplete="new-password">
-            <button class="toggle-pass" onclick="togglePassword('reg-pass', this)"><i class="fa-solid fa-eye"></i></button>
+            <button type="button" class="toggle-pass" onclick="togglePassword('reg-pass', this)" aria-label="Mostrar u ocultar contrasena"><i class="fa-solid fa-eye" aria-hidden="true"></i></button>
           </div>
         </div>
         <div class="field">
-          <label>Confirmar contrasena</label>
+          <label for="reg-pass2">Confirmar contrasena</label>
           <div class="input-wrap">
-            <i class="fa-solid fa-lock"></i>
+            <i class="fa-solid fa-lock" aria-hidden="true"></i>
             <input type="password" id="reg-pass2" placeholder="Repite tu contrasena" autocomplete="new-password">
           </div>
         </div>
-        <button class="btn btn-primary" id="btn-register" onclick="handleRegister()" style="margin-top: 0.5rem;">
-          <span class="spinner" id="spin-register"></span>
-          <i class="fa-solid fa-user-plus"></i> Crear Cuenta
+        <button type="button" class="btn btn-primary" id="btn-register" onclick="handleRegister()" style="margin-top: 0.5rem;">
+          <span class="spinner" id="spin-register" aria-hidden="true"></span>
+          <i class="fa-solid fa-user-plus" aria-hidden="true"></i> Crear Cuenta
         </button>
       </div>
     </div>
@@ -342,19 +353,19 @@
     <!-- Forgot Password -->
     <div id="forgot-view">
       <div class="form-body">
-        <span class="back-link" onclick="hideForgot()"><i class="fa-solid fa-arrow-left"></i> Volver</span>
-        <div class="msg" id="msg-forgot"></div>
+        <span class="back-link" role="button" tabindex="0" onclick="hideForgot()"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Volver</span>
+        <div class="msg" id="msg-forgot" role="alert" aria-live="assertive"></div>
         <p style="font-size:0.85rem;color:#475569;margin-bottom:1rem;">Ingresa tu correo y te enviaremos instrucciones para recuperar tu contrasena.</p>
         <div class="field">
-          <label>Correo electronico</label>
+          <label for="forgot-email">Correo electronico</label>
           <div class="input-wrap">
-            <i class="fa-solid fa-envelope"></i>
-            <input type="email" id="forgot-email" placeholder="tu@correo.com">
+            <i class="fa-solid fa-envelope" aria-hidden="true"></i>
+            <input type="email" id="forgot-email" placeholder="tu@correo.com" autocomplete="email">
           </div>
         </div>
-        <button class="btn btn-primary" id="btn-forgot" onclick="handleForgot()">
-          <span class="spinner" id="spin-forgot"></span>
-          <i class="fa-solid fa-paper-plane"></i> Enviar Instrucciones
+        <button type="button" class="btn btn-primary" id="btn-forgot" onclick="handleForgot()">
+          <span class="spinner" id="spin-forgot" aria-hidden="true"></span>
+          <i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Enviar Instrucciones
         </button>
       </div>
     </div>
