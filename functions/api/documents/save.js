@@ -204,6 +204,7 @@ export async function onRequestPost(context) {
     }), { status: 201, headers });
 
   } catch (e) {
-    return new Response(JSON.stringify({ ok: false, error: 'Error al guardar: ' + e.message }), { status: 500, headers });
+    console.error('Error al guardar documento:', e);
+    return new Response(JSON.stringify({ ok: false, error: 'Error al guardar el documento.' }), { status: 500, headers });
   }
 }

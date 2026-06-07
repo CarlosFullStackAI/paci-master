@@ -18,8 +18,12 @@ export async function onRequestPost(context) {
 
     if (!doc) return new Response(JSON.stringify({ ok: false, error: 'Documento no encontrado.' }), { status: 404, headers });
 
-    // Eliminar OAs asociados y luego el documento
+    // Si este documento es un plan anual padre, sus trimestres hijos quedarian
+    // apuntando a un padre inexistente. Para NO perder datos, los desvinculamos
+    // (parent_id = NULL): los trimestres sobreviven como documentos independientes.
+    // Luego eliminamos los OAs del documento y el documento mismo.
     await env.DB.batch([
+      env.DB.prepare('UPDATE documents SET parent_id = NULL WHERE parent_id = ? AND user_email = ?').bind(documentId, user.email),
       env.DB.prepare('DELETE FROM document_oas WHERE document_id = ?').bind(documentId),
       env.DB.prepare('DELETE FROM documents WHERE id = ?').bind(documentId)
     ]);

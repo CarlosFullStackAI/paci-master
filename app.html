@@ -1727,6 +1727,14 @@ table{border-collapse:collapse}
                     return;
                 }
 
+                // Avisar si hay modulos sin etiqueta de trimestre: irian solo al plan
+                // anual padre y no quedarian en ningun trimestre hijo.
+                const sinTrimestre = datos.modules.filter(m => !labels.includes(m.trimestre || ''));
+                if (sinTrimestre.length > 0) {
+                    const seguir = confirm(sinTrimestre.length + ' modulo(s) no tienen trimestre asignado y solo quedaran en el plan anual (no en un trimestre).\n\n¿Continuar de todos modos?');
+                    if (!seguir) return;
+                }
+
                 const res = await fetch('/api/documents/save', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -3850,6 +3858,13 @@ table{border-collapse:collapse}
                     });
                     const data = await res.json();
                     if (!data.ok) return;
+                    // Este documento es un PAI, no un PACI: abrirlo en el editor correcto.
+                    if (data.document && data.document.plan_type === 'pai') {
+                        if (confirm('Este documento es un PAI (plan de apoyos), no un PACI. ¿Abrirlo en el editor de PAI?')) {
+                            window.location.href = '/pai.html?doc=' + data.document.id;
+                            return;
+                        }
+                    }
                     documents = [data.document];
                 } else if (studentId) {
                     // Cargar todos los documentos de un estudiante

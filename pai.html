@@ -175,7 +175,7 @@
       <a href="/dashboard.html" class="btn btn-ghost btn-sm"><i class="fa-solid fa-arrow-left"></i> Volver</a>
       <button class="btn btn-green btn-sm" onclick="descargarPDF()"><i class="fa-solid fa-download"></i> PDF</button>
       <button class="btn btn-amber btn-sm" onclick="imprimir()"><i class="fa-solid fa-print"></i> Imprimir</button>
-      <button class="btn btn-primary btn-sm" onclick="guardar()"><i class="fa-solid fa-floppy-disk"></i> Guardar</button>
+      <button id="btn-guardar" class="btn btn-primary btn-sm" onclick="guardar()"><i class="fa-solid fa-floppy-disk"></i> Guardar</button>
     </div>
   </div>
 
@@ -267,6 +267,11 @@
     const token = localStorage.getItem('paci_token');
     const params = new URLSearchParams(window.location.search);
 
+    // Permisos por rol (mismo criterio que dashboard.html / app.html).
+    // Roles de solo lectura no pueden crear/editar documentos.
+    const USER = JSON.parse(localStorage.getItem('paci_user') || '{}');
+    const CAN_CREATE = ['admin', 'teacher', 'educador_diferencial'].includes(USER.role || 'teacher');
+
     const $ = (id) => document.getElementById(id);
 
     // Escapar texto para insertarlo de forma segura en HTML (PDF/impresion).
@@ -321,7 +326,7 @@
           '<div class="apoyo">' +
             '<div class="apoyo-head">' +
               '<span class="titulo">Apoyo ' + (i + 1) + '</span>' +
-              '<button class="btn btn-danger btn-sm" onclick="eliminarApoyo(' + a._id + ')"><i class="fa-solid fa-trash"></i></button>' +
+              '<button class="btn btn-danger btn-sm" aria-label="Eliminar apoyo" onclick="eliminarApoyo(' + a._id + ')"><i class="fa-solid fa-trash"></i></button>' +
             '</div>' +
             '<div class="grid grid-3">' +
               '<div><label>Profesional</label><input type="text" placeholder="Ej: Fonoaudióloga" value="' + escapeHtml(a.profesional) + '" oninput="setApoyo(' + a._id + ',\'profesional\',this.value)"></div>' +
@@ -364,7 +369,7 @@
           '<div><label>Nombre</label><input type="text" value="' + escapeHtml(m.nombre) + '" oninput="setMiembro(' + m._id + ',\'nombre\',this.value)"></div>' +
           '<div style="display:flex;gap:0.5rem;align-items:end;">' +
             '<div style="flex:1;"><label>Cargo</label><input type="text" placeholder="Ej: Coordinadora PIE" value="' + escapeHtml(m.cargo) + '" oninput="setMiembro(' + m._id + ',\'cargo\',this.value)"></div>' +
-            '<button class="btn btn-danger btn-sm" onclick="eliminarMiembro(' + m._id + ')"><i class="fa-solid fa-trash"></i></button>' +
+            '<button class="btn btn-danger btn-sm" aria-label="Eliminar profesional" onclick="eliminarMiembro(' + m._id + ')"><i class="fa-solid fa-trash"></i></button>' +
           '</div>' +
         '</div>'
       ).join('');
@@ -405,6 +410,7 @@
 
     // ====== Guardar ======
     async function guardar() {
+      if (!CAN_CREATE) { toast('Tu rol (' + (USER.role || 'lectura') + ') solo permite lectura.', true); return; }
       const data = recolectar();
       if (!data.student.name) { toast('Falta el nombre del estudiante.', true); return; }
       if (!data.apoyos.length) { toast('Agrega al menos un apoyo antes de guardar.', true); return; }
@@ -563,6 +569,13 @@
         });
         const out = await res.json();
         if (!out.ok || !out.document) { toast('No se pudo cargar el documento.', true); return; }
+        // Este documento es un PACI, no un PAI: abrirlo en el editor correcto.
+        if (out.document.plan_type && out.document.plan_type !== 'pai') {
+          if (confirm('Este documento es un PACI, no un PAI. ¿Abrirlo en el editor de PACI?')) {
+            window.location.href = '/app.html?doc=' + out.document.id;
+            return;
+          }
+        }
         state.documentId = out.document.id;
         state.studentId = out.document.student_id;
         let parsed = {};
@@ -590,6 +603,12 @@
       const cfg = await window.TENANT_CONFIG_READY;
       $('tenant-name').textContent = cfg.nombre || 'Establecimiento';
       if (cfg.calendario && cfg.calendario.ano_actual) $('in-ano').value = cfg.calendario.ano_actual;
+
+      // Roles de solo lectura: deshabilitar el boton Guardar (coherente con app.html).
+      if (!CAN_CREATE) {
+        const bg = $('btn-guardar');
+        if (bg) { bg.disabled = true; bg.title = 'Tu rol solo permite lectura'; bg.style.opacity = '0.5'; bg.style.cursor = 'not-allowed'; }
+      }
 
       const docId = params.get('doc');
       const studentId = params.get('student');
