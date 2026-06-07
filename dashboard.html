@@ -410,6 +410,37 @@
       }
     }
 
+    // Barra de progreso de OAs (logrado / en desarrollo / por lograr / no evaluado).
+    // Se muestra en el encabezado de cada estudiante para ver el avance de un vistazo.
+    function renderOaBar(s) {
+      const total = s.oas_total || 0;
+      if (!total) {
+        return '<div style="font-size:0.6rem;opacity:0.7;"><i class="fa-solid fa-circle-info" style="margin-right:0.3rem;"></i>Aún sin OAs registrados</div>';
+      }
+      const log = s.oas_logrado || 0;
+      const dev = s.oas_en_desarrollo || 0;
+      const nolog = s.oas_no_logrado || 0;
+      const noeval = s.oas_no_evaluado || 0;
+      const pct = (n) => (n / total * 100);
+      const seg = (n, color, label) => n > 0
+        ? '<div title="' + label + ': ' + n + ' (' + Math.round(pct(n)) + '%)" style="width:' + pct(n) + '%;background:' + color + ';"></div>'
+        : '';
+      const aria = 'Progreso de OAs: ' + log + ' logrado, ' + dev + ' en desarrollo, ' + nolog + ' por lograr, ' + noeval + ' no evaluado';
+      return '' +
+        '<div style="width:100%;">' +
+          '<div style="display:flex;justify-content:space-between;font-size:0.6rem;font-weight:700;opacity:0.9;margin-bottom:0.3rem;">' +
+            '<span><i class="fa-solid fa-bullseye" style="margin-right:0.3rem;"></i>Progreso OAs</span>' +
+            '<span>' + Math.round(pct(log)) + '% logrado</span>' +
+          '</div>' +
+          '<div role="img" aria-label="' + aria + '" style="display:flex;height:8px;border-radius:6px;overflow:hidden;background:rgba(255,255,255,0.18);">' +
+            seg(log, '#10b981', 'Logrado') +
+            seg(dev, '#f59e0b', 'En desarrollo') +
+            seg(nolog, '#ef4444', 'Por lograr') +
+            seg(noeval, 'rgba(255,255,255,0.28)', 'No evaluado') +
+          '</div>' +
+        '</div>';
+    }
+
     function renderStudents(students, docs) {
       const c = document.getElementById('students-container');
       if (!students.length) {
@@ -455,19 +486,22 @@
 
           html += `
           <div class="student-card" id="card-${s.id}">
-            <div class="student-card-header" onclick="toggleCard(${s.id})">
-              <div>
-                <h3><i class="fa-solid fa-user-graduate" style="margin-right:0.375rem;opacity:0.7;"></i>${esc(s.name)}</h3>
-                <span style="font-size:0.65rem;opacity:0.8;">${esc(s.diagnosis || 'Sin diagnostico')} ${neeType ? '(' + neeType + ')' : ''}</span>
+            <div class="student-card-header" onclick="toggleCard(${s.id})" style="flex-direction:column;align-items:stretch;gap:0.7rem;">
+              <div style="display:flex;justify-content:space-between;align-items:center;width:100%;gap:0.5rem;">
+                <div>
+                  <h3><i class="fa-solid fa-user-graduate" style="margin-right:0.375rem;opacity:0.7;"></i>${esc(s.name)}</h3>
+                  <span style="font-size:0.65rem;opacity:0.8;">${esc(s.diagnosis || 'Sin diagnostico')} ${neeType ? '(' + neeType + ')' : ''}</span>
+                </div>
+                <div style="display:flex;gap:0.5rem;align-items:center;">
+                  <span class="badge">${sDocs.length} documento${sDocs.length !== 1 ? 's' : ''}</span>
+                  <span class="badge">${s.unique_oas_count || 0} OAs</span>
+                  ${CAN_DELETE ? `<button class="btn btn-red btn-sm" onclick="event.stopPropagation(); deleteStudent(${s.id}, '${esc(s.name).replace(/'/g, "\\'")}')" title="Eliminar estudiante" style="padding:0.25rem 0.5rem;font-size:0.6rem;">
+                    <i class="fa-solid fa-trash"></i>
+                  </button>` : ''}
+                  <i class="fa-solid fa-chevron-down" id="chevron-${s.id}" style="transition:transform 0.2s;font-size:0.75rem;"></i>
+                </div>
               </div>
-              <div style="display:flex;gap:0.5rem;align-items:center;">
-                <span class="badge">${sDocs.length} documento${sDocs.length !== 1 ? 's' : ''}</span>
-                <span class="badge">${s.unique_oas_count || 0} OAs</span>
-                ${CAN_DELETE ? `<button class="btn btn-red btn-sm" onclick="event.stopPropagation(); deleteStudent(${s.id}, '${esc(s.name).replace(/'/g, "\\'")}')" title="Eliminar estudiante" style="padding:0.25rem 0.5rem;font-size:0.6rem;">
-                  <i class="fa-solid fa-trash"></i>
-                </button>` : ''}
-                <i class="fa-solid fa-chevron-down" id="chevron-${s.id}" style="transition:transform 0.2s;font-size:0.75rem;"></i>
-              </div>
+              ${renderOaBar(s)}
             </div>
             <div class="student-card-body" id="body-${s.id}">
               <div class="tabs">

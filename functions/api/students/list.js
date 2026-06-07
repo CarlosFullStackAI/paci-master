@@ -14,6 +14,11 @@ export async function onRequestPost(context) {
       SELECT s.*,
         (SELECT COUNT(*) FROM documents d WHERE d.student_id = s.id) as doc_count,
         (SELECT COUNT(DISTINCT oa_code || '-' || subject_key || '-' || level) FROM document_oas WHERE student_id = s.id) as unique_oas_count,
+        (SELECT COUNT(*) FROM document_oas WHERE student_id = s.id) as oas_total,
+        (SELECT COUNT(*) FROM document_oas WHERE student_id = s.id AND progress_status = 'logrado') as oas_logrado,
+        (SELECT COUNT(*) FROM document_oas WHERE student_id = s.id AND progress_status = 'en_desarrollo') as oas_en_desarrollo,
+        (SELECT COUNT(*) FROM document_oas WHERE student_id = s.id AND progress_status = 'no_logrado') as oas_no_logrado,
+        (SELECT COUNT(*) FROM document_oas WHERE student_id = s.id AND progress_status = 'no_evaluado') as oas_no_evaluado,
         (SELECT MAX(d.created_at) FROM documents d WHERE d.student_id = s.id) as last_doc_date
       FROM students s
       WHERE s.user_email = ?
