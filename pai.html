@@ -10,15 +10,15 @@
   <!-- Auth guard: si no hay sesion, redirigir al login -->
   <script>
   (function () {
-    var token = localStorage.getItem('paci_token');
-    if (!token) { window.location.href = '/login.html'; return; }
+    // Gate rapido por indicador no-secreto; la sesion real es la cookie httpOnly.
+    if (!localStorage.getItem('paci_user')) { window.location.href = '/login.html'; return; }
     fetch('/api/verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token: token })
+      credentials: 'same-origin',
+      body: JSON.stringify({})
     }).then(function (r) { return r.json(); }).then(function (d) {
       if (!d.ok) {
-        localStorage.removeItem('paci_token');
         localStorage.removeItem('paci_user');
         window.location.href = '/login.html';
       }

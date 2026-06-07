@@ -7,9 +7,10 @@
   <link rel="icon" href="/favicon.svg?v=2" type="image/svg+xml">
   <link rel="shortcut icon" href="/favicon.png?v=2" type="image/png">
   <script>
-    // Redirigir segun estado de sesion
-    var token = localStorage.getItem('paci_token');
-    if (token) {
+    // Redirigir segun estado de sesion. El token real vive en una cookie httpOnly;
+    // aqui solo usamos un indicador no-secreto (paci_user) para decidir a donde ir.
+    var loggedIn = localStorage.getItem('paci_user');
+    if (loggedIn) {
       window.location.href = '/dashboard.html';
     } else {
       window.location.href = '/login.html';

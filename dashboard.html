@@ -9,8 +9,9 @@
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
   <script>
-    var token = localStorage.getItem('paci_token');
-    if (!token) window.location.href = '/login.html';
+    // Gate rapido por indicador no-secreto; la sesion real es la cookie httpOnly.
+    // Si la cookie es invalida, las llamadas a la API devuelven 401 y redirigen.
+    if (!localStorage.getItem('paci_user')) window.location.href = '/login.html';
   </script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }

@@ -99,7 +99,8 @@ export async function onRequest(context) {
 
   // 4. Cookie httpOnly y JSON con el token (mismo patron que login tradicional)
   const respHeaders = new Headers(headers);
-  respHeaders.append('Set-Cookie', `paci_session=${token}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${7 * 24 * 3600}`);
+  const secure = new URL(request.url).protocol === 'https:' ? ' Secure;' : '';
+  respHeaders.append('Set-Cookie', `paci_session=${token}; HttpOnly;${secure} SameSite=Lax; Path=/; Max-Age=${7 * 24 * 3600}`);
 
   return new Response(JSON.stringify({
     ok: true,

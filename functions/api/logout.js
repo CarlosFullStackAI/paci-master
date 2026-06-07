@@ -1,6 +1,10 @@
 export async function onRequestPost(context) {
   const { request, env } = context;
 
+  // Secure solo en HTTPS (igual que al crear la cookie en login).
+  const secure = new URL(request.url).protocol === 'https:' ? ' Secure;' : '';
+  const clearCookie = `paci_session=; HttpOnly;${secure} SameSite=Strict; Path=/; Max-Age=0`;
+
   try {
     // Obtener token de cookie o body
     const cookieStr = request.headers.get('Cookie') || '';
@@ -20,7 +24,7 @@ export async function onRequestPost(context) {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
-        'Set-Cookie': 'paci_session=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0'
+        'Set-Cookie': clearCookie
       }
     });
   } catch (e) {
@@ -28,7 +32,7 @@ export async function onRequestPost(context) {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
-        'Set-Cookie': 'paci_session=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0'
+        'Set-Cookie': clearCookie
       }
     });
   }

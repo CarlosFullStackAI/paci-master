@@ -59,8 +59,11 @@ export async function onRequestPost(context) {
       role: userRole
     }), { expirationTtl: 86400 });
 
-    // Configurar httpOnly cookie (no accesible desde JS = inmune a XSS)
-    const cookieHeader = `paci_session=${token}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=86400`;
+    // Configurar httpOnly cookie (no accesible desde JS = inmune a XSS).
+    // Secure solo en HTTPS: en http local (wrangler dev) Secure impediria
+    // guardar la cookie y romperia la sesion.
+    const secure = new URL(request.url).protocol === 'https:' ? ' Secure;' : '';
+    const cookieHeader = `paci_session=${token}; HttpOnly;${secure} SameSite=Strict; Path=/; Max-Age=86400`;
 
     return new Response(JSON.stringify({
       ok: true,

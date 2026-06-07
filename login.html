@@ -363,16 +363,19 @@
   </div>
 
   <script>
-    // Si ya tiene sesion activa, ir directo a la app
+    // Si ya tiene sesion activa, ir directo a la app. La sesion real es la cookie
+    // httpOnly; verificamos contra el servidor (la cookie viaja sola).
     (function() {
-      const token = localStorage.getItem('paci_token');
-      if (token) {
+      const loggedIn = localStorage.getItem('paci_user');
+      if (loggedIn) {
         fetch('/api/verify', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token })
+          credentials: 'same-origin',
+          body: JSON.stringify({})
         }).then(r => r.json()).then(data => {
           if (data.ok) window.location.href = '/dashboard.html';
+          else localStorage.removeItem('paci_user');
         }).catch(() => {});
       }
     })();
@@ -445,8 +448,11 @@
           showMsg(msgId, data.error || 'Error al iniciar sesion con Google.', 'error');
           return;
         }
-        // Guardar token y redirigir igual que el login tradicional
-        if (data.token) localStorage.setItem('paci_token', data.token);
+        // La sesion queda en la cookie httpOnly. Guardamos solo datos no-secretos
+        // del usuario (para la UI), nunca el token.
+        if (data.user) {
+          localStorage.setItem('paci_user', JSON.stringify({ email: data.user.email, name: data.user.name, role: data.user.role || 'teacher' }));
+        }
         showMsg(msgId, 'Sesion iniciada con Google. Redirigiendo...', 'success');
         setTimeout(function() { window.location.href = '/dashboard.html'; }, 600);
       } catch (e) {
@@ -550,7 +556,7 @@
         const data = await res.json();
 
         if (data.ok) {
-          localStorage.setItem('paci_token', data.token);
+          // La sesion real es la cookie httpOnly; solo guardamos datos no-secretos para la UI.
           localStorage.setItem('paci_user', JSON.stringify({ email: data.email, name: data.name, role: data.role || 'teacher' }));
           showMsg('msg-login', 'Bienvenido/a! Redirigiendo...', 'success');
           setTimeout(() => { window.location.href = '/dashboard.html'; }, 600);
