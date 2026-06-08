@@ -1,4 +1,5 @@
 import { getUser } from '../auth-helper.js';
+import { resolveTenant } from '../tenant-helper.js';
 import { decryptStudentFields } from '../crypto-helper.js';
 import { logAudit, maskName, maskRut, maskDiagnosis, getUserRole } from '../audit-helper.js';
 
@@ -13,9 +14,13 @@ export async function onRequestPost(context) {
     const { studentId, fullAccess } = await request.json();
     if (!studentId) return new Response(JSON.stringify({ ok: false, error: 'studentId requerido.' }), { status: 400, headers });
 
+    const tenant = await resolveTenant(request, env, user);
+    if (!tenant) return new Response(JSON.stringify({ ok: false, error: 'No tienes un establecimiento asignado.' }), { status: 400, headers });
+    const tenantId = tenant.id;
+
     const student = await env.DB.prepare(
-      'SELECT * FROM students WHERE id = ? AND user_email = ?'
-    ).bind(studentId, user.email).first();
+      'SELECT * FROM students WHERE id = ? AND tenant_id = ?'
+    ).bind(studentId, tenantId).first();
 
     if (!student) return new Response(JSON.stringify({ ok: false, error: 'No encontrado.' }), { status: 404, headers });
 
@@ -66,9 +71,9 @@ export async function onRequestPost(context) {
       SELECT id, trimester, subject, subject_key, work_level, date_start, date_end,
              num_classes, created_at
       FROM documents
-      WHERE student_id = ? AND user_email = ?
+      WHERE student_id = ? AND tenant_id = ?
       ORDER BY created_at DESC
-    `).bind(studentId, user.email).all();
+    `).bind(studentId, tenantId).all();
 
     return new Response(JSON.stringify({
       ok: true,

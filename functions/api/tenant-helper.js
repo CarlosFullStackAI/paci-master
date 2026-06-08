@@ -51,5 +51,15 @@ export async function resolveTenant(request, env, user) {
     const t = await getTenantBySlug(env, user.tenantSlug);
     if (t) return t;
   }
+  // Fallback (fase mono-establecimiento): si solo hay UN colegio activo, usarlo.
+  // Asi un usuario aun sin tenant asignado funciona mientras exista un solo colegio.
+  // Con varios colegios este fallback no aplica (LIMIT 2 detecta "exactamente uno").
+  try {
+    const all = await env.DB.prepare(
+      'SELECT id, slug, nombre, nombre_corto, rbd, comuna, localidad, region, branding_json FROM tenants WHERE activo = 1 LIMIT 2'
+    ).all();
+    const list = (all && all.results) || [];
+    if (list.length === 1) return list[0];
+  } catch (e) { /* ignore */ }
   return null;
 }

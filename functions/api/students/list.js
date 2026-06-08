@@ -1,4 +1,5 @@
 import { getUser } from '../auth-helper.js';
+import { resolveTenant } from '../tenant-helper.js';
 import { decryptStudentFields } from '../crypto-helper.js';
 import { logAudit, getUserRole } from '../audit-helper.js';
 
@@ -9,6 +10,11 @@ export async function onRequestPost(context) {
   try {
     const user = await getUser(request, env);
     if (!user) return new Response(JSON.stringify({ ok: false, error: 'No autorizado.' }), { status: 401, headers });
+
+    // Aislamiento por establecimiento: el docente ve TODOS los estudiantes de su colegio.
+    const tenant = await resolveTenant(request, env, user);
+    if (!tenant) return new Response(JSON.stringify({ ok: false, error: 'No tienes un establecimiento asignado.' }), { status: 400, headers });
+    const tenantId = tenant.id;
 
     const students = await env.DB.prepare(`
       SELECT s.*,
@@ -21,11 +27,11 @@ export async function onRequestPost(context) {
         (SELECT COUNT(*) FROM document_oas WHERE student_id = s.id AND progress_status = 'no_evaluado') as oas_no_evaluado,
         (SELECT MAX(d.created_at) FROM documents d WHERE d.student_id = s.id) as last_doc_date
       FROM students s
-      WHERE s.user_email = ?
+      WHERE s.tenant_id = ?
       ORDER BY s.updated_at DESC
-    `).bind(user.email).all();
+    `).bind(tenantId).all();
 
-    // Descifrar y devolver datos completos (son SUS estudiantes)
+    // Descifrar y devolver datos completos (estudiantes del establecimiento)
     const decrypted = await Promise.all(
       (students.results || []).map(s => decryptStudentFields(s, env.ENCRYPTION_KEY))
     );

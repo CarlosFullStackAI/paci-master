@@ -1,4 +1,5 @@
 import { getUser } from '../auth-helper.js';
+import { resolveTenant } from '../tenant-helper.js';
 import { encrypt } from '../crypto-helper.js';
 import { checkPermission } from '../rbac-helper.js';
 
@@ -23,12 +24,16 @@ export async function onRequestPost(context) {
       return new Response(JSON.stringify({ ok: false, error: 'Datos minimos requeridos (nombre estudiante).' }), { status: 400, headers });
     }
 
+    const tenant = await resolveTenant(request, env, user);
+    if (!tenant) return new Response(JSON.stringify({ ok: false, error: 'No tienes un establecimiento asignado.' }), { status: 400, headers });
+    const tenantId = tenant.id;
+
     const db = env.DB;
 
-    // Buscar estudiante existente
+    // Buscar estudiante existente en el establecimiento (compartido por colegio)
     let studentRow = await db.prepare(
-      'SELECT id FROM students WHERE user_email = ? AND name = ?'
-    ).bind(user.email, student.name).first();
+      'SELECT id FROM students WHERE tenant_id = ? AND name = ?'
+    ).bind(tenantId, student.name).first();
 
     // Cifrar diagnostico
     const encDiag = env.ENCRYPTION_KEY
@@ -37,12 +42,12 @@ export async function onRequestPost(context) {
 
     if (!studentRow) {
       const res = await db.prepare(
-        `INSERT INTO students (user_email, name, diagnosis, diagnosis_id, real_level, work_level, school, birth_date, age)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO students (user_email, name, diagnosis, diagnosis_id, real_level, work_level, school, birth_date, age, tenant_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       ).bind(
         user.email, student.name, encDiag, student.diagnosisId || '',
         student.realLevel || '', student.workLevel || '', student.school || '',
-        student.birthDate || '', student.age || 0
+        student.birthDate || '', student.age || 0, tenantId
       ).run();
       studentRow = { id: res.meta.last_row_id };
     } else {
@@ -73,10 +78,10 @@ export async function onRequestPost(context) {
     let docId = documentId;
 
     if (docId) {
-      // Verificar que el documento existe y pertenece al usuario
+      // Verificar que el documento existe y pertenece al establecimiento
       const existing = await db.prepare(
-        'SELECT id, updated_at FROM documents WHERE id = ? AND user_email = ?'
-      ).bind(docId, user.email).first();
+        'SELECT id, updated_at FROM documents WHERE id = ? AND tenant_id = ?'
+      ).bind(docId, tenantId).first();
 
       if (existing) {
         // UPDATE existente
@@ -100,9 +105,9 @@ export async function onRequestPost(context) {
       // que el autoguardado a ciegas NUNCA sobreescriba un documento vinculado.
       const existingDoc = await db.prepare(
         `SELECT id FROM documents
-         WHERE user_email = ? AND student_id = ? AND trimester = ?
+         WHERE tenant_id = ? AND student_id = ? AND trimester = ?
            AND parent_id IS NULL AND (plan_scope IS NULL OR plan_scope <> 'anual')`
-      ).bind(user.email, studentId, trimester || '').first();
+      ).bind(tenantId, studentId, trimester || '').first();
 
       if (existingDoc) {
         docId = existingDoc.id;
@@ -117,11 +122,11 @@ export async function onRequestPost(context) {
       } else {
         // INSERT nuevo
         const docRes = await db.prepare(
-          `INSERT INTO documents (user_email, student_id, trimester, subject, subject_key, work_level, date_start, date_end, num_classes, document_json)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          `INSERT INTO documents (user_email, student_id, trimester, subject, subject_key, work_level, date_start, date_end, num_classes, document_json, tenant_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
         ).bind(
           user.email, studentId, trimester || '', subjects, subjectKeys,
-          student.workLevel || '', dateStart, dateEnd, numClasses, docJson
+          student.workLevel || '', dateStart, dateEnd, numClasses, docJson, tenantId
         ).run();
         docId = docRes.meta.last_row_id;
       }

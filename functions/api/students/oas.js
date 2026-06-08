@@ -1,4 +1,5 @@
 import { getUser } from '../auth-helper.js';
+import { resolveTenant } from '../tenant-helper.js';
 
 export async function onRequestPost(context) {
   const { request, env } = context;
@@ -11,15 +12,19 @@ export async function onRequestPost(context) {
     const { studentId, subjectKey, level } = await request.json();
     if (!studentId) return new Response(JSON.stringify({ ok: false, error: 'studentId requerido.' }), { status: 400, headers });
 
-    // OAs trabajados agrupados por asignatura y trimestre
+    const tenant = await resolveTenant(request, env, user);
+    if (!tenant) return new Response(JSON.stringify({ ok: false, error: 'No tienes un establecimiento asignado.' }), { status: 400, headers });
+    const tenantId = tenant.id;
+
+    // OAs trabajados agrupados por asignatura y trimestre (del establecimiento)
     let query = `
       SELECT oa.subject, oa.subject_key, oa.level, oa.unit_name, oa.oa_code, oa.oa_text,
              oa.trimester, d.created_at, d.id as document_id
       FROM document_oas oa
       JOIN documents d ON oa.document_id = d.id
-      WHERE oa.student_id = ? AND d.user_email = ?
+      WHERE oa.student_id = ? AND d.tenant_id = ?
     `;
-    const params = [studentId, user.email];
+    const params = [studentId, tenantId];
 
     if (subjectKey) {
       query += ' AND oa.subject_key = ?';

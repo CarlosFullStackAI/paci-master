@@ -1,4 +1,5 @@
 import { getUser } from '../auth-helper.js';
+import { resolveTenant } from '../tenant-helper.js';
 
 // POST /api/students/courses
 // Devuelve la lista de cursos del usuario con su conteo de estudiantes.
@@ -11,15 +12,19 @@ export async function onRequestPost(context) {
     const user = await getUser(request, env);
     if (!user) return new Response(JSON.stringify({ ok: false, error: 'No autorizado.' }), { status: 401, headers });
 
+    const tenant = await resolveTenant(request, env, user);
+    if (!tenant) return new Response(JSON.stringify({ ok: false, error: 'No tienes un establecimiento asignado.' }), { status: 400, headers });
+    const tenantId = tenant.id;
+
     const rows = await env.DB.prepare(`
       SELECT
         COALESCE(NULLIF(TRIM(curso), ''), '— sin curso —') AS curso,
         COUNT(*) AS count
       FROM students
-      WHERE user_email = ?
+      WHERE tenant_id = ?
       GROUP BY COALESCE(NULLIF(TRIM(curso), ''), '— sin curso —')
       ORDER BY curso ASC
-    `).bind(user.email).all();
+    `).bind(tenantId).all();
 
     return new Response(JSON.stringify({
       ok: true,

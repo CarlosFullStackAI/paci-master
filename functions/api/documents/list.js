@@ -1,5 +1,5 @@
 import { getUser } from '../auth-helper.js';
-import { canReadAllDocuments, isSubjectRestricted } from '../rbac-helper.js';
+import { resolveTenant } from '../tenant-helper.js';
 
 export async function onRequestPost(context) {
   const { request, env } = context;
@@ -9,48 +9,33 @@ export async function onRequestPost(context) {
     const user = await getUser(request, env);
     if (!user) return new Response(JSON.stringify({ ok: false, error: 'No autorizado.' }), { status: 401, headers });
 
+    // Aislamiento por establecimiento: se ven TODOS los documentos del colegio
+    // (equipo PIE colaborativo). El rol ya no acota el alcance de lectura.
+    const tenant = await resolveTenant(request, env, user);
+    if (!tenant) return new Response(JSON.stringify({ ok: false, error: 'No tienes un establecimiento asignado.' }), { status: 400, headers });
+    const tenantId = tenant.id;
+
     const body = await request.json();
     const studentId = body.studentId;
     const role = user.role || 'teacher';
 
     let docs;
-
-    // utp, admin y coordinator ven todos los documentos
-    // profesor_asignatura ve solo los de su asignatura (filtro en frontend por ahora)
-    // teacher y educador_diferencial ven solo los propios
-    const seeAll = canReadAllDocuments(role);
-
-    if (studentId && seeAll) {
+    if (studentId) {
       docs = await env.DB.prepare(
         `SELECT d.*, d.approval_status, d.approved_by, d.approved_at,
                 s.name as student_name, s.diagnosis, s.work_level as student_work_level
          FROM documents d JOIN students s ON d.student_id = s.id
-         WHERE d.student_id = ?
+         WHERE d.tenant_id = ? AND d.student_id = ?
          ORDER BY d.created_at DESC`
-      ).bind(studentId).all();
-    } else if (studentId) {
-      docs = await env.DB.prepare(
-        `SELECT d.*, d.approval_status, d.approved_by, d.approved_at,
-                s.name as student_name, s.diagnosis, s.work_level as student_work_level
-         FROM documents d JOIN students s ON d.student_id = s.id
-         WHERE d.user_email = ? AND d.student_id = ?
-         ORDER BY d.created_at DESC`
-      ).bind(user.email, studentId).all();
-    } else if (seeAll) {
-      docs = await env.DB.prepare(
-        `SELECT d.*, d.approval_status, d.approved_by, d.approved_at,
-                s.name as student_name, s.diagnosis, s.work_level as student_work_level
-         FROM documents d JOIN students s ON d.student_id = s.id
-         ORDER BY d.created_at DESC`
-      ).all();
+      ).bind(tenantId, studentId).all();
     } else {
       docs = await env.DB.prepare(
         `SELECT d.*, d.approval_status, d.approved_by, d.approved_at,
                 s.name as student_name, s.diagnosis, s.work_level as student_work_level
          FROM documents d JOIN students s ON d.student_id = s.id
-         WHERE d.user_email = ?
+         WHERE d.tenant_id = ?
          ORDER BY d.created_at DESC`
-      ).bind(user.email).all();
+      ).bind(tenantId).all();
     }
 
     return new Response(JSON.stringify({

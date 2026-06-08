@@ -1,4 +1,5 @@
 import { getUser } from '../auth-helper.js';
+import { resolveTenant } from '../tenant-helper.js';
 import { encrypt } from '../crypto-helper.js';
 import { checkPermission } from '../rbac-helper.js';
 
@@ -21,10 +22,14 @@ export async function onRequestPost(context) {
       return new Response(JSON.stringify({ ok: false, error: 'Datos incompletos.' }), { status: 400, headers });
     }
 
-    // Verificar que el estudiante pertenece al usuario
+    const tenant = await resolveTenant(request, env, user);
+    if (!tenant) return new Response(JSON.stringify({ ok: false, error: 'No tienes un establecimiento asignado.' }), { status: 400, headers });
+    const tenantId = tenant.id;
+
+    // Verificar que el estudiante pertenece al establecimiento del usuario
     const student = await env.DB.prepare(
-      'SELECT id FROM students WHERE id = ? AND user_email = ?'
-    ).bind(studentId, user.email).first();
+      'SELECT id FROM students WHERE id = ? AND tenant_id = ?'
+    ).bind(studentId, tenantId).first();
 
     if (!student) {
       return new Response(JSON.stringify({ ok: false, error: 'Estudiante no encontrado.' }), { status: 404, headers });

@@ -1,4 +1,5 @@
 import { getUser } from '../auth-helper.js';
+import { resolveTenant } from '../tenant-helper.js';
 
 export async function onRequestPost(context) {
   const { request, env } = context;
@@ -11,10 +12,14 @@ export async function onRequestPost(context) {
     const { documentId } = await request.json();
     if (!documentId) return new Response(JSON.stringify({ ok: false, error: 'ID requerido.' }), { status: 400, headers });
 
-    // Verificar que el documento pertenece al usuario
+    const tenant = await resolveTenant(request, env, user);
+    if (!tenant) return new Response(JSON.stringify({ ok: false, error: 'No tienes un establecimiento asignado.' }), { status: 400, headers });
+    const tenantId = tenant.id;
+
+    // Verificar que el documento pertenece al establecimiento del usuario
     const doc = await env.DB.prepare(
-      'SELECT id FROM documents WHERE id = ? AND user_email = ?'
-    ).bind(documentId, user.email).first();
+      'SELECT id FROM documents WHERE id = ? AND tenant_id = ?'
+    ).bind(documentId, tenantId).first();
 
     if (!doc) return new Response(JSON.stringify({ ok: false, error: 'Documento no encontrado.' }), { status: 404, headers });
 
@@ -23,7 +28,7 @@ export async function onRequestPost(context) {
     // (parent_id = NULL): los trimestres sobreviven como documentos independientes.
     // Luego eliminamos los OAs del documento y el documento mismo.
     await env.DB.batch([
-      env.DB.prepare('UPDATE documents SET parent_id = NULL WHERE parent_id = ? AND user_email = ?').bind(documentId, user.email),
+      env.DB.prepare('UPDATE documents SET parent_id = NULL WHERE parent_id = ? AND tenant_id = ?').bind(documentId, tenantId),
       env.DB.prepare('DELETE FROM document_oas WHERE document_id = ?').bind(documentId),
       env.DB.prepare('DELETE FROM documents WHERE id = ?').bind(documentId)
     ]);

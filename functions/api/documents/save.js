@@ -1,4 +1,5 @@
 import { getUser } from '../auth-helper.js';
+import { resolveTenant } from '../tenant-helper.js';
 import { encrypt } from '../crypto-helper.js';
 import { checkPermission } from '../rbac-helper.js';
 
@@ -30,7 +31,7 @@ const STUB_PLAN_TYPES = new Set([
 async function insertDocument(db, userEmail, studentId, opts) {
   const {
     student, team, trimester,
-    planType, planScope, parentId, trimesterIndex
+    planType, planScope, parentId, trimesterIndex, tenantId
   } = opts;
   const modules = opts.modules || [];
   const apoyos = opts.apoyos || [];
@@ -78,12 +79,12 @@ async function insertDocument(db, userEmail, studentId, opts) {
     `INSERT INTO documents
        (user_email, student_id, trimester, subject, subject_key, work_level,
         date_start, date_end, num_classes, document_json,
-        plan_type, plan_scope, parent_id, trimester_index)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        plan_type, plan_scope, parent_id, trimester_index, tenant_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     userEmail, studentId, trimester || '', subjects, subjectKeys,
     student.workLevel || '', dateStart, dateEnd, numClasses, docJson,
-    planType, planScope, parentId, trimesterIndex
+    planType, planScope, parentId, trimesterIndex, tenantId
   ).run();
 
   const docId = docRes.meta.last_row_id;
@@ -128,9 +129,11 @@ async function insertDocument(db, userEmail, studentId, opts) {
 // Devuelve { docId, numModules, numOas } o null si el documento no existe / no
 // pertenece al usuario (el caller cae entonces a INSERT).
 async function updateDocument(db, userEmail, documentId, opts) {
+  const tenantId = opts.tenantId;
+  // Aislamiento por establecimiento: cualquier miembro del colegio puede editar el documento.
   const existing = await db.prepare(
-    'SELECT id, student_id, plan_type, plan_scope, parent_id, trimester_index FROM documents WHERE id = ? AND user_email = ?'
-  ).bind(documentId, userEmail).first();
+    'SELECT id, student_id, plan_type, plan_scope, parent_id, trimester_index FROM documents WHERE id = ? AND tenant_id = ?'
+  ).bind(documentId, tenantId).first();
   if (!existing) return null;
 
   const { student, team, trimester } = opts;
@@ -182,12 +185,12 @@ async function updateDocument(db, userEmail, documentId, opts) {
     `UPDATE documents SET trimester = ?, subject = ?, subject_key = ?, work_level = ?,
        date_start = ?, date_end = ?, num_classes = ?, document_json = ?,
        plan_type = ?, plan_scope = ?, parent_id = ?, trimester_index = ?, updated_at = datetime('now')
-     WHERE id = ? AND user_email = ?`
+     WHERE id = ? AND tenant_id = ?`
   ).bind(
     trimester || '', subjects, subjectKeys, student.workLevel || '',
     dateStart, dateEnd, numClasses, docJson,
     planType, planScope, parentId, trimesterIndex,
-    documentId, userEmail
+    documentId, tenantId
   ).run();
 
   // Reemplazar los OAs: borrar los viejos e insertar los actuales.
@@ -231,6 +234,11 @@ export async function onRequestPost(context) {
     const denied = checkPermission(user.role, 'paci:create');
     if (denied) return denied;
 
+    // Establecimiento del usuario: todo lo que cree/edite queda bajo este tenant.
+    const tenant = await resolveTenant(request, env, user);
+    if (!tenant) return new Response(JSON.stringify({ ok: false, error: 'No tienes un establecimiento asignado.' }), { status: 400, headers });
+    const tenantId = tenant.id;
+
     const body = await request.json();
     const {
       student, modules, trimester, team, trimesters, apoyos,
@@ -250,7 +258,9 @@ export async function onRequestPost(context) {
     const minEducExtras = {
       antecedentesSalud, evaluacion, metas, estrategiasDua, seguimiento, firmas,
       contextual, criteriosEvaluacion, adecuaciones, parentPaiId,
-      fecha, notas
+      fecha, notas,
+      // tenantId fluye a insertDocument/updateDocument (que hacen ...minEducExtras).
+      tenantId
     };
 
     // Caso "familia": solo aplica a PACI. Llega un arreglo de trimestres -> 1 anual padre + N hijos.
@@ -269,10 +279,10 @@ export async function onRequestPost(context) {
 
     const db = env.DB;
 
-    // Buscar o crear estudiante
+    // Buscar o crear estudiante (compartido por establecimiento)
     let studentRow = await db.prepare(
-      'SELECT id FROM students WHERE user_email = ? AND name = ?'
-    ).bind(user.email, student.name).first();
+      'SELECT id FROM students WHERE tenant_id = ? AND name = ?'
+    ).bind(tenantId, student.name).first();
 
     // Cifrar campo sensible (diagnostico) antes de guardar
     const encDiag = env.ENCRYPTION_KEY
@@ -281,12 +291,12 @@ export async function onRequestPost(context) {
 
     if (!studentRow) {
       const res = await db.prepare(
-        `INSERT INTO students (user_email, name, diagnosis, diagnosis_id, real_level, work_level, school, birth_date, age, real_skills)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO students (user_email, name, diagnosis, diagnosis_id, real_level, work_level, school, birth_date, age, real_skills, tenant_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       ).bind(
         user.email, student.name, encDiag, student.diagnosisId || '',
         student.realLevel || '', student.workLevel || '', student.school || '',
-        student.birthDate || '', student.age || 0, student.realSkills || ''
+        student.birthDate || '', student.age || 0, student.realSkills || '', tenantId
       ).run();
       studentRow = { id: res.meta.last_row_id };
     } else {

@@ -1,4 +1,5 @@
 import { getUser } from '../auth-helper.js';
+import { resolveTenant } from '../tenant-helper.js';
 import { encrypt } from '../crypto-helper.js';
 import { checkPermission } from '../rbac-helper.js';
 
@@ -15,6 +16,10 @@ export async function onRequestPost(context) {
 
     const denied = checkPermission(user.role, 'student:edit');
     if (denied) return denied;
+
+    const tenant = await resolveTenant(request, env, user);
+    if (!tenant) return new Response(JSON.stringify({ ok: false, error: 'No tienes un establecimiento asignado.' }), { status: 400, headers });
+    const tenantId = tenant.id;
 
     const body = await request.json();
     const incoming = Array.isArray(body.students) ? body.students : [];
@@ -33,10 +38,10 @@ export async function onRequestPost(context) {
       return new Response(JSON.stringify({ ok: false, error: 'Ninguna fila valida (todas sin nombre).' }), { status: 400, headers });
     }
 
-    // Cargar nombres existentes del usuario para dedup
+    // Cargar nombres existentes del establecimiento para dedup (compartido por colegio)
     const existingRows = await env.DB.prepare(
-      'SELECT name FROM students WHERE user_email = ?'
-    ).bind(user.email).all();
+      'SELECT name FROM students WHERE tenant_id = ?'
+    ).bind(tenantId).all();
     const existing = new Set((existingRows.results || []).map(r => normalizeName(r.name)));
 
     const toInsert = [];
@@ -71,13 +76,13 @@ export async function onRequestPost(context) {
       stmts.push(env.DB.prepare(
         `INSERT INTO students
           (user_email, name, diagnosis, diagnosis_id, real_level, work_level,
-           school, birth_date, age, rut, guardian, curso, profile_json)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+           school, birth_date, age, rut, guardian, curso, profile_json, tenant_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       ).bind(
         user.email, s.name, encDiag, '',
         s.real_level || '', s.work_level || '',
         s.school || '', s.birth_date || '', s.age || 0,
-        encRut, encGuard, s.curso || '', s.profile_json || ''
+        encRut, encGuard, s.curso || '', s.profile_json || '', tenantId
       ));
     }
 

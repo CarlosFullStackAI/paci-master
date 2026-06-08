@@ -1,4 +1,5 @@
 import { getUser } from '../auth-helper.js';
+import { resolveTenant } from '../tenant-helper.js';
 import { logAudit } from '../audit-helper.js';
 
 export async function onRequestPost(context) {
@@ -12,10 +13,14 @@ export async function onRequestPost(context) {
     const { studentId } = await request.json();
     if (!studentId) return new Response(JSON.stringify({ ok: false, error: 'studentId requerido.' }), { status: 400, headers });
 
-    // Verificar que el estudiante pertenece al usuario
+    const tenant = await resolveTenant(request, env, user);
+    if (!tenant) return new Response(JSON.stringify({ ok: false, error: 'No tienes un establecimiento asignado.' }), { status: 400, headers });
+    const tenantId = tenant.id;
+
+    // Verificar que el estudiante pertenece al establecimiento del usuario
     const student = await env.DB.prepare(
-      'SELECT id, name FROM students WHERE id = ? AND user_email = ?'
-    ).bind(studentId, user.email).first();
+      'SELECT id, name FROM students WHERE id = ? AND tenant_id = ?'
+    ).bind(studentId, tenantId).first();
 
     if (!student) return new Response(JSON.stringify({ ok: false, error: 'Estudiante no encontrado.' }), { status: 404, headers });
 

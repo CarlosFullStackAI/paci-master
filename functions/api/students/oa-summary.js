@@ -1,5 +1,5 @@
 import { getUser } from '../auth-helper.js';
-import { canReadAllDocuments } from '../rbac-helper.js';
+import { resolveTenant } from '../tenant-helper.js';
 
 // POST /api/students/oa-summary
 // Resumen agregado de progreso de OAs por estudiante
@@ -19,12 +19,14 @@ export async function onRequestPost(context) {
       return new Response(JSON.stringify({ ok: false, error: 'studentId requerido.' }), { status: 400, headers });
     }
 
-    // Obtener todos los OAs del estudiante con su progreso.
-    // Control de acceso: solo roles con lectura global (admin/utp/coordinator) ven
-    // datos de cualquier estudiante; el resto solo los de sus propios documentos.
-    // (Mismo patron que students/oas.js; evita IDOR sobre datos NEE sensibles.)
+    const tenant = await resolveTenant(request, env, user);
+    if (!tenant) return new Response(JSON.stringify({ ok: false, error: 'No tienes un establecimiento asignado.' }), { status: 400, headers });
+    const tenantId = tenant.id;
+
+    // Obtener los OAs del estudiante con su progreso, acotados al establecimiento.
+    // Aislamiento por tenant: el join a documents filtra por d.tenant_id, asi un
+    // studentId de otro colegio no devuelve datos (evita IDOR sobre datos NEE).
     // oa_text_original: texto MINEDUC inmutable; oa_text_adapted: texto editado por el educador
-    const seeAll = canReadAllDocuments(user.role);
     let query =
       `SELECT do.id, do.subject, do.subject_key, do.level, do.unit_name,
               do.oa_code, do.oa_text, do.oa_text_original, do.oa_text_adapted, do.trimester,
@@ -32,12 +34,8 @@ export async function onRequestPost(context) {
               d.id as document_id
        FROM document_oas do
        JOIN documents d ON do.document_id = d.id
-       WHERE do.student_id = ?`;
-    const params = [studentId];
-    if (!seeAll) {
-      query += ' AND d.user_email = ?';
-      params.push(user.email);
-    }
+       WHERE do.student_id = ? AND d.tenant_id = ?`;
+    const params = [studentId, tenantId];
     query += ' ORDER BY do.subject_key, do.trimester, do.oa_code';
     const oas = await env.DB.prepare(query).bind(...params).all();
 

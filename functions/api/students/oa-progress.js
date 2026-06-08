@@ -1,4 +1,5 @@
 import { getUser } from '../auth-helper.js';
+import { resolveTenant } from '../tenant-helper.js';
 import { checkPermission } from '../rbac-helper.js';
 import { logAudit } from '../audit-helper.js';
 
@@ -29,9 +30,13 @@ export async function onRequestPost(context) {
       return new Response(JSON.stringify({ ok: false, error: 'Estado invalido. Usa: ' + VALID_STATUS.join(', ') }), { status: 400, headers });
     }
 
-    // Verificar que el OA existe y pertenece a un documento del usuario (o el usuario tiene permisos globales)
+    const tenant = await resolveTenant(request, env, user);
+    if (!tenant) return new Response(JSON.stringify({ ok: false, error: 'No tienes un establecimiento asignado.' }), { status: 400, headers });
+    const tenantId = tenant.id;
+
+    // El OA debe pertenecer a un documento del MISMO establecimiento.
     const oa = await env.DB.prepare(
-      `SELECT do.id, do.document_id, d.user_email
+      `SELECT do.id, do.document_id, d.tenant_id
        FROM document_oas do
        JOIN documents d ON do.document_id = d.id
        WHERE do.id = ?`
@@ -41,9 +46,8 @@ export async function onRequestPost(context) {
       return new Response(JSON.stringify({ ok: false, error: 'OA no encontrado.' }), { status: 404, headers });
     }
 
-    // Verificar propiedad (excepto admin/utp que ven todo)
-    const role = user.role || 'teacher';
-    if (!['admin', 'utp', 'coordinator'].includes(role) && oa.user_email !== user.email) {
+    // Aislamiento por colegio: el OA debe ser del establecimiento del usuario.
+    if (oa.tenant_id !== tenantId) {
       return new Response(JSON.stringify({ ok: false, error: 'No tienes acceso a este OA.' }), { status: 403, headers });
     }
 

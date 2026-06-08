@@ -1,5 +1,6 @@
 import { getUser } from '../auth-helper.js';
-import { checkPermission, canReadAllDocuments } from '../rbac-helper.js';
+import { resolveTenant } from '../tenant-helper.js';
+import { checkPermission } from '../rbac-helper.js';
 import { logAudit } from '../audit-helper.js';
 
 // GET (via POST) - Listar comentarios de un documento
@@ -20,22 +21,22 @@ export async function onRequestPost(context) {
       return new Response(JSON.stringify({ ok: false, error: 'documentId requerido.' }), { status: 400, headers });
     }
 
+    const tenant = await resolveTenant(request, env, user);
+    if (!tenant) return new Response(JSON.stringify({ ok: false, error: 'No tienes un establecimiento asignado.' }), { status: 400, headers });
+    const tenantId = tenant.id;
+
     // Verificar que el documento existe
     const doc = await env.DB.prepare(
-      'SELECT id, user_email FROM documents WHERE id = ?'
+      'SELECT id, tenant_id FROM documents WHERE id = ?'
     ).bind(documentId).first();
 
     if (!doc) {
       return new Response(JSON.stringify({ ok: false, error: 'Documento no encontrado.' }), { status: 404, headers });
     }
 
-    // Control de acceso al documento: el dueno, los roles con lectura global
-    // (admin/utp/coordinator) y el profesor de asignatura (colabora en comentarios)
-    // pueden ver/agregar comentarios. Evita IDOR de lectura/escritura por documentId.
-    const canAccess = canReadAllDocuments(user.role)
-      || doc.user_email === user.email
-      || user.role === 'profesor_asignatura';
-    if (!canAccess) {
+    // Aislamiento por colegio: cualquier miembro del establecimiento puede ver/comentar
+    // (equipo PIE colaborativo). Evita IDOR de lectura/escritura por documentId.
+    if (doc.tenant_id !== tenantId) {
       return new Response(JSON.stringify({ ok: false, error: 'No autorizado.' }), { status: 403, headers });
     }
 
