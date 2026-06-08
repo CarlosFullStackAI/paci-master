@@ -241,6 +241,12 @@
           <label>Contraseña</label>
           <input type="password" id="reg-password" required minlength="6" placeholder="Mínimo 6 caracteres">
         </div>
+        <div class="field">
+          <label>Establecimiento</label>
+          <select id="reg-tenant" required>
+            <option value="">Cargando establecimientos...</option>
+          </select>
+        </div>
         <button type="submit" class="btn-submit" id="btn-register">Crear Cuenta</button>
       </form>
     </div>
@@ -283,7 +289,7 @@
         const data = await res.json();
         if (data.ok) {
           localStorage.setItem('paci_token', data.token);
-          localStorage.setItem('paci_user', JSON.stringify({ email: data.email, name: data.name, role: data.role }));
+          localStorage.setItem('paci_user', JSON.stringify({ email: data.email, name: data.name, role: data.role, tenantSlug: data.tenantSlug || '' }));
           window.location.href = '/dashboard.html';
         } else {
           showError(data.error || 'Error al iniciar sesión');
@@ -302,7 +308,13 @@
       const name = document.getElementById('reg-name').value;
       const email = document.getElementById('reg-email').value;
       const password = document.getElementById('reg-password').value;
+      const tenantSlug = document.getElementById('reg-tenant').value;
       const btn = document.getElementById('btn-register');
+
+      if (!tenantSlug) {
+        showError('Selecciona tu establecimiento.');
+        return;
+      }
 
       btn.disabled = true;
       btn.textContent = 'Creando cuenta...';
@@ -312,12 +324,12 @@
         const res = await fetch('/api/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, email, password })
+          body: JSON.stringify({ name, email, password, tenantSlug })
         });
         const data = await res.json();
         if (data.ok) {
           localStorage.setItem('paci_token', data.token);
-          localStorage.setItem('paci_user', JSON.stringify({ email: data.email, name: data.name, role: data.role }));
+          localStorage.setItem('paci_user', JSON.stringify({ email: data.email, name: data.name, role: data.role, tenantSlug: data.tenantSlug || '' }));
           window.location.href = '/dashboard.html';
         } else {
           showError(data.error || 'Error al crear cuenta');
@@ -342,7 +354,7 @@
         const data = await res.json();
         if (data.ok) {
           localStorage.setItem('paci_token', data.token);
-          localStorage.setItem('paci_user', JSON.stringify({ email: data.email, name: data.name, role: data.role }));
+          localStorage.setItem('paci_user', JSON.stringify({ email: data.email, name: data.name, role: data.role, tenantSlug: data.tenantSlug || '' }));
           window.location.href = '/dashboard.html';
         } else {
           showError(data.error || 'Error con Google');
@@ -353,11 +365,34 @@
     }
 
     window.onload = async function () {
-      // Configuración del colegio
+      // Configuración del colegio (resuelto por subdominio o el primero activo)
+      let tenantActual = '';
       try {
         const cfg = await fetch('/api/tenant-config').then(r => r.json());
         if(cfg.nombre) {
             document.getElementById('tenant-name-sub').textContent = cfg.nombre;
+        }
+        tenantActual = cfg.id || '';
+      } catch(e) {}
+
+      // Poblar el selector de establecimientos del registro.
+      try {
+        const data = await fetch('/api/tenants').then(r => r.json());
+        const sel = document.getElementById('reg-tenant');
+        const lista = (data && data.tenants) || [];
+        if (sel) {
+          if (!lista.length) {
+            sel.innerHTML = '<option value="">No hay establecimientos disponibles</option>';
+          } else {
+            sel.innerHTML = '<option value="">Selecciona tu establecimiento</option>' +
+              lista.map(t => '<option value="' + t.slug + '">' + (t.nombre || t.slug) + '</option>').join('');
+            // Pre-seleccionar el del subdominio (si lo hay) o, si es el unico, ese.
+            if (tenantActual && lista.some(t => t.slug === tenantActual)) {
+              sel.value = tenantActual;
+            } else if (lista.length === 1) {
+              sel.value = lista[0].slug;
+            }
+          }
         }
       } catch(e) {}
 

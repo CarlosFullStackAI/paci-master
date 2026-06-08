@@ -1,9 +1,11 @@
+import { getSubdomainSlug, getTenantBySlug } from './tenant-helper.js';
+
 export async function onRequestPost(context) {
   const { request, env } = context;
   const headers = { 'Content-Type': 'application/json' };
 
   try {
-    const { name, email, password } = await request.json();
+    const { name, email, password, tenantSlug } = await request.json();
 
     if (!name || !email || !password) {
       return new Response(JSON.stringify({ ok: false, error: 'Todos los campos son obligatorios.' }), { status: 400, headers });
@@ -31,6 +33,17 @@ export async function onRequestPost(context) {
     }
     await env.PACI_USERS.put(rlKey, String(rlCount + 1), { expirationTtl: 900 });
 
+    // Establecimiento: lo elige el usuario al registrarse. Si no llega en el body,
+    // intentamos resolverlo por subdominio (cuando hay dominio propio configurado).
+    const chosenSlug = (tenantSlug || getSubdomainSlug(request) || '').trim();
+    if (!chosenSlug) {
+      return new Response(JSON.stringify({ ok: false, error: 'Selecciona tu establecimiento.' }), { status: 400, headers });
+    }
+    const tenant = await getTenantBySlug(env, chosenSlug);
+    if (!tenant) {
+      return new Response(JSON.stringify({ ok: false, error: 'El establecimiento seleccionado no es valido.' }), { status: 400, headers });
+    }
+
     // Verificar si el usuario ya existe
     const existing = await env.PACI_USERS.get(`user:${email}`);
     if (existing) {
@@ -41,16 +54,42 @@ export async function onRequestPost(context) {
     const salt = crypto.randomUUID();
     const hash = await hashPasswordPBKDF2(password, salt);
 
-    // Guardar usuario en KV
+    const role = 'teacher';
+
+    // Guardar usuario en KV (incluye su establecimiento)
     await env.PACI_USERS.put(`user:${email}`, JSON.stringify({
       name,
       email,
       passwordHash: hash,
       salt,
+      role,
+      tenantSlug: tenant.slug,
       createdAt: new Date().toISOString()
     }));
 
-    return new Response(JSON.stringify({ ok: true }), { status: 201, headers });
+    // Crear sesion (auto-login tras registrarse), incluyendo el establecimiento.
+    const token = crypto.randomUUID() + '-' + crypto.randomUUID();
+    await env.PACI_USERS.put(`session:${token}`, JSON.stringify({
+      email,
+      name,
+      role,
+      tenantSlug: tenant.slug
+    }), { expirationTtl: 86400 });
+
+    const secure = new URL(request.url).protocol === 'https:' ? ' Secure;' : '';
+    const cookieHeader = `paci_session=${token}; HttpOnly;${secure} SameSite=Strict; Path=/; Max-Age=86400`;
+
+    return new Response(JSON.stringify({
+      ok: true,
+      token,
+      email,
+      name,
+      role,
+      tenantSlug: tenant.slug
+    }), {
+      status: 201,
+      headers: { 'Content-Type': 'application/json', 'Set-Cookie': cookieHeader }
+    });
   } catch (e) {
     return new Response(JSON.stringify({ ok: false, error: 'Error interno del servidor.' }), { status: 500, headers });
   }

@@ -1,45 +1,44 @@
-// Endpoint para obtener la configuracion del establecimiento (tenant).
-// Retorna los datos basicos, branding y textos legales.
+// GET /api/tenant-config -> configuracion del establecimiento (tenant) actual.
+// Resuelve por subdominio del Host; si no hay, por el establecimiento del usuario
+// logueado; y como ultimo recurso, el primer establecimiento activo (para que el
+// login muestre branding aunque nadie haya iniciado sesion).
+import { getUser } from './auth-helper.js';
+import { resolveTenant } from './tenant-helper.js';
 
 export async function onRequestGet(context) {
-  const { env } = context;
-  
-  // Por ahora hardcodeado a lcm-pulebu, pero preparado para ser dinamico via subdominio o header
-  const tenantId = 'lcm-pulebu';
-  
-  try {
-    // Intentamos cargar el archivo desde el sistema de archivos (Cloudflare Pages Assets)
-    // En Cloudflare Pages, los archivos estaticos en /data/ son accesibles via fetch interno
-    // si el build los incluye en la carpeta de salida.
-    
-    // Como alternativa mas robusta para el backend, podriamos tener esto en KV,
-    // pero para Fase 2 usaremos el JSON estatico que ya existe.
-    
-    // Nota: El backend de Cloudflare Functions no puede leer el FS directamente con fs.readFile.
-    // Necesitamos que el frontend pida el JSON directamente o inyectarlo.
-    
-    // Sin embargo, para mantener la logica en el servidor y permitir personalizacion por rol:
-    // Retornamos un objeto base que el frontend podra usar.
-    
-    const config = {
-      id: "lcm-pulebu",
-      nombre: "Escuela Luis Cruz Martínez",
-      nombre_corto: "LCM Pulebu",
-      localidad: "Pulebu",
-      region: "Biobio",
-      branding: {
-        color_primario: "#091845",
-        color_secundario: "#1240c4"
-      }
-    };
+  const { request, env } = context;
+  // no-store: la config depende del subdominio / usuario; no debe cachearse compartida.
+  const headers = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
 
-    return new Response(JSON.stringify(config), {
-      headers: { 
-        'Content-Type': 'application/json',
-        'Cache-Control': 'public, max-age=3600'
-      }
-    });
+  try {
+    const user = await getUser(request, env).catch(() => null);
+    let tenant = await resolveTenant(request, env, user);
+
+    // Fallback final: primer establecimiento activo.
+    if (!tenant && env.DB) {
+      tenant = await env.DB.prepare(
+        'SELECT id, slug, nombre, nombre_corto, rbd, comuna, localidad, region, branding_json FROM tenants WHERE activo = 1 ORDER BY id LIMIT 1'
+      ).first();
+    }
+
+    if (!tenant) {
+      return new Response(JSON.stringify({
+        id: '', nombre: 'PIE MASTER', nombre_corto: 'PIE MASTER', localidad: '', region: '', branding: {}
+      }), { headers });
+    }
+
+    let branding = {};
+    try { branding = tenant.branding_json ? JSON.parse(tenant.branding_json) : {}; } catch (e) { branding = {}; }
+
+    return new Response(JSON.stringify({
+      id: tenant.slug,
+      nombre: tenant.nombre,
+      nombre_corto: tenant.nombre_corto || tenant.nombre,
+      localidad: tenant.localidad || '',
+      region: tenant.region || '',
+      branding
+    }), { headers });
   } catch (e) {
-    return new Response(JSON.stringify({ error: e.message }), { status: 500 });
+    return new Response(JSON.stringify({ error: 'Error al cargar la configuracion del establecimiento.' }), { status: 500, headers });
   }
 }

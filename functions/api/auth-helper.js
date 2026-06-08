@@ -17,15 +17,13 @@ export async function getUser(request, env) {
 
   const session = JSON.parse(sessionData);
 
-  // Si la sesion no tiene rol, obtenerlo desde KV del usuario
-  if (!session.role) {
+  // Completar rol y establecimiento desde el perfil del usuario si la sesion
+  // (puede ser una sesion vieja, creada antes de guardar estos campos) no los trae.
+  if (!session.role || session.tenantSlug === undefined) {
     const userData = await env.PACI_USERS.get(`user:${session.email}`);
-    if (userData) {
-      const user = JSON.parse(userData);
-      session.role = user.role || 'teacher';
-    } else {
-      session.role = 'teacher';
-    }
+    const user = userData ? JSON.parse(userData) : {};
+    if (!session.role) session.role = user.role || 'teacher';
+    if (session.tenantSlug === undefined) session.tenantSlug = user.tenantSlug || '';
   }
 
   return session;

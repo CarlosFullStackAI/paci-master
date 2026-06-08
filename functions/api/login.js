@@ -46,17 +46,34 @@ export async function onRequestPost(context) {
     // Login exitoso: resetear rate limit
     await env.PACI_USERS.delete(rlKey);
 
+    // Backfill de establecimiento: si el usuario (existente) no tiene colegio asignado
+    // y solo hay UN establecimiento activo, se lo asignamos y persistimos en su perfil.
+    // Asi los usuarios previos al multi-colegio quedan en el colegio sin intervencion.
+    if (!user.tenantSlug && env.DB) {
+      try {
+        const ten = await env.DB.prepare('SELECT slug FROM tenants WHERE activo = 1').all();
+        const list = (ten && ten.results) || [];
+        if (list.length === 1) {
+          user.tenantSlug = list[0].slug;
+          await env.PACI_USERS.put(`user:${email}`, JSON.stringify(user));
+        }
+      } catch (e) { /* no critico: el usuario igual puede entrar */ }
+    }
+
     // Crear token de sesion
     const token = crypto.randomUUID() + '-' + crypto.randomUUID();
 
     // Obtener rol del usuario (default: teacher)
     const userRole = user.role || 'teacher';
+    // Establecimiento (tenant) del usuario, si lo tiene asignado.
+    const userTenant = user.tenantSlug || '';
 
-    // Guardar sesion en KV (expira en 24 horas) - incluye rol
+    // Guardar sesion en KV (expira en 24 horas) - incluye rol y establecimiento
     await env.PACI_USERS.put(`session:${token}`, JSON.stringify({
       email: user.email,
       name: user.name,
-      role: userRole
+      role: userRole,
+      tenantSlug: userTenant
     }), { expirationTtl: 86400 });
 
     // Configurar httpOnly cookie (no accesible desde JS = inmune a XSS).
@@ -70,7 +87,8 @@ export async function onRequestPost(context) {
       token,
       email: user.email,
       name: user.name,
-      role: userRole
+      role: userRole,
+      tenantSlug: userTenant
     }), {
       status: 200,
       headers: {

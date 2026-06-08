@@ -5409,6 +5409,30 @@
                 state.recursos || state.duaDetalle);
         }
 
+        // Aplica un objeto de estado de contexto a los campos del formulario.
+        function applyAIContextData(data) {
+            if (!data) {
+                refreshAIContextCounters();
+                refreshAIContextIndicator();
+                return;
+            }
+            AI_TEXT_FIELDS.forEach(f => {
+                if (typeof data[f.key] === 'string') {
+                    const el = document.getElementById(f.id);
+                    if (el) el.value = data[f.key];
+                }
+            });
+            if (typeof data.duracion === 'string' && data.duracion) {
+                selectAIDuracion(data.duracion, true);
+            }
+            const evalSet = new Set(Array.isArray(data.estrategiasEval) ? data.estrategiasEval : []);
+            document.querySelectorAll('.ai-eval-cb').forEach(cb => { cb.checked = evalSet.has(cb.value); });
+            const duaSet = new Set(Array.isArray(data.duaChecks) ? data.duaChecks : []);
+            document.querySelectorAll('.ai-dua-cb').forEach(cb => { cb.checked = duaSet.has(cb.value); });
+            refreshAIContextCounters();
+            refreshAIContextIndicator();
+        }
+
         function loadAIContextFromStorage() {
             try {
                 let data = null;
@@ -5424,31 +5448,31 @@
                         localStorage.removeItem(AI_CONTEXT_LS_KEY_LEGACY);
                     }
                 }
-                if (!data) {
-                    refreshAIContextCounters();
-                    refreshAIContextIndicator();
-                    return;
-                }
-                AI_TEXT_FIELDS.forEach(f => {
-                    if (typeof data[f.key] === 'string') {
-                        const el = document.getElementById(f.id);
-                        if (el) el.value = data[f.key];
-                    }
-                });
-                if (typeof data.duracion === 'string' && data.duracion) {
-                    selectAIDuracion(data.duracion, true);
-                }
-                const evalSet = new Set(Array.isArray(data.estrategiasEval) ? data.estrategiasEval : []);
-                document.querySelectorAll('.ai-eval-cb').forEach(cb => { cb.checked = evalSet.has(cb.value); });
-                const duaSet = new Set(Array.isArray(data.duaChecks) ? data.duaChecks : []);
-                document.querySelectorAll('.ai-dua-cb').forEach(cb => { cb.checked = duaSet.has(cb.value); });
-                refreshAIContextCounters();
-                refreshAIContextIndicator();
+                applyAIContextData(data);
             } catch (e) {
                 // localStorage puede fallar en modo incognito o cuotas; no es critico.
             }
+            // Tras el cache local, traer el contexto del ESTABLECIMIENTO (D1), que es la
+            // fuente compartida por el colegio. Best-effort: si falla, queda el local.
+            loadAIContextFromServer();
         }
 
+        async function loadAIContextFromServer() {
+            if (typeof AI_ENABLED !== 'undefined' && !AI_ENABLED) return;
+            try {
+                const res = await fetch('/api/ai/context', { method: 'GET', headers: { 'Content-Type': 'application/json' } });
+                if (!res.ok) return;
+                const data = await res.json();
+                if (data && data.ok && data.context) {
+                    applyAIContextData(data.context);
+                    try { localStorage.setItem(AI_CONTEXT_LS_KEY, JSON.stringify(readAIContextState())); } catch (e) {}
+                }
+            } catch (e) {
+                // sin conexion: se mantiene el contexto del cache local
+            }
+        }
+
+        let _aiCtxServerTimer = null;
         function saveAIContextToStorage() {
             try {
                 const state = readAIContextState();
@@ -5459,6 +5483,27 @@
                 }
             } catch (e) {
                 // ignorar
+            }
+            // Persistir online (debounced) en el contexto del establecimiento (D1).
+            scheduleAIContextServerSave();
+        }
+
+        function scheduleAIContextServerSave() {
+            clearTimeout(_aiCtxServerTimer);
+            _aiCtxServerTimer = setTimeout(saveAIContextToServer, 1500);
+        }
+
+        async function saveAIContextToServer() {
+            if (typeof AI_ENABLED !== 'undefined' && !AI_ENABLED) return;
+            try {
+                const token = localStorage.getItem('paci_token');
+                await fetch('/api/ai/context', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ _token: token, context: readAIContextState() })
+                });
+            } catch (e) {
+                // offline: queda el respaldo en localStorage hasta la proxima vez
             }
         }
 
