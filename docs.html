@@ -1,0 +1,1636 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PIE MASTER - Editor de documento</title>
+  <link rel="icon" href="/favicon.svg?v=2" type="image/svg+xml">
+  <link rel="shortcut icon" href="/favicon.png?v=2" type="image/png">
+
+  <script>
+    if (!localStorage.getItem('paci_user')) { window.location.href = '/login.html'; }
+  </script>
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('paci_theme');
+        if (t !== 'dark' && t !== 'light') {
+          t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+        }
+        document.documentElement.setAttribute('data-theme', t);
+      } catch (e) {}
+    })();
+  </script>
+  <script src="/docs-registry.js"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/paci.css">
+  <link rel="stylesheet" href="/tailwind-utils.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--bg-deep);
+      color: #e2e8f0;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      position: relative;
+    }
+    /* Fondo animado: blobs de gradiente suaves (es editor, no debe distraer) */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(circle at 18% 25%, rgba(56, 189, 248, 0.2)   0%, transparent 38%),
+        radial-gradient(circle at 78% 22%, rgba(168, 139, 250, 0.18) 0%, transparent 42%),
+        radial-gradient(circle at 52% 78%, rgba(244, 114, 182, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 88% 88%, rgba(52, 211, 153, 0.14)  0%, transparent 38%),
+        radial-gradient(circle at 8% 92%,  rgba(251, 146, 60, 0.14)  0%, transparent 38%);
+      background-size: 220% 220%;
+      background-attachment: fixed;
+      z-index: -2;
+      pointer-events: none;
+      animation: bg-flow 32s ease-in-out infinite alternate;
+    }
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url('/assets/canva/bg-pattern.png');
+      background-size: cover;
+      opacity: 0.06;
+      pointer-events: none;
+      z-index: -1;
+      mix-blend-mode: overlay;
+    }
+    @keyframes bg-flow {
+      0%   { background-position: 0% 0%,   100% 0%,   50% 100%, 100% 100%, 0% 100%; }
+      25%  { background-position: 20% 15%, 80% 20%,   45% 90%,  90% 95%,   5% 95%; }
+      50%  { background-position: 100% 50%, 0% 50%,   100% 50%, 50% 0%,    50% 100%; }
+      75%  { background-position: 80% 85%, 15% 80%,   25% 10%,  10% 5%,    95% 5%; }
+      100% { background-position: 100% 100%, 0% 100%, 50% 0%,   0% 0%,     100% 0%; }
+    }
+    [data-theme="light"] body { background: #f1f5f9; color: #0f172a; }
+    [data-theme="light"] body::before {
+      background:
+        radial-gradient(circle at 18% 25%, rgba(125, 211, 252, 0.45) 0%, transparent 38%),
+        radial-gradient(circle at 78% 22%, rgba(196, 181, 253, 0.4)  0%, transparent 42%),
+        radial-gradient(circle at 52% 78%, rgba(251, 207, 232, 0.4)  0%, transparent 40%),
+        radial-gradient(circle at 88% 88%, rgba(167, 243, 208, 0.35) 0%, transparent 38%),
+        radial-gradient(circle at 8% 92%,  rgba(254, 215, 170, 0.4)  0%, transparent 38%);
+      background-size: 220% 220%;
+      background-attachment: fixed;
+    }
+    [data-theme="light"] body::after { opacity: 0.04; mix-blend-mode: multiply; filter: invert(1) hue-rotate(180deg); }
+
+    .topbar {
+      background: rgba(2,6,23,0.88);
+      backdrop-filter: blur(20px);
+      color: #fff;
+      padding: 1rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky; top: 0; z-index: 100;
+      border-bottom: 1px solid rgba(56,189,248,0.18);
+    }
+    [data-theme="light"] .topbar { background: #ffffff; color: #0f172a; border-bottom-color: #e2e8f0; }
+    .topbar > div:first-child { display: flex; align-items: center; }
+    .brand-logo {
+      height: 52px; width: auto; border-radius: 0.75rem; margin-right: 0.85rem;
+      box-shadow: 0 4px 14px rgba(18,64,196,0.4);
+    }
+    .topbar h1 { font-size: 1rem; font-weight: 800; }
+    .topbar .sub { font-size: 0.7rem; color: #94a3b8; }
+    [data-theme="light"] .topbar .sub { color: #475569; }
+
+    .toolbar { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+    .btn {
+      padding: 0.65rem 1rem; border-radius: 0.7rem;
+      font-weight: 800; font-size: 0.8rem;
+      cursor: pointer; border: 1px solid transparent;
+      transition: all 0.2s; display: inline-flex; align-items: center; gap: 0.4rem;
+      text-decoration: none;
+    }
+    .btn-primary { background: linear-gradient(135deg, #38bdf8, #818cf8); color: #020617; box-shadow: 0 4px 14px rgba(56,189,248,0.35); }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(56,189,248,0.5); }
+    .btn-ghost { background: rgba(255,255,255,0.06); color: #cbd5e1; border-color: rgba(255,255,255,0.1); }
+    .btn-ghost:hover { background: rgba(255,255,255,0.12); }
+    [data-theme="light"] .btn-ghost { background: #f1f5f9; color: #475569; border-color: #e2e8f0; }
+    [data-theme="light"] .btn-ghost:hover { background: #e2e8f0; }
+
+    .container { max-width: 920px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+
+    .doc-hero {
+      background: rgba(15,23,42,0.55);
+      border: 1px solid rgba(56,189,248,0.18);
+      border-radius: 1.25rem;
+      padding: 1.8rem 2rem 1.5rem;
+      margin-bottom: 1.25rem;
+      backdrop-filter: blur(12px);
+    }
+    [data-theme="light"] .doc-hero { background: #ffffff; border-color: #e2e8f0; }
+    .doc-hero .doc-icon {
+      width: 60px; height: 60px; border-radius: 1rem;
+      display: inline-flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #38bdf8, #818cf8);
+      color: #020617; font-size: 1.55rem;
+      box-shadow: 0 8px 22px rgba(56,189,248,0.35);
+      margin-bottom: 1rem;
+    }
+    .doc-hero h2 { font-size: 1.45rem; font-weight: 800; line-height: 1.2; margin-bottom: 0.3rem; }
+    .doc-hero .sub { font-size: 0.92rem; color: #94a3b8; margin-bottom: 0.85rem; }
+    [data-theme="light"] .doc-hero .sub { color: #475569; }
+    .doc-hero .desc { font-size: 0.88rem; color: #cbd5e1; line-height: 1.55; }
+    [data-theme="light"] .doc-hero .desc { color: #334155; }
+
+    .badges { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      padding: 0.35rem 0.75rem; border-radius: 999px;
+      font-size: 0.7rem; font-weight: 800;
+      background: rgba(56,189,248,0.12); color: #38bdf8;
+      border: 1px solid rgba(56,189,248,0.3);
+    }
+    .badge.ministerial { background: rgba(168,85,247,0.12); color: #c084fc; border-color: rgba(168,85,247,0.35); }
+    .badge.decree      { background: rgba(52,211,153,0.12); color: #34d399; border-color: rgba(52,211,153,0.35); }
+    [data-theme="light"] .badge { background: #dbeafe; color: #1d4ed8; border-color: #93c5fd; }
+    [data-theme="light"] .badge.ministerial { background: #ede9fe; color: #7c3aed; border-color: #c4b5fd; }
+    [data-theme="light"] .badge.decree { background: #d1fae5; color: #065f46; border-color: #6ee7b7; }
+
+    .official-bar {
+      display: flex; gap: 0.55rem; flex-wrap: wrap; align-items: center;
+      margin-top: 1rem; padding-top: 1rem;
+      border-top: 1px dashed rgba(56,189,248,0.2);
+    }
+    [data-theme="light"] .official-bar { border-top-color: #e2e8f0; }
+    .official-link {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      font-size: 0.78rem; font-weight: 700;
+      padding: 0.5rem 0.85rem; border-radius: 0.6rem;
+      background: rgba(56,189,248,0.12);
+      color: #38bdf8; text-decoration: none;
+      border: 1px solid rgba(56,189,248,0.3);
+      transition: all 0.2s;
+    }
+    .official-link:hover { background: rgba(56,189,248,0.2); transform: translateY(-1px); }
+    [data-theme="light"] .official-link { background: #dbeafe; color: #1d4ed8; border-color: #93c5fd; }
+
+    /* Botón "Seleccionar estudiante" */
+    .student-picker-bar {
+      display: flex; align-items: center; gap: 0.65rem;
+      background: rgba(52, 211, 153, 0.1);
+      border: 1px solid rgba(52, 211, 153, 0.35);
+      border-radius: 0.85rem;
+      padding: 0.85rem 1rem;
+      margin-bottom: 1.25rem;
+      font-size: 0.86rem;
+      color: #6ee7b7;
+    }
+    [data-theme="light"] .student-picker-bar { background: #ecfdf5; border-color: #6ee7b7; color: #047857; }
+    .student-picker-bar i { font-size: 1.1rem; }
+    .student-picker-bar .info { flex: 1; }
+    .student-picker-bar .info strong { color: #f1f5f9; }
+    [data-theme="light"] .student-picker-bar .info strong { color: #064e3b; }
+    .student-picker-bar button {
+      background: linear-gradient(135deg, #34d399, #10b981);
+      color: #064e3b;
+      border: none;
+      padding: 0.55rem 1rem;
+      border-radius: 0.6rem;
+      font-weight: 800;
+      font-size: 0.78rem;
+      cursor: pointer;
+      display: inline-flex; align-items: center; gap: 0.4rem;
+    }
+    .student-picker-bar button:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(52, 211, 153, 0.45); }
+
+    /* Banner de auto-derivación de campos desde documentos previos */
+    .derived-banner {
+      display: flex; align-items: flex-start; gap: 0.7rem;
+      background: rgba(168, 85, 247, 0.1);
+      border: 1px solid rgba(168, 85, 247, 0.35);
+      border-radius: 0.85rem;
+      padding: 0.85rem 1rem;
+      margin-bottom: 1.25rem;
+      font-size: 0.85rem;
+      color: #d8b4fe;
+    }
+    [data-theme="light"] .derived-banner { background: #faf5ff; border-color: #c4b5fd; color: #6d28d9; }
+    .derived-banner i { font-size: 1.1rem; color: #c084fc; margin-top: 0.15rem; flex-shrink: 0; }
+    [data-theme="light"] .derived-banner i { color: #7c3aed; }
+    .derived-banner strong { color: #f3e8ff; }
+    [data-theme="light"] .derived-banner strong { color: #581c87; }
+    .derived-banner ul { margin: 0.4rem 0 0 0; padding-left: 1.1rem; font-size: 0.78rem; }
+    .derived-banner ul li { margin-bottom: 0.15rem; }
+
+    /* ===== Resumen MINEDUC: panel para copiar campo por campo ===== */
+    .resumen-overlay {
+      position: fixed; inset: 0;
+      background: rgba(2, 6, 23, 0.6);
+      backdrop-filter: blur(6px);
+      z-index: 800;
+      display: flex; align-items: stretch; justify-content: flex-end;
+    }
+    .resumen-panel {
+      width: 100%; max-width: 540px; height: 100%;
+      background: #0f172a;
+      border-left: 1px solid rgba(168, 85, 247, 0.3);
+      box-shadow: -30px 0 80px rgba(0, 0, 0, 0.6);
+      display: flex; flex-direction: column;
+      overflow: hidden;
+      animation: slideInRight 0.3s cubic-bezier(0.16, 0.84, 0.44, 1);
+    }
+    [data-theme="light"] .resumen-panel { background: #ffffff; border-left-color: #c4b5fd; }
+    @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
+    .resumen-header {
+      padding: 1.25rem 1.5rem;
+      background: linear-gradient(135deg, rgba(168, 85, 247, 0.18), rgba(124, 58, 237, 0.06));
+      border-bottom: 1px solid rgba(168, 85, 247, 0.25);
+      display: flex; align-items: center; gap: 0.75rem;
+    }
+    [data-theme="light"] .resumen-header { background: #faf5ff; border-bottom-color: #c4b5fd; }
+    .resumen-header .icon {
+      width: 42px; height: 42px;
+      border-radius: 0.75rem;
+      background: linear-gradient(135deg, #a78bfa, #7c3aed);
+      display: inline-flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 1.1rem;
+      box-shadow: 0 6px 20px rgba(124, 58, 237, 0.4);
+    }
+    .resumen-header h3 { font-size: 1.05rem; font-weight: 800; color: #f1f5f9; }
+    [data-theme="light"] .resumen-header h3 { color: #0f172a; }
+    .resumen-header .sub { font-size: 0.74rem; color: #94a3b8; margin-top: 0.15rem; }
+    [data-theme="light"] .resumen-header .sub { color: #475569; }
+    .resumen-close {
+      margin-left: auto;
+      background: none; border: none;
+      color: #94a3b8; font-size: 1.2rem; cursor: pointer;
+      padding: 0.5rem;
+    }
+    .resumen-close:hover { color: #f1f5f9; }
+    [data-theme="light"] .resumen-close:hover { color: #0f172a; }
+
+    .resumen-toolbar {
+      padding: 0.85rem 1.5rem;
+      border-bottom: 1px solid rgba(168, 85, 247, 0.15);
+      display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;
+    }
+    [data-theme="light"] .resumen-toolbar { border-bottom-color: #e9d5ff; }
+    .resumen-toolbar .btn-copy-all {
+      background: linear-gradient(135deg, #a78bfa, #7c3aed);
+      color: #fff; border: none;
+      padding: 0.55rem 1rem;
+      border-radius: 0.65rem;
+      font-weight: 800; font-size: 0.78rem;
+      cursor: pointer;
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      box-shadow: 0 4px 14px rgba(124, 58, 237, 0.4);
+    }
+    .resumen-toolbar .btn-copy-all:hover { transform: translateY(-1px); }
+    .resumen-toolbar .info {
+      font-size: 0.72rem; color: #94a3b8;
+      flex: 1;
+    }
+    [data-theme="light"] .resumen-toolbar .info { color: #475569; }
+
+    .resumen-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0.5rem 1.5rem 1.5rem;
+    }
+    .resumen-section {
+      margin-top: 1.1rem;
+    }
+    .resumen-section-head {
+      font-size: 0.7rem; font-weight: 800;
+      color: #a78bfa;
+      text-transform: uppercase; letter-spacing: 0.06em;
+      padding: 0.65rem 0 0.55rem;
+      border-bottom: 1px dashed rgba(168, 85, 247, 0.3);
+      margin-bottom: 0.5rem;
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    [data-theme="light"] .resumen-section-head { color: #7c3aed; border-bottom-color: #c4b5fd; }
+    .resumen-section-head i { font-size: 0.8rem; }
+
+    .resumen-row {
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid rgba(168, 85, 247, 0.12);
+      border-radius: 0.7rem;
+      padding: 0.7rem 0.9rem;
+      margin-bottom: 0.45rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.65rem;
+      transition: all 0.2s;
+    }
+    [data-theme="light"] .resumen-row { background: #f8fafc; border-color: #e9d5ff; }
+    .resumen-row:hover {
+      border-color: rgba(168, 85, 247, 0.35);
+      background: rgba(168, 85, 247, 0.06);
+    }
+    [data-theme="light"] .resumen-row:hover { background: #faf5ff; border-color: #c4b5fd; }
+    .resumen-row .field-info { flex: 1; min-width: 0; }
+    .resumen-row .field-label {
+      font-size: 0.62rem;
+      font-weight: 800;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.3rem;
+    }
+    [data-theme="light"] .resumen-row .field-label { color: #64748b; }
+    .resumen-row .field-value {
+      font-size: 0.92rem;
+      color: #f1f5f9;
+      font-weight: 600;
+      line-height: 1.4;
+      word-wrap: break-word;
+      white-space: pre-wrap;
+    }
+    [data-theme="light"] .resumen-row .field-value { color: #0f172a; }
+    .resumen-row .field-value.empty { color: #f87171; font-style: italic; font-weight: 500; }
+    [data-theme="light"] .resumen-row .field-value.empty { color: #b91c1c; }
+
+    .btn-copy-row {
+      background: rgba(168, 85, 247, 0.15);
+      color: #c084fc;
+      border: 1px solid rgba(168, 85, 247, 0.35);
+      width: 32px; height: 32px;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      font-size: 0.75rem;
+      flex-shrink: 0;
+      transition: all 0.2s;
+      display: inline-flex; align-items: center; justify-content: center;
+    }
+    .btn-copy-row:hover {
+      background: rgba(168, 85, 247, 0.3);
+      transform: scale(1.05);
+    }
+    .btn-copy-row.copied {
+      background: #10b981;
+      color: #fff;
+      border-color: transparent;
+    }
+    [data-theme="light"] .btn-copy-row { background: #ede9fe; color: #7c3aed; border-color: #c4b5fd; }
+    [data-theme="light"] .btn-copy-row:hover { background: #ddd6fe; }
+
+    .resumen-hint {
+      background: rgba(168, 85, 247, 0.08);
+      border-left: 3px solid #a78bfa;
+      padding: 0.75rem 0.9rem;
+      border-radius: 0 0.6rem 0.6rem 0;
+      margin-bottom: 1rem;
+      font-size: 0.78rem;
+      color: #cbd5e1;
+      line-height: 1.5;
+    }
+    [data-theme="light"] .resumen-hint { background: #faf5ff; color: #4c1d95; }
+
+    /* Modal del picker */
+    .picker-overlay {
+      position: fixed; inset: 0;
+      background: rgba(2, 6, 23, 0.65);
+      backdrop-filter: blur(6px);
+      z-index: 500;
+      display: flex; align-items: center; justify-content: center;
+      padding: 1.5rem;
+    }
+    .picker-modal {
+      background: #0f172a;
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 1.25rem;
+      width: 100%; max-width: 620px;
+      max-height: 85vh;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
+      display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+    [data-theme="light"] .picker-modal { background: #ffffff; border-color: #e2e8f0; box-shadow: 0 30px 80px rgba(15, 23, 42, 0.2); }
+    .picker-header {
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid rgba(56, 189, 248, 0.15);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    [data-theme="light"] .picker-header { border-bottom-color: #e2e8f0; }
+    .picker-header h3 { font-size: 1.05rem; font-weight: 800; color: #f1f5f9; }
+    [data-theme="light"] .picker-header h3 { color: #0f172a; }
+    .picker-close { background: none; border: none; color: #94a3b8; font-size: 1.1rem; cursor: pointer; padding: 0.3rem; }
+    .picker-close:hover { color: #f1f5f9; }
+    [data-theme="light"] .picker-close:hover { color: #0f172a; }
+    .picker-filters {
+      padding: 1rem 1.5rem 0.75rem;
+      display: grid; gap: 0.65rem;
+    }
+    .picker-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0.5rem 1.5rem 1.5rem;
+    }
+    .picker-group {
+      margin-bottom: 1rem;
+    }
+    .picker-group-label {
+      font-size: 0.7rem; font-weight: 800;
+      color: #38bdf8; text-transform: uppercase; letter-spacing: 0.06em;
+      padding: 0.5rem 0; margin-bottom: 0.35rem;
+      border-bottom: 1px dashed rgba(56, 189, 248, 0.25);
+    }
+    [data-theme="light"] .picker-group-label { color: #1d4ed8; border-bottom-color: #cbd5e1; }
+    .picker-item {
+      display: flex; align-items: center; gap: 0.75rem;
+      padding: 0.7rem 0.8rem;
+      border-radius: 0.7rem;
+      cursor: pointer;
+      background: rgba(15, 23, 42, 0.4);
+      border: 1px solid rgba(56, 189, 248, 0.08);
+      transition: all 0.2s;
+      margin-bottom: 0.35rem;
+    }
+    .picker-item:hover {
+      background: rgba(56, 189, 248, 0.12);
+      border-color: rgba(56, 189, 248, 0.4);
+      transform: translateX(3px);
+    }
+    [data-theme="light"] .picker-item { background: #f8fafc; border-color: #e2e8f0; }
+    [data-theme="light"] .picker-item:hover { background: #dbeafe; border-color: #93c5fd; }
+    .picker-item .avatar {
+      width: 38px; height: 38px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #38bdf8, #818cf8);
+      color: #020617;
+      font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.85rem;
+      flex-shrink: 0;
+    }
+    .picker-item .info { flex: 1; min-width: 0; }
+    .picker-item .info .name { font-weight: 800; font-size: 0.88rem; color: #f1f5f9; }
+    [data-theme="light"] .picker-item .info .name { color: #0f172a; }
+    .picker-item .info .meta { font-size: 0.72rem; color: #94a3b8; }
+    [data-theme="light"] .picker-item .info .meta { color: #475569; }
+    .picker-empty {
+      text-align: center;
+      padding: 2rem;
+      color: #94a3b8;
+      font-size: 0.85rem;
+    }
+
+    .card {
+      background: rgba(15,23,42,0.5);
+      border: 1px solid rgba(56,189,248,0.1);
+      border-radius: 1.25rem;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+      backdrop-filter: blur(12px);
+    }
+    [data-theme="light"] .card { background: #ffffff; border-color: #e2e8f0; }
+    .card h3 {
+      font-size: 0.95rem; font-weight: 800; margin-bottom: 1rem;
+      display: flex; align-items: center; gap: 0.55rem;
+      color: #f1f5f9;
+    }
+    [data-theme="light"] .card h3 { color: #0f172a; }
+    .card h3 i { color: #38bdf8; }
+    [data-theme="light"] .card h3 i { color: #1d4ed8; }
+
+    label {
+      font-size: 0.66rem; font-weight: 800;
+      text-transform: uppercase; color: #94a3b8;
+      margin-bottom: 0.35rem; display: block; letter-spacing: 0.04em;
+    }
+    label .req { color: #f87171; margin-left: 0.2rem; }
+    [data-theme="light"] label { color: #475569; }
+
+    input[type="text"], input[type="date"], select, textarea {
+      width: 100%;
+      padding: 0.65rem 0.85rem;
+      border-radius: 0.65rem;
+      background: rgba(15,23,42,0.55);
+      border: 1px solid rgba(56,189,248,0.18);
+      color: #f1f5f9;
+      font-family: inherit;
+      font-size: 0.88rem;
+      outline: none;
+    }
+    [data-theme="light"] input[type="text"], [data-theme="light"] input[type="date"],
+    [data-theme="light"] select, [data-theme="light"] textarea {
+      background: #ffffff; color: #0f172a; border-color: #cbd5e1;
+    }
+    input:focus, select:focus, textarea:focus { border-color: #38bdf8; box-shadow: 0 0 0 3px rgba(56,189,248,0.2); }
+    textarea { resize: vertical; min-height: 80px; }
+    input::placeholder, textarea::placeholder { color: #64748b; }
+    [data-theme="light"] input::placeholder, [data-theme="light"] textarea::placeholder { color: #94a3b8; }
+
+    .field-group { margin-bottom: 0.85rem; }
+    .field-group:last-child { margin-bottom: 0; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.85rem; }
+    @media (max-width: 700px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+    .field-checkbox {
+      display: flex; align-items: center; gap: 0.55rem;
+      padding: 0.55rem 0.75rem; border-radius: 0.55rem;
+      background: rgba(15,23,42,0.4); border: 1px solid rgba(56,189,248,0.12);
+      font-size: 0.85rem; color: #cbd5e1; cursor: pointer;
+    }
+    [data-theme="light"] .field-checkbox { background: #f8fafc; border-color: #e2e8f0; color: #334155; }
+    .field-checkbox input[type="checkbox"] { width: auto; transform: scale(1.15); accent-color: #38bdf8; }
+
+    .mineduc-block {
+      background: rgba(168,85,247,0.08);
+      border: 1px solid rgba(168,85,247,0.25);
+      border-radius: 0.85rem;
+      padding: 1rem 1.15rem;
+      margin-bottom: 1rem;
+      font-size: 0.82rem;
+      display: flex; align-items: flex-start; gap: 0.75rem;
+    }
+    [data-theme="light"] .mineduc-block { background: #f5f3ff; border-color: #c4b5fd; }
+    .mineduc-block i { font-size: 1.1rem; color: #c084fc; margin-top: 0.1rem; flex-shrink: 0; }
+    [data-theme="light"] .mineduc-block i { color: #7c3aed; }
+    .mineduc-block strong { color: #e9d5ff; }
+    [data-theme="light"] .mineduc-block strong { color: #6d28d9; }
+    .mineduc-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem; margin-top: 0.6rem; }
+    @media (max-width: 700px) { .mineduc-fields { grid-template-columns: 1fr; } }
+    .mineduc-fields .mf { padding: 0.45rem 0.7rem; background: rgba(15,23,42,0.55); border-radius: 0.5rem; font-size: 0.78rem; }
+    [data-theme="light"] .mineduc-fields .mf { background: #ffffff; }
+    .mineduc-fields .mf-label { font-size: 0.6rem; color: #94a3b8; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; display: block; }
+    [data-theme="light"] .mineduc-fields .mf-label { color: #6b7280; }
+    .mineduc-fields .mf-value { color: #f1f5f9; font-weight: 700; }
+    [data-theme="light"] .mineduc-fields .mf-value { color: #0f172a; }
+    .mineduc-fields .mf-value.empty { color: #f87171; font-style: italic; font-weight: 500; }
+
+    .toast {
+      position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%);
+      background: #0f172a; color: #f1f5f9;
+      padding: 0.85rem 1.5rem; border-radius: 0.75rem;
+      box-shadow: 0 12px 28px rgba(0,0,0,0.4);
+      font-size: 0.85rem; font-weight: 700;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.3s, transform 0.3s;
+      z-index: 200;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(-6px); }
+    .toast.error { background: #b91c1c; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <img class="brand-logo" src="/assets/canva/logo.png" alt="PIE MASTER">
+      <div>
+        <h1 id="doc-title">Cargando…</h1>
+        <div class="sub" id="doc-phase-label">PIE MASTER · Editor de documento</div>
+      </div>
+    </div>
+    <nav class="toolbar" aria-label="Acciones">
+      <a href="/dashboard.html" class="btn btn-ghost"><i class="fa-solid fa-arrow-left"></i> Volver</a>
+      <button type="button" class="btn btn-ghost" onclick="abrirResumenMinedu()" title="Panel con datos listos para pegar en el Word oficial MINEDUC" style="background:linear-gradient(135deg,rgba(168,85,247,0.18),rgba(124,58,237,0.14));border-color:rgba(168,85,247,0.4);color:#c084fc;">
+        <i class="fa-solid fa-clipboard-list"></i> Resumen p/MINEDUC
+      </button>
+      <button type="button" class="btn btn-ghost" onclick="descargarWord()" title="Descargar como Word editable (.doc)"><i class="fa-regular fa-file-word"></i> Word</button>
+      <button type="button" class="btn btn-ghost" onclick="descargarPDF()" title="Descargar como PDF MINEDUC"><i class="fa-regular fa-file-pdf"></i> PDF</button>
+      <button type="button" class="btn btn-primary" onclick="guardarDocumento()"><i class="fa-solid fa-cloud-arrow-up"></i> Guardar</button>
+    </nav>
+  </header>
+
+  <main class="container">
+    <div id="hero" class="doc-hero"></div>
+
+    <div class="student-picker-bar">
+      <i class="fa-solid fa-user-graduate"></i>
+      <div class="info">
+        <strong id="selected-student-label">Selecciona un estudiante de tu base</strong>
+        <div style="font-size:0.72rem;opacity:0.85;margin-top:0.15rem;">Autocompletará todos los campos del estudiante para mantener coherencia entre documentos.</div>
+      </div>
+      <button type="button" onclick="abrirPicker()"><i class="fa-solid fa-magnifying-glass"></i> Seleccionar</button>
+    </div>
+
+    <div id="derived-banner" class="derived-banner" style="display:none;">
+      <i class="fa-solid fa-arrows-rotate"></i>
+      <div style="flex:1;">
+        <strong>Datos heredados de documentos previos</strong>
+        <div id="derived-banner-detail" style="margin-top:0.2rem;font-size:0.78rem;opacity:0.9;"></div>
+      </div>
+    </div>
+
+    <div id="mineduc-banner" class="mineduc-block" style="display:none;">
+      <i class="fa-solid fa-id-card-clip"></i>
+      <div style="flex:1;">
+        <strong>Datos del profesional</strong> (los pide MINEDUC en fiscalizaciones)
+        <div class="mineduc-fields">
+          <div class="mf"><span class="mf-label">RUT</span><div class="mf-value" id="prof-rut">— sin configurar —</div></div>
+          <div class="mf"><span class="mf-label">Registro MINEDUC</span><div class="mf-value" id="prof-registro">— sin configurar —</div></div>
+        </div>
+        <p style="font-size:0.7rem;color:#94a3b8;margin-top:0.55rem;">
+          Editalos en "Mi Perfil" desde el dashboard.
+        </p>
+      </div>
+    </div>
+    <div id="sections-container"></div>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const token = localStorage.getItem('paci_token');
+    const USER = JSON.parse(localStorage.getItem('paci_user') || '{}');
+    const params = new URLSearchParams(window.location.search);
+    const typeKey = params.get('type');
+    const studentId = params.get('student');
+    const docId = params.get('doc');
+    let documentIdGuardado = docId ? parseInt(docId, 10) : null;
+    const docType = (window.DOC_TYPES || {})[typeKey];
+    const phase = docType ? (window.DOC_PHASES || []).find(p => p.key === docType.phase) : null;
+
+    function esc(s) {
+      return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function toast(msg, isError) {
+      const t = $('toast');
+      t.textContent = msg;
+      t.className = 'toast show' + (isError ? ' error' : '');
+      setTimeout(() => { t.className = 'toast' + (isError ? ' error' : ''); }, 2800);
+    }
+
+    function renderHero(furCodeOverride, mensajeExtra) {
+      if (!docType) {
+        $('doc-title').textContent = 'Tipo de documento desconocido';
+        $('hero').innerHTML = '<p style="color:#fca5a5;">No se reconoce el tipo solicitado. <a href="/dashboard.html" style="color:#38bdf8;">Volver al dashboard</a>.</p>';
+        return;
+      }
+      $('doc-title').textContent = docType.label;
+      $('doc-phase-label').textContent = (phase ? phase.label : '') + ' · ' + (docType.sublabel || '');
+
+      const badges = [];
+      if (docType.ministerial) badges.push('<span class="badge ministerial"><i class="fa-solid fa-landmark"></i> Ministerial</span>');
+      if (phase) badges.push('<span class="badge"><i class="fa-solid ' + esc(phase.icon) + '"></i> Fase ' + esc(phase.label) + '</span>');
+      if (docType.decree) badges.push('<span class="badge decree"><i class="fa-solid fa-scale-balanced"></i> ' + esc(docType.decree) + '</span>');
+
+      // Para FUR: override URL al formato oficial específico del diagnóstico
+      let effectiveOfficialUrl = docType.officialUrl;
+      let effectiveOfficialLabel = docType.officialLabel || 'Ver MINEDUC';
+      if (typeKey === 'fur' && furCodeOverride && docType.officialByDiag && docType.officialByDiag[furCodeOverride]) {
+        effectiveOfficialUrl = docType.officialByDiag[furCodeOverride];
+        const diagName = (docType.diagLabel && docType.diagLabel[furCodeOverride]) || furCodeOverride;
+        effectiveOfficialLabel = 'Formato oficial MINEDUC: ' + diagName;
+        badges.push('<span class="badge" style="background:rgba(52,211,153,0.15);color:#34d399;border-color:rgba(52,211,153,0.4);"><i class="fa-solid fa-bullseye"></i> Diagnóstico: ' + esc(diagName) + '</span>');
+      }
+
+      // CTA grande del formato oficial (cuando existe)
+      let officialBar = '';
+      if (effectiveOfficialUrl) {
+        const isPdf = effectiveOfficialUrl.toLowerCase().includes('.pdf');
+        officialBar =
+          '<div class="official-bar" style="flex-direction:column;align-items:stretch;gap:0.7rem;">' +
+            '<div style="font-size:0.78rem;color:#94a3b8;font-weight:700;display:flex;align-items:center;gap:0.4rem;">' +
+              '<i class="fa-solid fa-landmark" style="color:#c084fc;"></i> Formato oficial del MINEDUC disponible' +
+            '</div>' +
+            '<div style="display:flex;gap:0.55rem;flex-wrap:wrap;">' +
+              '<a class="official-link" style="background:linear-gradient(135deg,#a78bfa,#7c3aed);color:#fff;border-color:transparent;font-weight:800;padding:0.7rem 1.1rem;box-shadow:0 6px 20px rgba(124,58,237,0.35);" href="' + esc(effectiveOfficialUrl) + '" target="_blank" rel="noopener">' +
+                '<i class="fa-solid ' + (isPdf ? 'fa-file-pdf' : 'fa-file-word') + '"></i> ' + esc(effectiveOfficialLabel) +
+              '</a>' +
+              (docType.officialUrlPdf && docType.officialUrlPdf !== effectiveOfficialUrl
+                ? '<a class="official-link" href="' + esc(docType.officialUrlPdf) + '" target="_blank" rel="noopener"><i class="fa-regular fa-file-pdf"></i> PDF de referencia</a>'
+                : '') +
+            '</div>' +
+            (mensajeExtra ? '<div style="font-size:0.75rem;color:#fbbf24;background:rgba(251,191,36,0.1);padding:0.5rem 0.7rem;border-radius:0.5rem;border-left:3px solid #fbbf24;"><i class="fa-solid fa-circle-info"></i> ' + esc(mensajeExtra) + '</div>' : '') +
+            '<div style="font-size:0.72rem;color:#94a3b8;line-height:1.5;">' +
+              '<strong>Flujo recomendado:</strong> Llena los campos abajo → descarga arriba el formato oficial MINEDUC → ábrelo en Word → copia los datos cargados (botón <strong>Word</strong>) y pégalos en el formato oficial.' +
+            '</div>' +
+          '</div>';
+      } else if (docType.officialLabel) {
+        officialBar = '<div class="official-bar"><span style="font-size:0.75rem;color:#94a3b8;font-style:italic;"><i class="fa-solid fa-circle-info"></i> ' + esc(docType.officialLabel) + '</span></div>';
+      }
+
+      $('hero').innerHTML =
+        '<div class="doc-icon"><i class="fa-solid ' + esc(docType.icon) + '"></i></div>' +
+        '<h2>' + esc(docType.label) + '</h2>' +
+        '<p class="sub">' + esc(docType.sublabel || '') + '</p>' +
+        '<p class="desc">' + esc(docType.description || '') + '</p>' +
+        '<div class="badges">' + badges.join('') + '</div>' +
+        officialBar;
+
+      if (docType.requiresMineduc) {
+        $('mineduc-banner').style.display = 'flex';
+        const rutEl = $('prof-rut'); const regEl = $('prof-registro');
+        if (USER.rut) { rutEl.textContent = USER.rut; rutEl.classList.remove('empty'); }
+        else { rutEl.textContent = '— sin configurar —'; rutEl.classList.add('empty'); }
+        if (USER.registroMineduc) { regEl.textContent = USER.registroMineduc; regEl.classList.remove('empty'); }
+        else { regEl.textContent = '— sin configurar —'; regEl.classList.add('empty'); }
+      }
+    }
+
+    function renderField(f, prefillValue) {
+      const id = 'f-' + f.id;
+      const required = f.required ? '<span class="req">*</span>' : '';
+      const value = (prefillValue !== undefined && prefillValue !== null) ? prefillValue : '';
+      const placeholder = f.placeholder ? ' placeholder="' + esc(f.placeholder) + '"' : '';
+
+      if (f.type === 'textarea') {
+        return '<div class="field-group">' +
+          '<label for="' + id + '">' + esc(f.label) + required + '</label>' +
+          '<textarea id="' + id + '" rows="' + (f.rows || 3) + '"' + placeholder + '>' + esc(value) + '</textarea>' +
+          '</div>';
+      }
+      if (f.type === 'select') {
+        const opts = (f.options || []).map(o => '<option value="' + esc(o) + '"' + (o === value ? ' selected' : '') + '>' + esc(o) + '</option>').join('');
+        return '<div class="field-group">' +
+          '<label for="' + id + '">' + esc(f.label) + required + '</label>' +
+          '<select id="' + id + '"><option value="">— Seleccionar —</option>' + opts + '</select>' +
+          '</div>';
+      }
+      if (f.type === 'checkbox') {
+        const checked = value === true || value === 'true' || value === 'on' || value === 1 ? ' checked' : '';
+        return '<div class="field-group">' +
+          '<label class="field-checkbox"><input type="checkbox" id="' + id + '"' + checked + '><span>' + esc(f.label) + '</span></label>' +
+          '</div>';
+      }
+      // text / date / default
+      const inputType = f.type || 'text';
+      return '<div class="field-group">' +
+        '<label for="' + id + '">' + esc(f.label) + required + '</label>' +
+        '<input type="' + esc(inputType) + '" id="' + id + '" value="' + esc(value) + '"' + placeholder + '>' +
+        '</div>';
+    }
+
+    function chooseGridClass(n) {
+      if (n <= 1) return '';
+      if (n <= 2) return 'grid-2';
+      if (n === 4) return 'grid-2';
+      return 'grid-2'; // por defecto agrupamos de 2 en 2 para legibilidad
+    }
+
+    function renderSections(savedData) {
+      const cont = $('sections-container');
+      if (!docType || !docType.schema || !Array.isArray(docType.schema.sections)) {
+        cont.innerHTML = '';
+        return;
+      }
+      const data = savedData || {};
+      const html = docType.schema.sections.map((sec, i) => {
+        // Decidir grid:
+        // - Si todos los fields son textarea -> stack
+        // - Si hay mezcla -> grid-2 para ahorrar vertical
+        const allTextarea = sec.fields.every(f => f.type === 'textarea');
+        const gridCls = allTextarea ? '' : chooseGridClass(sec.fields.length);
+        const fieldsHtml = sec.fields.map(f => renderField(f, data[f.id])).join('');
+        const wrapper = gridCls ? '<div class="' + gridCls + '">' + fieldsHtml + '</div>' : fieldsHtml;
+        return '<div class="card">' +
+          '<h3><i class="fa-solid ' + esc(sec.icon || 'fa-folder') + '"></i> ' + esc(sec.label) + '</h3>' +
+          wrapper +
+          '</div>';
+      }).join('');
+      cont.innerHTML = html;
+    }
+
+    // Mapeo extendido student -> campos del schema. Por id del campo aplicamos
+    // el valor del estudiante. Asi todos los docs del mismo estudiante quedan
+    // con datos coherentes (nombre, RUT, fecha nac, curso, diagnostico, apoderado).
+    function aplicarPrefillEstudiante(student) {
+      if (!docType || !docType.schema) return;
+      const profile = student.profile_json
+        ? (typeof student.profile_json === 'string'
+            ? (() => { try { return JSON.parse(student.profile_json); } catch (e) { return {}; } })()
+            : student.profile_json)
+        : {};
+
+      const mapById = {
+        student_name:    student.name || '',
+        student_rut:     student.rut || '',
+        student_birth:   student.birth_date || '',
+        student_curso:   student.curso || student.work_level || student.real_level || '',
+        apoderado_nombre: student.guardian || profile.apoderado_nombre || '',
+        apoderado_rut:   profile.apoderado_rut || '',
+        apoderado_rel:   profile.apoderado_rel || '',
+        apoderado_tel:   profile.apoderado_tel || ''
+      };
+
+      docType.schema.sections.forEach(sec => {
+        sec.fields.forEach(f => {
+          let val = mapById[f.id];
+          // Fallback al prefillFrom declarado en el schema
+          if (val === undefined && f.prefillFrom) {
+            const path = f.prefillFrom.split('.');
+            let v = student;
+            for (const p of path.slice(1)) v = v ? v[p] : undefined;
+            val = v;
+          }
+          if (val != null && val !== '') {
+            const el = document.getElementById('f-' + f.id);
+            if (el) el.value = val;
+          }
+        });
+      });
+
+      // Indicador visual: muestra el estudiante seleccionado en la barra
+      const lbl = document.getElementById('selected-student-label');
+      if (lbl) {
+        lbl.innerHTML = '<i class="fa-solid fa-circle-check"></i> ' + esc(student.name || '') +
+          (student.curso ? ' <span style="opacity:0.7;font-weight:600;">· ' + esc(student.curso) + '</span>' : '') +
+          (student.diagnosis ? ' <span style="opacity:0.65;font-weight:600;">· ' + esc(student.diagnosis) + '</span>' : '');
+      }
+
+      // ===== FUR: auto-detectar diagnostico y enrutar al formato oficial correcto =====
+      if (typeKey === 'fur' && docType && docType.diagToFurCode && student.diagnosis_id) {
+        const furCode = docType.diagToFurCode[student.diagnosis_id];
+        if (furCode) {
+          // 1) Setear el campo diag_codigo del schema
+          const elDiag = document.getElementById('f-diag_codigo');
+          if (elDiag) {
+            // Buscar la opcion equivalente
+            const opts = Array.from(elDiag.options || []);
+            const target = opts.find(o => o.value === furCode || o.value.startsWith(furCode));
+            if (target) elDiag.value = target.value;
+          }
+          // 2) Re-renderizar el hero con la URL oficial específica de ese diagnóstico
+          renderHero(furCode);
+        } else if (student.diagnosis_id) {
+          // El diagnostico no tiene formato unico mapeado, usar el índice general
+          renderHero(null, 'Tu estudiante tiene diagnostico "' + (student.diagnosis_id || '') + '" sin formato oficial unico. Usa el indice MINEDUC para descargar el correspondiente.');
+        }
+      }
+    }
+
+    async function prefillEstudiante(sid) {
+      try {
+        const res = await fetch('/api/students/get', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ _token: token, studentId: parseInt(sid, 10), fullAccess: true })
+        });
+        const out = await res.json();
+        if (out.ok && out.student) {
+          aplicarPrefillEstudiante(out.student);
+          // Para el FUR: incluso si el estudiante no se eligió desde el picker, detectar diag aquí también
+          if (typeKey === 'fur' && docType && docType.diagToFurCode && out.student.diagnosis_id) {
+            const furCode = docType.diagToFurCode[out.student.diagnosis_id];
+            if (furCode) {
+              const elDiag = document.getElementById('f-diag_codigo');
+              if (elDiag) {
+                const target = Array.from(elDiag.options || []).find(o => o.value === furCode || o.value.startsWith(furCode));
+                if (target) elDiag.value = target.value;
+              }
+              renderHero(furCode);
+            }
+          }
+        }
+      } catch (e) {}
+    }
+
+    async function cargarDocumentoGuardado(id) {
+      try {
+        const res = await fetch('/api/documents/get', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ _token: token, documentId: parseInt(id, 10) })
+        });
+        const out = await res.json();
+        if (!out.ok || !out.document) return;
+        let parsed = {};
+        try { parsed = JSON.parse(out.document.document_json || '{}'); } catch (e) {}
+        // notas viene como string JSON con { docData, schemaVersion, profMineduc }
+        let notas = parsed.notas;
+        if (typeof notas === 'string') {
+          try { notas = JSON.parse(notas); } catch (e) { notas = {}; }
+        }
+        const data = (notas && notas.docData) || {};
+        renderSections(data);
+      } catch (e) {}
+    }
+
+    function collectSchemaData() {
+      const result = {};
+      if (!docType || !docType.schema) return result;
+      docType.schema.sections.forEach(sec => {
+        sec.fields.forEach(f => {
+          const el = document.getElementById('f-' + f.id);
+          if (!el) return;
+          if (f.type === 'checkbox') result[f.id] = !!el.checked;
+          else result[f.id] = el.value;
+        });
+      });
+      return result;
+    }
+
+    async function guardarDocumento() {
+      if (!docType) { toast('Tipo invalido.', true); return; }
+      const data = collectSchemaData();
+      const nombre = (data.student_name || '').trim();
+      if (!nombre) { toast('Falta el nombre del estudiante.', true); return; }
+
+      // Validacion de required
+      let missingRequired = null;
+      for (const sec of docType.schema.sections) {
+        for (const f of sec.fields) {
+          if (f.required && !data[f.id]) {
+            missingRequired = sec.label + ' → ' + f.label;
+            break;
+          }
+        }
+        if (missingRequired) break;
+      }
+      if (missingRequired) {
+        toast('Campo obligatorio: ' + missingRequired, true);
+        return;
+      }
+
+      const body = {
+        _token: token,
+        planType: typeKey,
+        documentId: documentIdGuardado || undefined,
+        student: {
+          name: nombre,
+          rut: data.student_rut || '',
+          curso: data.student_curso || '',
+          birthDate: data.student_birth || '',
+          diagnosis: ''
+        },
+        trimester: data.periodo || '',
+        team: [],
+        // Schema data completo
+        notas: JSON.stringify({ docData: data, schemaVersion: 1, profMineduc: { rut: USER.rut || '', registro: USER.registroMineduc || '' } })
+      };
+
+      try {
+        const res = await fetch('/api/documents/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const out = await res.json();
+        if (out.ok) {
+          documentIdGuardado = out.documentId;
+          toast((out.updated ? 'Actualizado' : 'Guardado') + ' correctamente.');
+        } else {
+          toast('Error: ' + (out.error || 'no se pudo guardar.'), true);
+        }
+      } catch (e) {
+        toast('Error de conexion al guardar.', true);
+      }
+    }
+
+    // ====== Student picker: base de datos curso → estudiante ======
+    let _allStudents = [];
+
+    async function abrirPicker() {
+      // Crear overlay
+      let overlay = document.getElementById('picker-overlay');
+      if (overlay) { overlay.style.display = 'flex'; cargarYRenderPicker(); return; }
+
+      overlay = document.createElement('div');
+      overlay.id = 'picker-overlay';
+      overlay.className = 'picker-overlay';
+      overlay.innerHTML = `
+        <div class="picker-modal">
+          <div class="picker-header">
+            <h3><i class="fa-solid fa-database" style="color:#34d399;margin-right:0.45rem;"></i>Mis estudiantes</h3>
+            <button class="picker-close" onclick="cerrarPicker()" aria-label="Cerrar">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+          <div class="picker-filters">
+            <input type="text" id="picker-search" placeholder="Buscar por nombre, RUT, diagnóstico o curso...">
+            <select id="picker-curso-filter">
+              <option value="">Todos los cursos</option>
+            </select>
+          </div>
+          <div class="picker-list" id="picker-list">
+            <div class="picker-empty"><i class="fa-solid fa-spinner fa-spin"></i> Cargando estudiantes…</div>
+          </div>
+        </div>
+      `;
+      // Click en backdrop cierra
+      overlay.addEventListener('click', (ev) => { if (ev.target === overlay) cerrarPicker(); });
+      document.body.appendChild(overlay);
+
+      // Hooks de filtros (debouncing simple)
+      document.getElementById('picker-search').addEventListener('input', renderPickerList);
+      document.getElementById('picker-curso-filter').addEventListener('change', renderPickerList);
+
+      await cargarYRenderPicker();
+    }
+
+    function cerrarPicker() {
+      const o = document.getElementById('picker-overlay');
+      if (o) o.style.display = 'none';
+    }
+
+    async function cargarYRenderPicker() {
+      try {
+        const res = await fetch('/api/students/list', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ _token: token })
+        });
+        const data = await res.json();
+        _allStudents = data.ok ? (data.students || []) : [];
+
+        // Llenar dropdown de cursos
+        const cursos = [...new Set(_allStudents
+          .map(s => (s.curso || '').trim() || '— sin curso —')
+        )].sort();
+        const sel = document.getElementById('picker-curso-filter');
+        if (sel) {
+          sel.innerHTML = '<option value="">Todos los cursos (' + _allStudents.length + ')</option>' +
+            cursos.map(c => {
+              const count = _allStudents.filter(s => ((s.curso || '').trim() || '— sin curso —') === c).length;
+              return '<option value="' + esc(c) + '">' + esc(c) + ' (' + count + ')</option>';
+            }).join('');
+        }
+
+        renderPickerList();
+      } catch (e) {
+        const list = document.getElementById('picker-list');
+        if (list) list.innerHTML = '<div class="picker-empty">Error de conexión al cargar la base.</div>';
+      }
+    }
+
+    function renderPickerList() {
+      const list = document.getElementById('picker-list');
+      if (!list) return;
+      const q = (document.getElementById('picker-search')?.value || '').trim().toLowerCase();
+      const cursoFilter = document.getElementById('picker-curso-filter')?.value || '';
+
+      let pool = _allStudents.slice();
+      if (cursoFilter) {
+        pool = pool.filter(s => ((s.curso || '').trim() || '— sin curso —') === cursoFilter);
+      }
+      if (q) {
+        pool = pool.filter(s =>
+          (s.name || '').toLowerCase().includes(q) ||
+          (s.rut || '').toLowerCase().includes(q) ||
+          (s.diagnosis || '').toLowerCase().includes(q) ||
+          (s.curso || '').toLowerCase().includes(q)
+        );
+      }
+
+      if (!pool.length) {
+        list.innerHTML = '<div class="picker-empty"><i class="fa-solid fa-magnifying-glass" style="opacity:0.5;display:block;margin-bottom:0.5rem;"></i>Sin coincidencias. Crea estudiantes desde el editor PACI o PAI.</div>';
+        return;
+      }
+
+      // Agrupar por curso
+      const groups = {};
+      pool.forEach(s => {
+        const c = (s.curso || '').trim() || '— sin curso —';
+        if (!groups[c]) groups[c] = [];
+        groups[c].push(s);
+      });
+
+      const html = Object.keys(groups).sort().map(curso => {
+        const items = groups[curso].map(s => {
+          const initial = (s.name || '?').charAt(0).toUpperCase();
+          const metaParts = [];
+          if (s.rut)        metaParts.push(s.rut);
+          if (s.diagnosis)  metaParts.push(s.diagnosis);
+          if (s.work_level) metaParts.push('Nivel ' + s.work_level);
+          return '<div class="picker-item" onclick="elegirEstudiante(' + s.id + ')">' +
+            '<div class="avatar">' + esc(initial) + '</div>' +
+            '<div class="info">' +
+              '<div class="name">' + esc(s.name || '—') + '</div>' +
+              '<div class="meta">' + esc(metaParts.join(' · ')) + '</div>' +
+            '</div>' +
+            '<i class="fa-solid fa-chevron-right" style="opacity:0.4;font-size:0.75rem;"></i>' +
+            '</div>';
+        }).join('');
+        return '<div class="picker-group">' +
+          '<div class="picker-group-label"><i class="fa-solid fa-school"></i> ' + esc(curso) + ' (' + groups[curso].length + ')</div>' +
+          items +
+          '</div>';
+      }).join('');
+
+      list.innerHTML = html;
+    }
+
+    async function elegirEstudiante(sid) {
+      cerrarPicker();
+      const s = _allStudents.find(st => st.id === sid);
+      if (s) {
+        aplicarPrefillEstudiante(s);
+        toast('Datos del estudiante cargados.');
+      } else {
+        // Fallback al endpoint /get para datos completos
+        await prefillEstudiante(sid);
+        toast('Datos del estudiante cargados.');
+      }
+      // Despues del estudiante, intentar auto-derivar campos desde sus docs anteriores
+      await derivarDeDocumentosPrevios(sid);
+    }
+
+    // ====== Auto-derivacion entre documentos del mismo estudiante ======
+    // Lista los documentos previos del estudiante, harvest campos comunes
+    // (antecedentes salud, evaluacion, contexto, datos apoderado, fortalezas/dificultades).
+    // Solo rellena campos vacios del schema actual.
+    async function derivarDeDocumentosPrevios(sid) {
+      if (!docType || !docType.schema) return;
+      try {
+        // Reusamos /api/documents/list y filtramos por student_id en frontend
+        const res = await fetch('/api/documents/list', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ _token: token })
+        });
+        const data = await res.json();
+        if (!data.ok) return;
+        const docs = (data.documents || []).filter(d => d.student_id === parseInt(sid, 10));
+        // Excluir el documento que estamos editando (si aplica)
+        const prev = docs.filter(d => !documentIdGuardado || d.id !== documentIdGuardado);
+        if (!prev.length) { mostrarDerivedBanner(null); return; }
+
+        // Ordenar de más reciente a más viejo
+        prev.sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at));
+
+        // Harvest cruzando todos los docs; el primero gana cada campo
+        const harvested = {};
+        const fuentes = []; // metadata para mostrar al usuario
+
+        for (const d of prev) {
+          const fields = extraerCamposComunes(d);
+          if (Object.keys(fields).length === 0) continue;
+          let aporto = 0;
+          for (const [k, v] of Object.entries(fields)) {
+            if (harvested[k] == null || harvested[k] === '') {
+              if (v != null && v !== '') {
+                harvested[k] = v;
+                aporto++;
+              }
+            }
+          }
+          if (aporto > 0) {
+            fuentes.push({
+              type: d.plan_type || 'doc',
+              id: d.id,
+              date: d.updated_at || d.created_at,
+              count: aporto
+            });
+          }
+        }
+
+        // Aplicar al schema actual (solo campos vacios)
+        let aplicados = 0;
+        docType.schema.sections.forEach(sec => {
+          sec.fields.forEach(f => {
+            if (harvested[f.id] != null && harvested[f.id] !== '') {
+              const el = document.getElementById('f-' + f.id);
+              if (el && !el.value) {
+                el.value = harvested[f.id];
+                aplicados++;
+              }
+            }
+          });
+        });
+
+        if (aplicados > 0) {
+          mostrarDerivedBanner({ aplicados, fuentes });
+        } else {
+          mostrarDerivedBanner(null);
+        }
+      } catch (e) {
+        // silencioso
+      }
+    }
+
+    // Mapeo de tipo de doc a nombre legible (para el banner)
+    function nombreTipoDoc(t) {
+      if (!t) return 'documento';
+      if (window.DOC_TYPES && window.DOC_TYPES[t]) return window.DOC_TYPES[t].label;
+      return t;
+    }
+
+    // Extrae campos comunes en formato { schemaFieldId: valor }
+    // Cubre los shapes de PAI (con evaluacion, metas...), PACI (modules+contextual),
+    // y los docs schema-driven (notas con docData).
+    function extraerCamposComunes(doc) {
+      let parsed = {};
+      try { parsed = JSON.parse(doc.document_json || '{}'); } catch (e) { return {}; }
+      const out = {};
+
+      // Datos del estudiante (en caso de que el picker no haya cargado todo)
+      const st = parsed.student || {};
+      if (st.name) out.student_name = st.name;
+      if (st.rut)  out.student_rut = st.rut;
+      if (st.birthDate) out.student_birth = st.birthDate;
+      if (st.curso) out.student_curso = st.curso;
+
+      // PAI: evaluacion integral
+      if (parsed.evaluacion) {
+        if (parsed.evaluacion.fortalezas)   { out.area_cognitiva = out.area_cognitiva || parsed.evaluacion.fortalezas; }
+        if (parsed.evaluacion.dificultades) { out.motivo_eval = out.motivo_eval || parsed.evaluacion.dificultades; }
+        if (parsed.evaluacion.barreras)     { out.observaciones = out.observaciones || parsed.evaluacion.barreras; }
+      }
+      if (parsed.antecedentesSalud) {
+        out.antec_salud = parsed.antecedentesSalud;
+        out.enfermedades = out.enfermedades || parsed.antecedentesSalud;
+        out.antec_personales = out.antec_personales || parsed.antecedentesSalud;
+      }
+
+      // PACI: contextual
+      if (parsed.contextual) {
+        if (parsed.contextual.escuela) {
+          out.antec_escolares = out.antec_escolares || parsed.contextual.escuela;
+          out.escuelas_previas = out.escuelas_previas || parsed.contextual.escuela;
+        }
+        if (parsed.contextual.hogar) {
+          out.dinamica_familiar = out.dinamica_familiar || parsed.contextual.hogar;
+          out.composicion_familiar = out.composicion_familiar || parsed.contextual.hogar;
+        }
+      }
+
+      // Schema-driven docs: notas serializado con docData
+      if (parsed.notas) {
+        let notasObj = parsed.notas;
+        if (typeof notasObj === 'string') {
+          try { notasObj = JSON.parse(notasObj); } catch (e) { notasObj = {}; }
+        }
+        if (notasObj && notasObj.docData) {
+          // Copiar cada campo, primero no pisa
+          for (const [k, v] of Object.entries(notasObj.docData)) {
+            if (out[k] == null && v != null && v !== '') out[k] = v;
+          }
+        }
+      }
+
+      return out;
+    }
+
+    function mostrarDerivedBanner(info) {
+      const banner = document.getElementById('derived-banner');
+      const detail = document.getElementById('derived-banner-detail');
+      if (!info || !info.aplicados) {
+        banner.style.display = 'none';
+        return;
+      }
+      const fuentesTxt = (info.fuentes || []).slice(0, 3).map(f => {
+        const fecha = f.date ? new Date(f.date).toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
+        return nombreTipoDoc(f.type) + (fecha ? ' (' + fecha + ')' : '');
+      }).join(', ');
+      detail.innerHTML = info.aplicados + ' campo(s) cargado(s) desde: ' + esc(fuentesTxt) +
+        '. Revisa y edita libremente; sólo los campos vacíos fueron pre-rellenados.';
+      banner.style.display = 'flex';
+    }
+
+    // ====== Exportar a PDF (MINEDUC-style) ======
+    // Construye HTML imprimible con cabecera del establecimiento, secciones del
+    // schema con sus valores actuales, y bloque de firma con RUT + Registro MINEDUC
+    // del profesional. Envia al endpoint /api/generate-pdf (Browser Rendering) y
+    // descarga el archivo.
+    function construirHtmlImpresion() {
+      const data = collectSchemaData();
+      const tenant = window.TENANT_CONFIG || { nombre: 'Establecimiento' };
+      const fecha = new Date().toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' });
+      const nombreEst = data.student_name || '—';
+
+      const css =
+        '*{box-sizing:border-box;margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;color:#1e293b;}' +
+        'body{font-size:11pt;line-height:1.45;padding:0;}' +
+        '@page{size:letter;margin:1.8cm;}' +
+        '.head{border-bottom:3px solid #091845;padding-bottom:12px;margin-bottom:18px;}' +
+        '.head h1{color:#091845;font-size:18pt;font-weight:800;letter-spacing:0.02em;}' +
+        '.head .sub{color:#1240c4;font-size:13pt;font-weight:bold;margin-top:4px;}' +
+        '.head .meta{color:#475569;font-size:9pt;margin-top:6px;}' +
+        '.head .decree{color:#7c3aed;font-size:9pt;margin-top:2px;font-style:italic;}' +
+        '.section{margin-top:14px;page-break-inside:avoid;}' +
+        '.section h2{color:#091845;font-size:11.5pt;font-weight:800;border-bottom:1px solid #cbd5e1;padding-bottom:4px;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.04em;}' +
+        '.field{display:flex;gap:8px;padding:4px 0;border-bottom:1px dotted #e2e8f0;}' +
+        '.field .l{flex:0 0 38%;color:#64748b;font-weight:bold;font-size:9.5pt;text-transform:uppercase;letter-spacing:0.03em;}' +
+        '.field .v{flex:1;color:#0f172a;font-size:10.5pt;white-space:pre-wrap;}' +
+        '.field.full{display:block;}' +
+        '.field.full .l{margin-bottom:3px;display:block;flex:none;}' +
+        '.field.full .v{display:block;background:#f8fafc;padding:6px 8px;border-radius:4px;border-left:3px solid #38bdf8;}' +
+        '.firma{margin-top:36px;page-break-inside:avoid;border-top:1px solid #cbd5e1;padding-top:12px;}' +
+        '.firma h3{color:#091845;font-size:10pt;font-weight:800;text-transform:uppercase;margin-bottom:10px;letter-spacing:0.05em;}' +
+        '.firma .row{display:flex;gap:10px;}' +
+        '.firma .col{flex:1;font-size:9pt;}' +
+        '.firma .col .k{color:#64748b;font-weight:bold;}' +
+        '.firma .col .v{color:#0f172a;border-bottom:1px solid #94a3b8;padding-bottom:1px;min-height:14pt;}' +
+        '.firma .signbox{margin-top:18px;display:flex;justify-content:space-around;text-align:center;font-size:9pt;}' +
+        '.firma .signbox div{border-top:1px solid #475569;padding-top:4px;width:40%;font-weight:bold;}' +
+        '.footer-page{position:fixed;bottom:0.5cm;left:0;right:0;text-align:center;font-size:7.5pt;color:#94a3b8;border-top:1px dashed #cbd5e1;padding-top:4px;}';
+
+      const seccionesHtml = (docType.schema && docType.schema.sections || []).map(sec => {
+        const camposHtml = sec.fields.map(f => {
+          const v = data[f.id];
+          const valor = (v === true ? 'Sí' : v === false ? 'No' : String(v || '')).trim() || '—';
+          // textareas (textos largos) van en formato "full" (etiqueta arriba, valor abajo)
+          const isLong = f.type === 'textarea' || valor.length > 80;
+          if (isLong) {
+            return '<div class="field full"><span class="l">' + esc(f.label) + '</span><span class="v">' + esc(valor) + '</span></div>';
+          }
+          return '<div class="field"><span class="l">' + esc(f.label) + '</span><span class="v">' + esc(valor) + '</span></div>';
+        }).join('');
+        return '<div class="section"><h2>' + esc(sec.label) + '</h2>' + camposHtml + '</div>';
+      }).join('');
+
+      const profMineduc = docType.requiresMineduc ? (
+        '<div class="firma">' +
+          '<h3><i></i> Identificación del profesional (MINEDUC)</h3>' +
+          '<div class="row">' +
+            '<div class="col"><div class="k">Nombre completo</div><div class="v">' + esc(USER.name || '') + '</div></div>' +
+            '<div class="col"><div class="k">RUT</div><div class="v">' + esc(USER.rut || '') + '</div></div>' +
+            '<div class="col"><div class="k">Registro MINEDUC</div><div class="v">' + esc(USER.registroMineduc || '') + '</div></div>' +
+            '<div class="col"><div class="k">Fecha emisión</div><div class="v">' + esc(fecha) + '</div></div>' +
+          '</div>' +
+          '<div class="signbox">' +
+            '<div>Firma profesional</div>' +
+            '<div>Firma apoderado / recibido</div>' +
+          '</div>' +
+        '</div>'
+      ) : '';
+
+      return '<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">' +
+        '<title>' + esc(docType.label) + '_' + esc(nombreEst) + '</title>' +
+        '<style>' + css + '</style></head><body>' +
+        '<div class="head">' +
+          '<h1>' + esc(tenant.nombre || 'Establecimiento') + '</h1>' +
+          '<div class="sub">' + esc(docType.label) + ' — ' + esc(docType.sublabel || '') + '</div>' +
+          '<div class="meta">Estudiante: <strong>' + esc(nombreEst) + '</strong>' +
+            (data.student_rut ? ' &nbsp;·&nbsp; RUT: ' + esc(data.student_rut) : '') +
+            (data.student_curso ? ' &nbsp;·&nbsp; Curso: ' + esc(data.student_curso) : '') +
+            ' &nbsp;·&nbsp; Fecha: ' + esc(fecha) +
+          '</div>' +
+          (docType.decree ? '<div class="decree">' + esc(docType.decree) + '</div>' : '') +
+        '</div>' +
+        seccionesHtml +
+        profMineduc +
+        '<div class="footer-page">Documento generado por PIE MASTER — ' + esc(fecha) + '</div>' +
+        '</body></html>';
+    }
+
+    // ====== Resumen MINEDUC: panel lateral con datos listos para copiar ======
+    function abrirResumenMinedu() {
+      if (!docType) { toast('Tipo de documento invalido.', true); return; }
+      const data = collectSchemaData();
+
+      let overlay = document.getElementById('resumen-overlay');
+      if (overlay) { overlay.style.display = 'flex'; rellenarResumen(data); return; }
+
+      overlay = document.createElement('div');
+      overlay.id = 'resumen-overlay';
+      overlay.className = 'resumen-overlay';
+      overlay.innerHTML = `
+        <div class="resumen-panel" onclick="event.stopPropagation();">
+          <div class="resumen-header">
+            <div class="icon"><i class="fa-solid fa-clipboard-list"></i></div>
+            <div>
+              <h3>Resumen para Word oficial MINEDUC</h3>
+              <div class="sub">Ordenado igual que el formato oficial · click 📋 para copiar cada campo</div>
+            </div>
+            <button class="resumen-close" onclick="cerrarResumenMinedu()" aria-label="Cerrar"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+          <div class="resumen-toolbar">
+            <button class="btn-copy-all" onclick="copiarTodoResumen()"><i class="fa-solid fa-copy"></i> Copiar TODO como bloque</button>
+            <div class="info">Mantén este panel abierto al lado de tu Word</div>
+          </div>
+          <div class="resumen-body" id="resumen-body"></div>
+        </div>
+      `;
+      overlay.addEventListener('click', (ev) => { if (ev.target === overlay) cerrarResumenMinedu(); });
+      document.body.appendChild(overlay);
+
+      rellenarResumen(data);
+    }
+
+    function cerrarResumenMinedu() {
+      const o = document.getElementById('resumen-overlay');
+      if (o) o.style.display = 'none';
+    }
+
+    function rellenarResumen(data) {
+      const body = document.getElementById('resumen-body');
+      if (!body || !docType || !docType.schema) return;
+
+      // Hint inicial con instrucción
+      const officialNote = docType.officialUrl
+        ? `<div class="resumen-hint"><strong>Flujo:</strong> abre el <strong>Word oficial MINEDUC</strong> (botón morado en el hero) y mantén este panel a un lado. Copia campo por campo o usa "Copiar TODO".</div>`
+        : `<div class="resumen-hint"><strong>Sin formato oficial MINEDUC</strong> para este documento. Este resumen es útil si quieres compartir los datos.</div>`;
+
+      let html = officialNote;
+
+      docType.schema.sections.forEach(sec => {
+        // Solo mostrar secciones con al menos un campo lleno
+        const filledFields = sec.fields.filter(f => {
+          const v = data[f.id];
+          return v != null && v !== '' && v !== false;
+        });
+        if (!filledFields.length) return;
+
+        html += `<div class="resumen-section">
+          <div class="resumen-section-head"><i class="fa-solid ${esc(sec.icon || 'fa-folder')}"></i> ${esc(sec.label)}</div>`;
+
+        filledFields.forEach(f => {
+          const v = data[f.id];
+          const displayVal = v === true ? 'Sí' : v === false ? 'No' : String(v).trim();
+          const valueClass = displayVal ? '' : 'empty';
+          const valueShown = displayVal || '(vacío)';
+          html += `<div class="resumen-row">
+            <div class="field-info">
+              <div class="field-label">${esc(f.label)}</div>
+              <div class="field-value ${valueClass}">${esc(valueShown)}</div>
+            </div>
+            <button class="btn-copy-row" onclick="copiarCampoResumen(this, '${escapeForJs(displayVal)}')" title="Copiar este campo">
+              <i class="fa-regular fa-copy"></i>
+            </button>
+          </div>`;
+        });
+
+        html += '</div>';
+      });
+
+      // Bloque del profesional (MINEDUC)
+      if (docType.requiresMineduc) {
+        html += `<div class="resumen-section">
+          <div class="resumen-section-head"><i class="fa-solid fa-id-card-clip"></i> Profesional (firma MINEDUC)</div>
+          ${USER.name ? rowResumen('Nombre', USER.name) : ''}
+          ${USER.rut ? rowResumen('RUT', USER.rut) : ''}
+          ${USER.registroMineduc ? rowResumen('Registro MINEDUC', USER.registroMineduc) : ''}
+          ${rowResumen('Fecha emisión', new Date().toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' }))}
+        </div>`;
+      }
+
+      if (html === officialNote) {
+        html += `<div style="text-align:center;padding:2rem;color:#94a3b8;font-size:0.85rem;">
+          <i class="fa-regular fa-folder-open" style="font-size:2rem;opacity:0.5;display:block;margin-bottom:0.5rem;"></i>
+          Aún no hay campos completados.<br>Vuelve al editor y llena los datos primero.
+        </div>`;
+      }
+
+      body.innerHTML = html;
+    }
+
+    function rowResumen(label, value) {
+      return `<div class="resumen-row">
+        <div class="field-info">
+          <div class="field-label">${esc(label)}</div>
+          <div class="field-value">${esc(String(value))}</div>
+        </div>
+        <button class="btn-copy-row" onclick="copiarCampoResumen(this, '${escapeForJs(String(value))}')" title="Copiar">
+          <i class="fa-regular fa-copy"></i>
+        </button>
+      </div>`;
+    }
+
+    function escapeForJs(s) {
+      return String(s == null ? '' : s).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n').replace(/\r/g, '');
+    }
+
+    async function copiarCampoResumen(btn, text) {
+      try {
+        await navigator.clipboard.writeText(text);
+        const orig = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-check"></i>';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.innerHTML = orig; btn.classList.remove('copied'); }, 1200);
+      } catch (e) {
+        toast('No se pudo copiar. Selecciona el texto y usa Ctrl+C.', true);
+      }
+    }
+
+    async function copiarTodoResumen() {
+      if (!docType) return;
+      const data = collectSchemaData();
+      const lines = [];
+      lines.push(docType.label + ' — ' + (docType.sublabel || ''));
+      lines.push('=' .repeat(60));
+
+      docType.schema.sections.forEach(sec => {
+        const filled = sec.fields.filter(f => {
+          const v = data[f.id];
+          return v != null && v !== '' && v !== false;
+        });
+        if (!filled.length) return;
+        lines.push('');
+        lines.push('### ' + sec.label);
+        filled.forEach(f => {
+          const v = data[f.id];
+          const txt = v === true ? 'Sí' : v === false ? 'No' : String(v).trim();
+          lines.push(f.label + ': ' + txt);
+        });
+      });
+
+      if (docType.requiresMineduc) {
+        lines.push('');
+        lines.push('### Profesional (MINEDUC)');
+        if (USER.name) lines.push('Nombre: ' + USER.name);
+        if (USER.rut) lines.push('RUT: ' + USER.rut);
+        if (USER.registroMineduc) lines.push('Registro MINEDUC: ' + USER.registroMineduc);
+        lines.push('Fecha emisión: ' + new Date().toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' }));
+      }
+
+      const block = lines.join('\n');
+      try {
+        await navigator.clipboard.writeText(block);
+        toast('Bloque completo copiado. Pégalo en tu Word.');
+      } catch (e) {
+        toast('No se pudo copiar. Permite acceso al portapapeles.', true);
+      }
+    }
+
+    // ====== Exportar a Word (.doc compatible MS Word) ======
+    // Genera HTML con metadata MS Office y lo descarga como .doc. Word lo abre como
+    // documento nativo y el educador puede editarlo y guardarlo como .docx para enviarlo
+    // a la supervisión MINEDUC. Funciona offline (sin servidor) y sin librerías.
+    function descargarWord() {
+      if (!docType) { toast('Tipo de documento invalido.', true); return; }
+      const data = collectSchemaData();
+      if (!data.student_name || !data.student_name.trim()) {
+        toast('Selecciona o ingresa al estudiante antes de generar el Word.', true);
+        return;
+      }
+
+      // Construir HTML con namespace MS Office para que Word lo reconozca como documento
+      const innerHtml = construirHtmlImpresion();
+      // Extraer body y estilos del innerHtml para envolverlos en el wrapper MS Office
+      let css = '';
+      let body = innerHtml;
+      const cssMatch = innerHtml.match(/<style>([\s\S]*?)<\/style>/);
+      if (cssMatch) css = cssMatch[1];
+      const bodyMatch = innerHtml.match(/<body[^>]*>([\s\S]*)<\/body>/);
+      if (bodyMatch) body = bodyMatch[1];
+
+      const msOfficeXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n' +
+        '<?mso-application progid="Word.Document"?>\r\n';
+      const head =
+        '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">' +
+        '<head><meta charset="utf-8"><title>' + esc(docType.label) + '</title>' +
+        '<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->' +
+        '<style>' + css + '</style></head>';
+      const wordHtml = msOfficeXml + head + '<body>' + body + '</body></html>';
+
+      const safeName = (data.student_name || 'Estudiante').replace(/[\\/:*?"<>|]/g, '').trim();
+      const filename = docType.label.replace(/\s+/g, '_') + '_' + safeName + '.doc';
+
+      const blob = new Blob(['﻿', wordHtml], { type: 'application/msword;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast('Word descargado. Ábrelo en Microsoft Word y guarda como .docx si lo necesitas.');
+    }
+
+    async function descargarPDF() {
+      if (!docType) { toast('Tipo de documento invalido.', true); return; }
+      const data = collectSchemaData();
+      if (!data.student_name || !data.student_name.trim()) {
+        toast('Selecciona o ingresa al estudiante antes de generar el PDF.', true);
+        return;
+      }
+      if (docType.requiresMineduc && (!USER.rut || !USER.registroMineduc)) {
+        if (!confirm('Tu perfil no tiene RUT ni Registro MINEDUC configurados. El PDF saldrá sin esos datos (no cumple fiscalización). ¿Continuar igual?')) return;
+      }
+
+      toast('Generando PDF...');
+      const safeName = (data.student_name || 'Estudiante').replace(/[\\/:*?"<>|]/g, '').trim();
+      const filename = docType.label.replace(/\s+/g, '_') + '_' + safeName;
+      const html = construirHtmlImpresion();
+
+      try {
+        const resp = await fetch('/api/generate-pdf', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ html, filename })
+        });
+        if (!resp.ok) {
+          let err = 'Error generando PDF.';
+          try { const j = await resp.json(); err = j.error || err; } catch (e) {}
+          toast(err, true);
+          return;
+        }
+        const blob = await resp.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = filename + '.pdf';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast('PDF descargado.');
+      } catch (e) {
+        toast('Error de conexión al generar PDF.', true);
+      }
+    }
+
+    // Cargar config del tenant para la cabecera del PDF
+    window.TENANT_CONFIG = null;
+    fetch('/api/tenant-config').then(r => r.json()).then(c => { window.TENANT_CONFIG = c; }).catch(() => {});
+
+    (async function init() {
+      renderHero();
+      if (docType) {
+        renderSections({});
+        if (docId) {
+          await cargarDocumentoGuardado(docId);
+        } else if (studentId) {
+          await prefillEstudiante(studentId);
+          // Heredar campos comunes desde documentos previos de este estudiante
+          await derivarDeDocumentosPrevios(studentId);
+        }
+      }
+    })();
+  </script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-# /data — Datos del sistema PACI
+# /data — Datos del sistema PIE MASTER
 
 Esta carpeta separa los datos en dos categorias para preparar al software para uso multi-tenant (varios establecimientos).
 

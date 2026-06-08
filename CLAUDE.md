@@ -1,7 +1,9 @@
-# Proyecto PACI - Plan de Adecuacion Curricular Individual
+# PIE MASTER - Plataforma de gestion documental para Educadores Diferenciales
 
 ## Descripcion
-Aplicacion web para crear, gestionar e imprimir Planes de Adecuacion Curricular Individual (PACI) para estudiantes con necesidades educativas especiales. Desplegada en Cloudflare Pages con D1 y KV.
+PIE MASTER (Programa de Integracion Escolar - Master) es una aplicacion web para que educadores diferenciales chilenos creen, gestionen e impriman documentacion del PIE: Planes de Apoyo Individual (PAI) y Planes de Adecuacion Curricular Individualizado (PACI) segun Decreto 83/2015 y Decreto 170/2009. Desplegada en Cloudflare Pages con D1 y KV.
+
+Nota: el proyecto Cloudflare se llama "proyecto-paci" por razones historicas; la marca / producto es PIE MASTER.
 
 ## Stack Tecnologico
 - Frontend: HTML + JavaScript vanilla + Tailwind CSS 3

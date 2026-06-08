@@ -6,14 +6,11 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>PACI Master v2 - Planificación DUA Multieje</title>
+    <title>PIE MASTER - Planificación DUA Multieje</title>
     <link rel="icon" href="/favicon.svg?v=2" type="image/svg+xml">
     <link rel="shortcut icon" href="/favicon.png?v=2" type="image/png">
-    <!-- Auth guard: si no hay sesion, redirigir al login -->
     <script>
     (function() {
-      // Gate rapido por indicador no-secreto; la sesion real es la cookie httpOnly,
-      // que el navegador envia sola en peticiones same-origin.
       if (!localStorage.getItem('paci_user')) { window.location.href = '/login.html'; return; }
       fetch('/api/verify', {
         method: 'POST',
@@ -26,8 +23,6 @@
     })();
     </script>
     <script>
-    // Tema dia/noche: fijar el atributo ANTES de pintar (evita parpadeo).
-    // Comparte la clave 'paci_theme' con dashboard y pai (toggle consistente en toda la app).
     (function () {
       try {
         var t = localStorage.getItem('paci_theme');
@@ -39,11 +34,9 @@
     })();
     </script>
     <script>
-    // Carga del config del establecimiento (tenant). Hoy hay 1 solo tenant hardcoded;
-    // cuando exista un segundo colegio, TENANT_SLUG pasara a venir de la sesion del usuario.
     window.TENANT_SLUG = 'lcm-pulebu';
     window.TENANT_CONFIG = null;
-    window.TENANT_CONFIG_READY = fetch('/data/tenants/' + window.TENANT_SLUG + '/config.json')
+    window.TENANT_CONFIG_READY = fetch('/api/tenant-config')
       .then(function(r) { return r.json(); })
       .then(function(cfg) { window.TENANT_CONFIG = cfg; return cfg; })
       .catch(function(err) {
@@ -51,1133 +44,90 @@
         return { nombre: 'Establecimiento' };
       });
     </script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <!-- Librería para descargar a PDF nativo -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <link href="/assets/theme/paci-theme-v2.css?v=1" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="/nee-templates.js"></script>
-
+    <script src="/paci-state.js"></script>
+    <script src="/paci-persistence.js"></script>
+    <link rel="stylesheet" href="/paci.css">
+    <link rel="stylesheet" href="/tailwind-utils.css">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Merriweather:wght@300;400;700;900&display=swap" rel="stylesheet">
-    <style>/* === RESET MÍNIMO + TAILWIND UTILITIES (sin preflight agresivo) === */
-*,*::before,*::after{box-sizing:border-box;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-ring-color:rgba(59,130,246,.5);--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-inset: ;--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-space-y-reverse:0}
-html{height:100vh;overflow:hidden;margin:0;padding:0}
-table{border-collapse:collapse}
-.sr-only{display:none}.collapse{visibility:collapse}.absolute{position:absolute}.relative{position:relative}.bottom-0{bottom:0}.left-0{left:0}.right-0{right:0}.top-0{top:0}.z-20{z-index:20}.col-span-2{grid-column:span 2/span 2}.mx-auto{margin-left:auto;margin-right:auto}.mb-1{margin-bottom:.25rem}.mb-1\.5{margin-bottom:.375rem}.mb-10{margin-bottom:2.5rem}.mb-12{margin-bottom:3rem}.mb-2{margin-bottom:.5rem}.mb-3{margin-bottom:.75rem}.mb-4{margin-bottom:1rem}.mb-6{margin-bottom:1.5rem}.mb-8{margin-bottom:2rem}.ml-1{margin-left:.25rem}.mr-1{margin-right:.25rem}.mr-2{margin-right:.5rem}.mt-1{margin-top:.25rem}.mt-2{margin-top:.5rem}.mt-4{margin-top:1rem}.block{display:block}.flex{display:flex}.inline-flex{display:inline-flex}.table{display:table}.grid{display:grid}.hidden{display:none}.h-1{height:.25rem}.h-1\/3{height:33.333333%}.h-28{height:7rem}.h-32{height:8rem}.h-4{height:1rem}.h-\[3px\]{height:3px}.h-auto{height:auto}.h-full{height:100%}.max-h-32{max-height:8rem}.max-h-\[350px\]{max-height:350px}.min-h-\[36px\]{min-height:36px}.min-h-full{min-height:100%}.w-1{width:.25rem}.w-1\/2{width:50%}.w-1\/3{width:33.333333%}.w-1\/4{width:25%}.w-1\/6{width:16.666667%}.w-16{width:4rem}.w-2{width:.5rem}.w-2\/4{width:50%}.w-28{width:7rem}.w-3{width:.75rem}.w-3\/4{width:75%}.w-4{width:1rem}.w-6{width:1.5rem}.w-8{width:2rem}.w-\[12\%\]{width:12%}.w-\[55\%\]{width:55%}.w-full{width:100%}.max-w-4xl{max-width:56rem}.flex-1{flex:1 1 0%}.flex-shrink{flex-shrink:1}.flex-shrink-0{flex-shrink:0}.border-collapse{border-collapse:collapse}.transform{transform:translate(var(--tw-translate-x),var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.cursor-not-allowed{cursor:not-allowed}.cursor-pointer{cursor:pointer}.resize-y{resize:vertical}.resize{resize:both}.grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}.flex-col{flex-direction:column}.items-start{align-items:flex-start}.items-center{align-items:center}.justify-start{justify-content:flex-start}.justify-end{justify-content:flex-end}.justify-between{justify-content:space-between}.gap-1{gap:.25rem}.gap-2{gap:.5rem}.gap-3{gap:.75rem}.space-y-1>:not([hidden])~:not([hidden]){--tw-space-y-reverse:0;margin-top:calc(.25rem*(1 - var(--tw-space-y-reverse)));margin-bottom:calc(.25rem*var(--tw-space-y-reverse))}.space-y-1\.5>:not([hidden])~:not([hidden]){--tw-space-y-reverse:0;margin-top:calc(.375rem*(1 - var(--tw-space-y-reverse)));margin-bottom:calc(.375rem*var(--tw-space-y-reverse))}.space-y-10>:not([hidden])~:not([hidden]){--tw-space-y-reverse:0;margin-top:calc(2.5rem*(1 - var(--tw-space-y-reverse)));margin-bottom:calc(2.5rem*var(--tw-space-y-reverse))}.space-y-2>:not([hidden])~:not([hidden]){--tw-space-y-reverse:0;margin-top:calc(.5rem*(1 - var(--tw-space-y-reverse)));margin-bottom:calc(.5rem*var(--tw-space-y-reverse))}.space-y-3>:not([hidden])~:not([hidden]){--tw-space-y-reverse:0;margin-top:calc(.75rem*(1 - var(--tw-space-y-reverse)));margin-bottom:calc(.75rem*var(--tw-space-y-reverse))}.space-y-4>:not([hidden])~:not([hidden]){--tw-space-y-reverse:0;margin-top:calc(1rem*(1 - var(--tw-space-y-reverse)));margin-bottom:calc(1rem*var(--tw-space-y-reverse))}.space-y-6>:not([hidden])~:not([hidden]){--tw-space-y-reverse:0;margin-top:calc(1.5rem*(1 - var(--tw-space-y-reverse)));margin-bottom:calc(1.5rem*var(--tw-space-y-reverse))}.space-y-8>:not([hidden])~:not([hidden]){--tw-space-y-reverse:0;margin-top:calc(2rem*(1 - var(--tw-space-y-reverse)));margin-bottom:calc(2rem*var(--tw-space-y-reverse))}.overflow-hidden{overflow:hidden}.overflow-x-auto{overflow-x:auto}.overflow-y-auto{overflow-y:auto}.rounded{border-radius:.25rem}.rounded-2xl{border-radius:1rem}.rounded-\[2rem\]{border-radius:2rem}.rounded-full{border-radius:9999px}.rounded-lg{border-radius:.5rem}.rounded-sm{border-radius:.125rem}.rounded-xl{border-radius:.75rem}.rounded-r-lg{border-top-right-radius:.5rem;border-bottom-right-radius:.5rem}.border{border-width:1px}.border-0{border-width:0}.border-2{border-width:2px}.border-4{border-width:4px}.border-b{border-bottom-width:1px}.border-b-\[3px\]{border-bottom-width:3px}.border-l{border-left-width:1px}.border-l-2{border-left-width:2px}.border-l-4{border-left-width:4px}.border-r{border-right-width:1px}.border-t{border-top-width:1px}.border-dashed{border-style:dashed}.border-amber-200{--tw-border-opacity:1;border-color:rgb(253 230 138/var(--tw-border-opacity,1))}.border-blue-100{--tw-border-opacity:1;border-color:rgb(219 234 254/var(--tw-border-opacity,1))}.border-blue-200{--tw-border-opacity:1;border-color:rgb(191 219 254/var(--tw-border-opacity,1))}.border-blue-300{--tw-border-opacity:1;border-color:rgb(147 197 253/var(--tw-border-opacity,1))}.border-blue-400{--tw-border-opacity:1;border-color:rgb(96 165 250/var(--tw-border-opacity,1))}.border-blue-600{--tw-border-opacity:1;border-color:rgb(37 99 235/var(--tw-border-opacity,1))}.border-blue-900{--tw-border-opacity:1;border-color:rgb(30 58 138/var(--tw-border-opacity,1))}.border-emerald-200{--tw-border-opacity:1;border-color:rgb(167 243 208/var(--tw-border-opacity,1))}.border-slate-100{--tw-border-opacity:1;border-color:rgb(241 245 249/var(--tw-border-opacity,1))}.border-slate-200{--tw-border-opacity:1;border-color:rgb(226 232 240/var(--tw-border-opacity,1))}.border-slate-300{--tw-border-opacity:1;border-color:rgb(203 213 225/var(--tw-border-opacity,1))}.border-slate-400{--tw-border-opacity:1;border-color:rgb(148 163 184/var(--tw-border-opacity,1))}.border-slate-700{--tw-border-opacity:1;border-color:rgb(51 65 85/var(--tw-border-opacity,1))}.border-slate-900{--tw-border-opacity:1;border-color:rgb(15 23 42/var(--tw-border-opacity,1))}.bg-amber-50{--tw-bg-opacity:1;background-color:rgb(255 251 235/var(--tw-bg-opacity,1))}.bg-blue-100{--tw-bg-opacity:1;background-color:rgb(219 234 254/var(--tw-bg-opacity,1))}.bg-blue-50{--tw-bg-opacity:1;background-color:rgb(239 246 255/var(--tw-bg-opacity,1))}.bg-blue-50\/40{background-color:rgba(239,246,255,.4)}.bg-blue-600{--tw-bg-opacity:1;background-color:rgb(37 99 235/var(--tw-bg-opacity,1))}.bg-emerald-50{--tw-bg-opacity:1;background-color:rgb(236 253 245/var(--tw-bg-opacity,1))}.bg-slate-100{--tw-bg-opacity:1;background-color:rgb(241 245 249/var(--tw-bg-opacity,1))}.bg-slate-200{--tw-bg-opacity:1;background-color:rgb(226 232 240/var(--tw-bg-opacity,1))}.bg-slate-50{--tw-bg-opacity:1;background-color:rgb(248 250 252/var(--tw-bg-opacity,1))}.bg-slate-700{--tw-bg-opacity:1;background-color:rgb(51 65 85/var(--tw-bg-opacity,1))}.bg-slate-800{--tw-bg-opacity:1;background-color:rgb(30 41 59/var(--tw-bg-opacity,1))}.bg-slate-900{--tw-bg-opacity:1;background-color:rgb(15 23 42/var(--tw-bg-opacity,1))}.bg-transparent{background-color:transparent}.bg-white{--tw-bg-opacity:1;background-color:rgb(255 255 255/var(--tw-bg-opacity,1))}.bg-gradient-to-r{background-image:linear-gradient(to right,var(--tw-gradient-stops))}.from-blue-600{--tw-gradient-from:#2563eb var(--tw-gradient-from-position);--tw-gradient-to:rgba(37,99,235,0) var(--tw-gradient-to-position);--tw-gradient-stops:var(--tw-gradient-from),var(--tw-gradient-to)}.via-slate-900{--tw-gradient-to:rgba(15,23,42,0) var(--tw-gradient-to-position);--tw-gradient-stops:var(--tw-gradient-from),#0f172a var(--tw-gradient-via-position),var(--tw-gradient-to)}.to-blue-600{--tw-gradient-to:#2563eb var(--tw-gradient-to-position)}.object-contain{-o-object-fit:contain;object-fit:contain}.p-0{padding:0}.p-1{padding:.25rem}.p-1\.5{padding:.375rem}.p-10{padding:2.5rem}.p-14{padding:3.5rem}.p-2{padding:.5rem}.p-2\.5{padding:.625rem}.p-3{padding:.75rem}.p-3\.5{padding:.875rem}.p-4{padding:1rem}.p-5{padding:1.25rem}.px-2{padding-left:.5rem;padding-right:.5rem}.px-3{padding-left:.75rem;padding-right:.75rem}.px-4{padding-left:1rem;padding-right:1rem}.py-0{padding-top:0;padding-bottom:0}.py-0\.5{padding-top:.125rem;padding-bottom:.125rem}.py-10{padding-top:2.5rem;padding-bottom:2.5rem}.py-2{padding-top:.5rem;padding-bottom:.5rem}.py-2\.5{padding-top:.625rem;padding-bottom:.625rem}.py-24{padding-top:6rem;padding-bottom:6rem}.pb-1{padding-bottom:.25rem}.pb-2{padding-bottom:.5rem}.pb-5{padding-bottom:1.25rem}.pl-4{padding-left:1rem}.pr-1{padding-right:.25rem}.pt-2{padding-top:.5rem}.pt-4{padding-top:1rem}.text-left{text-align:left}.text-center{text-align:center}.text-justify{text-align:justify}.align-top{vertical-align:top}.text-2xl{font-size:1.5rem;line-height:2rem}.text-4xl{font-size:2.25rem;line-height:2.5rem}.text-\[10px\]{font-size:10px}.text-\[11px\]{font-size:11px}.text-\[12px\]{font-size:12px}.text-\[8px\]{font-size:8px}.text-\[9px\]{font-size:9px}.text-sm{font-size:.875rem;line-height:1.25rem}.text-xl{font-size:1.25rem;line-height:1.75rem}.text-xs{font-size:.75rem;line-height:1rem}.font-black{font-weight:900}.font-bold{font-weight:700}.font-medium{font-weight:500}.uppercase{text-transform:uppercase}.italic{font-style:italic}.leading-none{line-height:1}.leading-relaxed{line-height:1.625}.leading-tight{line-height:1.25}.tracking-\[0\.3em\]{letter-spacing:.3em}.tracking-tighter{letter-spacing:-.05em}.tracking-widest{letter-spacing:.1em}.text-amber-800{--tw-text-opacity:1;color:rgb(146 64 14/var(--tw-text-opacity,1))}.text-blue-300{--tw-text-opacity:1;color:rgb(147 197 253/var(--tw-text-opacity,1))}.text-blue-400{--tw-text-opacity:1;color:rgb(96 165 250/var(--tw-text-opacity,1))}.text-blue-500{--tw-text-opacity:1;color:rgb(59 130 246/var(--tw-text-opacity,1))}.text-blue-600{--tw-text-opacity:1;color:rgb(37 99 235/var(--tw-text-opacity,1))}.text-blue-700{--tw-text-opacity:1;color:rgb(29 78 216/var(--tw-text-opacity,1))}.text-blue-800{--tw-text-opacity:1;color:rgb(30 64 175/var(--tw-text-opacity,1))}.text-blue-900{--tw-text-opacity:1;color:rgb(30 58 138/var(--tw-text-opacity,1))}.text-emerald-500{--tw-text-opacity:1;color:rgb(16 185 129/var(--tw-text-opacity,1))}.text-emerald-800{--tw-text-opacity:1;color:rgb(6 95 70/var(--tw-text-opacity,1))}.text-purple-500{--tw-text-opacity:1;color:rgb(168 85 247/var(--tw-text-opacity,1))}.text-red-400{--tw-text-opacity:1;color:rgb(248 113 113/var(--tw-text-opacity,1))}.text-slate-200{--tw-text-opacity:1;color:rgb(226 232 240/var(--tw-text-opacity,1))}.text-slate-300{--tw-text-opacity:1;color:rgb(203 213 225/var(--tw-text-opacity,1))}.text-slate-400{--tw-text-opacity:1;color:rgb(148 163 184/var(--tw-text-opacity,1))}.text-slate-500{--tw-text-opacity:1;color:rgb(100 116 139/var(--tw-text-opacity,1))}.text-slate-600{--tw-text-opacity:1;color:rgb(71 85 105/var(--tw-text-opacity,1))}.text-slate-700{--tw-text-opacity:1;color:rgb(51 65 85/var(--tw-text-opacity,1))}.text-slate-800{--tw-text-opacity:1;color:rgb(30 41 59/var(--tw-text-opacity,1))}.text-slate-900{--tw-text-opacity:1;color:rgb(15 23 42/var(--tw-text-opacity,1))}.text-white{--tw-text-opacity:1;color:rgb(255 255 255/var(--tw-text-opacity,1))}.opacity-50{opacity:.5}.shadow-2xl{--tw-shadow:0 25px 50px -12px rgba(0,0,0,.25);--tw-shadow-colored:0 25px 50px -12px var(--tw-shadow-color)}.shadow-2xl,.shadow-inner{box-shadow:var(--tw-ring-offset-shadow,0 0 #0000),var(--tw-ring-shadow,0 0 #0000),var(--tw-shadow)}.shadow-inner{--tw-shadow:inset 0 2px 4px 0 rgba(0,0,0,.05);--tw-shadow-colored:inset 0 2px 4px 0 var(--tw-shadow-color)}.shadow-lg{--tw-shadow:0 10px 15px -3px rgba(0,0,0,.1),0 4px 6px -4px rgba(0,0,0,.1);--tw-shadow-colored:0 10px 15px -3px var(--tw-shadow-color),0 4px 6px -4px var(--tw-shadow-color)}.shadow-lg,.shadow-md{box-shadow:var(--tw-ring-offset-shadow,0 0 #0000),var(--tw-ring-shadow,0 0 #0000),var(--tw-shadow)}.shadow-md{--tw-shadow:0 4px 6px -1px rgba(0,0,0,.1),0 2px 4px -2px rgba(0,0,0,.1);--tw-shadow-colored:0 4px 6px -1px var(--tw-shadow-color),0 2px 4px -2px var(--tw-shadow-color)}.shadow-sm{--tw-shadow:0 1px 2px 0 rgba(0,0,0,.05);--tw-shadow-colored:0 1px 2px 0 var(--tw-shadow-color)}.shadow-sm,.shadow-xl{box-shadow:var(--tw-ring-offset-shadow,0 0 #0000),var(--tw-ring-shadow,0 0 #0000),var(--tw-shadow)}.shadow-xl{--tw-shadow:0 20px 25px -5px rgba(0,0,0,.1),0 8px 10px -6px rgba(0,0,0,.1);--tw-shadow-colored:0 20px 25px -5px var(--tw-shadow-color),0 8px 10px -6px var(--tw-shadow-color)}.outline-none{outline:2px solid transparent;outline-offset:2px}.outline{outline-style:solid}.ring-blue-500{--tw-ring-opacity:1;--tw-ring-color:rgb(59 130 246/var(--tw-ring-opacity,1))}.filter{filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)}.transition{transition-property:color,background-color,border-color,text-decoration-color,fill,stroke,opacity,box-shadow,transform,filter,-webkit-backdrop-filter;transition-property:color,background-color,border-color,text-decoration-color,fill,stroke,opacity,box-shadow,transform,filter,backdrop-filter;transition-property:color,background-color,border-color,text-decoration-color,fill,stroke,opacity,box-shadow,transform,filter,backdrop-filter,-webkit-backdrop-filter;transition-timing-function:cubic-bezier(.4,0,.2,1);transition-duration:.15s}.transition-all{transition-property:all;transition-timing-function:cubic-bezier(.4,0,.2,1);transition-duration:.15s}.ease-out{transition-timing-function:cubic-bezier(0,0,.2,1)}.last\:mb-0:last-child{margin-bottom:0}.hover\:bg-blue-50:hover{--tw-bg-opacity:1;background-color:rgb(239 246 255/var(--tw-bg-opacity,1))}.hover\:bg-blue-500:hover{--tw-bg-opacity:1;background-color:rgb(59 130 246/var(--tw-bg-opacity,1))}.hover\:bg-red-500:hover{--tw-bg-opacity:1;background-color:rgb(239 68 68/var(--tw-bg-opacity,1))}.hover\:bg-slate-600:hover{--tw-bg-opacity:1;background-color:rgb(71 85 105/var(--tw-bg-opacity,1))}.hover\:bg-slate-800:hover{--tw-bg-opacity:1;background-color:rgb(30 41 59/var(--tw-bg-opacity,1))}.hover\:text-red-600:hover{--tw-text-opacity:1;color:rgb(220 38 38/var(--tw-text-opacity,1))}.hover\:text-white:hover{--tw-text-opacity:1;color:rgb(255 255 255/var(--tw-text-opacity,1))}.focus\:ring-2:focus{--tw-ring-offset-shadow:var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);--tw-ring-shadow:var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);box-shadow:var(--tw-ring-offset-shadow),var(--tw-ring-shadow),var(--tw-shadow,0 0 #0000)}.focus\:ring-blue-500:focus{--tw-ring-opacity:1;--tw-ring-color:rgb(59 130 246/var(--tw-ring-opacity,1))}.active\:scale-95:active{--tw-scale-x:.95;--tw-scale-y:.95}.active\:scale-95:active,.active\:scale-\[0\.98\]:active{transform:translate(var(--tw-translate-x),var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.active\:scale-\[0\.98\]:active{--tw-scale-x:0.98;--tw-scale-y:0.98}.disabled\:cursor-not-allowed:disabled{cursor:not-allowed}.disabled\:opacity-50:disabled{opacity:.5}.disabled\:active\:scale-100:active:disabled{--tw-scale-x:1;--tw-scale-y:1;transform:translate(var(--tw-translate-x),var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}
-    </style>
     <style>
-        /* ========================================== */
-        /* PACI MASTER - REFINED PROFESSIONAL UI     */
-        /* ========================================== */
-
+        /* SOLO el editor PACI usa layout horizontal con scroll interno: html no scrollea */
+        html { height: 100vh; overflow: hidden; }
         body {
             font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif;
-            background: #0c1222;
+            background: #020617;
             color: #e2e8f0;
             -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-        }
-
-        /* === Scrollbar === */
-        ::-webkit-scrollbar { width: 5px; }
-        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
-        ::-webkit-scrollbar-thumb { background: rgba(56,189,248,0.25); border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(56,189,248,0.5); }
-
-        /* === Panel de Control (dark glass) === */
-        #control-panel {
-            background: rgba(13,19,36,0.92) !important;
-            backdrop-filter: blur(24px) saturate(150%) !important;
-            -webkit-backdrop-filter: blur(24px) saturate(150%) !important;
-            border-right: 1px solid rgba(56,189,248,0.1) !important;
-        }
-
-        /* === Accordion === */
-        .accordion-content {
-            transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s ease, opacity 0.3s ease;
-            max-height: 0; overflow: hidden; opacity: 0;
-        }
-        .accordion-content.open { max-height: 6000px; padding: 1rem 0; opacity: 1; }
-
-        /* === Section cards (dark glass) === */
-        #control-panel .bg-white.border.border-slate-200.rounded-xl {
-            background: rgba(15,23,42,0.6) !important;
-            backdrop-filter: blur(12px) !important;
-            -webkit-backdrop-filter: blur(12px) !important;
-            border: 1px solid rgba(56,189,248,0.08) !important;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.03) !important;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-        }
-        #control-panel .bg-white.border.border-slate-200.rounded-xl:hover {
-            border-color: rgba(56,189,248,0.2) !important;
-            box-shadow: 0 4px 20px rgba(56,189,248,0.06), inset 0 1px 0 rgba(255,255,255,0.05) !important;
-        }
-
-        /* Section toggle buttons */
-        #control-panel .bg-slate-50 { background: rgba(15,23,42,0.4) !important; color: #94a3b8 !important; }
-        #control-panel .bg-slate-50:hover { color: #e2e8f0 !important; }
-        #control-panel .bg-slate-50 i { color: #38bdf8 !important; }
-
-        /* === Inputs (dark theme) === */
-        #control-panel input[type="text"],
-        #control-panel input[type="number"],
-        #control-panel input[type="date"],
-        #control-panel select,
-        #control-panel textarea {
-            border: 1px solid rgba(56,189,248,0.12) !important;
-            border-radius: 0.625rem !important;
-            padding: 0.625rem 0.875rem !important;
-            font-family: 'Plus Jakarta Sans', sans-serif !important;
-            font-size: 0.85rem !important;
-            transition: all 0.25s ease !important;
-            background: rgba(15,23,42,0.5) !important;
-            color: #e2e8f0 !important;
-            outline: none !important;
-        }
-        #control-panel input::placeholder, #control-panel textarea::placeholder { color: #475569 !important; }
-        #control-panel input:focus,
-        #control-panel select:focus,
-        #control-panel textarea:focus {
-            border-color: rgba(56,189,248,0.4) !important;
-            box-shadow: 0 0 0 3px rgba(56,189,248,0.08), 0 0 20px rgba(56,189,248,0.06) !important;
-            background: rgba(15,23,42,0.7) !important;
-        }
-
-        /* === Select arrow === */
-        #control-panel select {
-            appearance: none !important;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2338bdf8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
-            background-repeat: no-repeat !important;
-            background-position: right 0.75rem center !important;
-            padding-right: 2.25rem !important;
-        }
-        #control-panel select option { background: #0f172a; color: #e2e8f0; }
-
-        /* === Labels === */
-        #control-panel label, #control-panel .text-slate-600, #control-panel .text-slate-500 {
-            color: #64748b !important; transition: color 0.2s !important;
-        }
-        #control-panel .font-black { color: #94a3b8 !important; }
-        #control-panel .text-blue-600, #control-panel .text-blue-800 { color: #38bdf8 !important; }
-        #control-panel .text-slate-700, #control-panel .text-slate-800 { color: #cbd5e1 !important; }
-        #control-panel .text-slate-900 { color: #e2e8f0 !important; }
-
-        /* === OA Cards === */
-        .oa-card {
-            cursor: pointer;
-            transition: all 0.25s ease;
-            border: 1px solid rgba(56,189,248,0.08) !important;
-            background: rgba(15,23,42,0.5) !important;
-        }
-        .oa-card:hover {
-            border-color: rgba(56,189,248,0.25) !important;
-            background: rgba(56,189,248,0.06) !important;
-            transform: translateY(-1px);
-        }
-        .oa-card.selected {
-            border-color: #38bdf8 !important;
-            background: rgba(56,189,248,0.1) !important;
-            box-shadow: 0 0 20px rgba(56,189,248,0.08) !important;
-        }
-        .oa-card label, .oa-card .text-slate-700 { color: #cbd5e1 !important; }
-        .oa-card .text-blue-700 { color: #38bdf8 !important; }
-
-        .evitar-corte { break-inside: avoid; page-break-inside: avoid; }
-        .html2pdf__page-break {
-            page-break-before: always !important;
-            break-before: page !important;
-            display: block !important;
-            clear: both !important;
-        }
-        .consolidado-materiales { margin-top: 1rem; }
-
-        /* === FIX TABLA: forzar layout correcto para html2canvas/PDF ===
-           html2canvas renderiza el DOM en modo pantalla (no @media print). Algunas
-           reglas globales o resets de Tailwind pueden hacer que <thead>/<tr>/<th>
-           pierdan su display nativo, lo que causa que los encabezados se apilen
-           verticalmente en una columna estrecha a la izquierda en vez de extenderse
-           horizontalmente sobre cada columna. Forzamos el display correcto. */
-        #documento table { display: table !important; }
-        #documento thead { display: table-header-group !important; }
-        #documento tbody { display: table-row-group !important; }
-        #documento tfoot { display: table-footer-group !important; }
-        #documento tr { display: table-row !important; }
-        #documento th, #documento td { display: table-cell !important; }
-
-        /* === Day toggle === */
-        .day-active {
-            background: #0ea5e9 !important;
-            color: #fff !important;
-            border-color: #0ea5e9 !important;
-            box-shadow: 0 2px 10px rgba(14,165,233,0.35) !important;
-        }
-
-        /* === Module animation === */
-        @keyframes slideInModule {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .module-animate-in { animation: slideInModule 0.4s ease-out forwards; }
-
-        /* === Buttons === */
-        #control-panel button, #control-panel a[class*="btn"] {
-            transition: all 0.25s ease !important;
-        }
-        #control-panel .flex.gap-2 > button:hover,
-        #control-panel .flex.gap-2 > a:hover {
-            transform: translateY(-1px) !important;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.3) !important;
-        }
-        #control-panel .flex.gap-2 > button:active,
-        #control-panel .flex.gap-2 > a:active {
-            transform: scale(0.97) !important;
-        }
-
-        /* Guardar button */
-        #btn-guardar {
-            background: linear-gradient(135deg, #059669, #10b981) !important;
-            box-shadow: 0 2px 8px rgba(16,185,129,0.25) !important;
-        }
-        #btn-guardar:hover { box-shadow: 0 4px 20px rgba(16,185,129,0.35) !important; }
-
-        /* PDF button */
-        button[onclick="downloadPDF()"] {
-            background: linear-gradient(135deg, #0369a1, #0ea5e9) !important;
-            box-shadow: 0 2px 8px rgba(14,165,233,0.25) !important;
-        }
-
-        /* === Header (deep dark) === */
-        #control-panel > .p-5.bg-slate-900 {
-            background: rgba(2,6,18,0.95) !important;
-            border-bottom: 1px solid rgba(56,189,248,0.08) !important;
-        }
-        #control-panel > .p-5.bg-slate-900 .text-blue-400 { color: #38bdf8 !important; }
-
-        /* === Preview panel === */
-        #preview-panel {
-            background: #111827 !important;
-        }
-
-        /* === Skeleton loading === */
-        @keyframes skeletonShine {
-            0% { background-position: -200px 0; }
-            100% { background-position: calc(200px + 100%) 0; }
-        }
-        .skeleton {
-            background: linear-gradient(90deg, rgba(30,41,59,0.6) 0%, rgba(51,65,85,0.4) 40%, rgba(30,41,59,0.6) 80%);
-            background-size: 200px 100%;
-            animation: skeletonShine 1.4s ease-in-out infinite;
-            border-radius: 0.5rem;
-        }
-
-        /* === Section transitions === */
-        @keyframes fadeSlideIn {
-            from { opacity: 0; transform: translateX(10px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
-        .accordion-content.open > * {
-            animation: fadeSlideIn 0.35s ease both;
-        }
-        .accordion-content.open > *:nth-child(1) { animation-delay: 0.02s; }
-        .accordion-content.open > *:nth-child(2) { animation-delay: 0.05s; }
-        .accordion-content.open > *:nth-child(3) { animation-delay: 0.08s; }
-        .accordion-content.open > *:nth-child(4) { animation-delay: 0.11s; }
-        .accordion-content.open > *:nth-child(5) { animation-delay: 0.14s; }
-
-        /* === Checkboxes === */
-        #control-panel input[type="checkbox"] {
-            appearance: none !important; -webkit-appearance: none !important;
-            width: 1.125rem !important; height: 1.125rem !important;
-            border: 1.5px solid rgba(56,189,248,0.2) !important;
-            border-radius: 0.375rem !important;
-            transition: all 0.2s ease !important;
-            cursor: pointer !important; position: relative !important;
-            background: rgba(15,23,42,0.5) !important;
-        }
-        #control-panel input[type="checkbox"]:checked {
-            background: linear-gradient(135deg, #0ea5e9, #38bdf8) !important;
-            border-color: #38bdf8 !important;
-            box-shadow: 0 2px 8px rgba(56,189,248,0.3) !important;
-        }
-        #control-panel input[type="checkbox"]:checked::after {
-            content: '' !important; position: absolute !important;
-            left: 4px !important; top: 1px !important;
-            width: 5px !important; height: 9px !important;
-            border: solid white !important; border-width: 0 2px 2px 0 !important;
-            transform: rotate(45deg) !important;
-        }
-
-        /* === Misc dark overrides === */
-        #control-panel .border-slate-200 { border-color: rgba(56,189,248,0.08) !important; }
-        #control-panel .bg-white { background: rgba(15,23,42,0.4) !important; }
-        #control-panel .border { border-color: rgba(56,189,248,0.1) !important; }
-        #control-panel .bg-blue-50, #control-panel .bg-slate-100 { background: rgba(56,189,248,0.04) !important; }
-        #control-panel .border-blue-200 { border-color: rgba(56,189,248,0.15) !important; }
-        #control-panel .shadow-sm, #control-panel .shadow-md { box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important; }
-
-        /* === Focus visible === */
-        *:focus-visible {
-            outline: 2px solid rgba(56,189,248,0.4);
-            outline-offset: 2px;
-            border-radius: 4px;
-        }
-
-        /* ========================================== */
-        /* LAYER 2: UX INTELIGENTE + SEGURIDAD        */
-        /* ========================================== */
-
-        /* === Indicador de cifrado (candado animado) === */
-        .encrypted-field { position: relative; }
-        .encrypted-field::after {
-            content: '\f023';
-            font-family: 'Font Awesome 6 Free';
-            font-weight: 900;
-            position: absolute;
-            right: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 0.6rem;
-            color: #10b981;
-            opacity: 0.5;
-            animation: lockPulse 3s ease-in-out infinite;
-            pointer-events: none;
-        }
-        @keyframes lockPulse {
-            0%, 100% { opacity: 0.3; transform: translateY(-50%) scale(1); }
-            50% { opacity: 0.7; transform: translateY(-50%) scale(1.1); }
-        }
-
-        /* === Session timeout frost overlay === */
-        #session-timeout-overlay {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(15, 23, 42, 0.3);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            z-index: 10000;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            opacity: 0;
-            transition: opacity 0.4s ease;
-        }
-        #session-timeout-overlay.show { display: flex; opacity: 1; }
-        .timeout-card {
-            background: rgba(255,255,255,0.95);
-            backdrop-filter: blur(20px);
-            border-radius: 1.5rem;
-            padding: 2.5rem;
-            text-align: center;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
-            max-width: 360px;
-            width: 90%;
-            animation: fadeUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-        @keyframes fadeUp {
-            from { opacity: 0; transform: translateY(20px) scale(0.95); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        .timeout-ring {
-            width: 80px; height: 80px;
-            margin: 0 auto 1.25rem;
             position: relative;
         }
-        .timeout-ring svg { transform: rotate(-90deg); }
-        .timeout-ring circle {
-            fill: none; stroke-width: 4; stroke-linecap: round;
+        /* Fondo animado: blobs de gradiente. Más suave aquí (es el editor, no debe distraer) */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(circle at 18% 25%, rgba(56, 189, 248, 0.18)  0%, transparent 38%),
+                radial-gradient(circle at 78% 22%, rgba(168, 139, 250, 0.16) 0%, transparent 42%),
+                radial-gradient(circle at 52% 78%, rgba(244, 114, 182, 0.14) 0%, transparent 40%),
+                radial-gradient(circle at 88% 88%, rgba(52, 211, 153, 0.13)  0%, transparent 38%),
+                radial-gradient(circle at 8% 92%,  rgba(251, 146, 60, 0.13)  0%, transparent 38%);
+            background-size: 220% 220%;
+            background-attachment: fixed;
+            z-index: -2;
+            pointer-events: none;
+            animation: bg-flow 35s ease-in-out infinite alternate;
         }
-        .timeout-ring .bg { stroke: #e2e8f0; }
-        .timeout-ring .fg { stroke: #2563eb; transition: stroke-dashoffset 1s linear; }
-        .timeout-ring .time {
-            position: absolute; top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 1.5rem; font-weight: 800; color: #0f172a;
-            font-family: 'Plus Jakarta Sans', sans-serif;
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: url('/assets/canva/bg-pattern.png');
+            background-size: cover;
+            background-position: center;
+            opacity: 0.06;
+            pointer-events: none;
+            z-index: -1;
+            mix-blend-mode: overlay;
         }
-        .timeout-btn {
-            display: inline-block; padding: 0.875rem 2rem;
-            background: linear-gradient(135deg, #2563eb, #3b82f6);
-            color: #fff; border: none; border-radius: 0.75rem;
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            font-size: 0.875rem; font-weight: 700;
-            cursor: pointer; transition: all 0.2s;
-            box-shadow: 0 4px 16px rgba(37,99,235,0.3);
+        @keyframes bg-flow {
+            0%   { background-position: 0% 0%,   100% 0%,   50% 100%, 100% 100%, 0% 100%; }
+            25%  { background-position: 20% 15%, 80% 20%,   45% 90%,  90% 95%,   5% 95%; }
+            50%  { background-position: 100% 50%, 0% 50%,   100% 50%, 50% 0%,    50% 100%; }
+            75%  { background-position: 80% 85%, 15% 80%,   25% 10%,  10% 5%,    95% 5%; }
+            100% { background-position: 100% 100%, 0% 100%, 50% 0%,   0% 0%,     100% 0%; }
         }
-        .timeout-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(37,99,235,0.4); }
-
-        /* === Command Palette (CMD+K) === */
-        #cmd-palette-overlay {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(15, 23, 42, 0.4);
-            backdrop-filter: blur(4px);
-            -webkit-backdrop-filter: blur(4px);
-            z-index: 10001;
-            display: none; align-items: flex-start; justify-content: center;
-            padding-top: 20vh;
+        [data-theme="light"] body::before {
+            background:
+                radial-gradient(circle at 18% 25%, rgba(125, 211, 252, 0.4)  0%, transparent 38%),
+                radial-gradient(circle at 78% 22%, rgba(196, 181, 253, 0.35) 0%, transparent 42%),
+                radial-gradient(circle at 52% 78%, rgba(251, 207, 232, 0.35) 0%, transparent 40%),
+                radial-gradient(circle at 88% 88%, rgba(167, 243, 208, 0.32) 0%, transparent 38%),
+                radial-gradient(circle at 8% 92%,  rgba(254, 215, 170, 0.35) 0%, transparent 38%);
+            background-size: 220% 220%;
+            background-attachment: fixed;
         }
-        #cmd-palette-overlay.show { display: flex; }
-        .cmd-palette {
-            background: rgba(255,255,255,0.97);
-            backdrop-filter: blur(20px);
-            border-radius: 1rem;
-            width: 90%; max-width: 520px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
-            overflow: hidden;
-            animation: fadeUp 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+        [data-theme="light"] body::after { opacity: 0.04; mix-blend-mode: multiply; filter: invert(1) hue-rotate(180deg); }
+        .brand-logo-app {
+            height: 60px;
+            width: auto;
+            border-radius: 0.75rem;
+            box-shadow: 0 6px 18px rgba(18, 64, 196, 0.45);
+            transition: transform 0.3s cubic-bezier(0.16, 0.84, 0.44, 1);
+            flex-shrink: 0;
         }
-        .cmd-input {
-            width: 100%; border: none; outline: none;
-            padding: 1rem 1.25rem;
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            font-size: 1rem; color: #0f172a;
-            background: transparent;
-            border-bottom: 1px solid #f1f5f9;
-        }
-        .cmd-input::placeholder { color: #94a3b8; }
-        .cmd-results { max-height: 300px; overflow-y: auto; }
-        .cmd-item {
-            padding: 0.75rem 1.25rem;
-            display: flex; align-items: center; gap: 0.75rem;
-            cursor: pointer; transition: background 0.15s;
-            font-size: 0.85rem; color: #475569;
-        }
-        .cmd-item:hover, .cmd-item.active { background: #eff6ff; color: #1e3a8a; }
-        .cmd-item i { width: 1.25rem; text-align: center; opacity: 0.5; }
-        .cmd-item .shortcut {
-            margin-left: auto; font-size: 0.65rem; color: #94a3b8;
-            background: #f1f5f9; padding: 0.125rem 0.5rem; border-radius: 0.25rem;
-            font-weight: 600;
-        }
-        .cmd-hint {
-            padding: 0.5rem 1.25rem; font-size: 0.65rem; color: #94a3b8;
-            border-top: 1px solid #f1f5f9; text-align: center;
-        }
-
-        /* === Inline validation === */
-        .field-error {
-            font-size: 0.7rem; color: #ef4444; margin-top: 0.25rem;
-            animation: fadeSlideIn 0.3s ease both;
-            display: flex; align-items: center; gap: 0.25rem;
-        }
-        .field-error i { font-size: 0.6rem; }
-        @keyframes shakeField {
-            0%, 100% { transform: translateX(0); }
-            20% { transform: translateX(-4px); }
-            40% { transform: translateX(4px); }
-            60% { transform: translateX(-3px); }
-            80% { transform: translateX(2px); }
-        }
-        .shake { animation: shakeField 0.4s ease; }
-
-        /* === Optimistic UI - save states === */
-        @keyframes checkPop {
-            0% { transform: scale(0); opacity: 0; }
-            50% { transform: scale(1.2); }
-            100% { transform: scale(1); opacity: 1; }
-        }
-        .save-check { animation: checkPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
-
-        /* === Status bar sutil (cifrado activo) === */
-        #security-status {
-            position: fixed; bottom: 12px; right: 12px;
-            background: rgba(16, 185, 129, 0.08);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(16, 185, 129, 0.15);
-            border-radius: 2rem;
-            padding: 0.375rem 0.875rem;
-            font-size: 0.6rem; font-weight: 700;
-            color: #34d399;
-            display: flex; align-items: center; gap: 0.375rem;
-            z-index: 100;
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            transition: opacity 0.3s;
-        }
-        #security-status i { font-size: 0.55rem; animation: lockPulse 3s ease-in-out infinite; }
-
-        /* ===================================================== */
-        /* @MEDIA PRINT - Estilos de impresion                   */
-        /* ===================================================== */
-        @media print {
-            /* 0) PAGINA: tamaño carta, margenes 1cm (maximo aprovechamiento) */
-            @page { size: letter; margin: 1cm; }
-            /* Pagina de la Gantt: landscape para que las 11 columnas (asignatura + 10 meses)
-               quepan sin recorte. Named pages funcionan en algunos navegadores;
-               donde no funcionen, el transform:scale del wrapper es respaldo. */
-            @page gantt-landscape { size: letter landscape; margin: 1cm; }
-            #seccion-gantt { page: gantt-landscape; }
-            /* Respaldo siempre activo: escalar la Gantt al 80% para que entre
-               horizontalmente aunque el navegador no soporte named pages. */
-            #gantt-wrapper {
-                transform: scale(0.85) !important;
-                transform-origin: top left !important;
-                width: 117% !important;
-            }
-            #seccion-gantt #gantt {
-                font-size: 7pt !important;
-            }
-            #seccion-gantt #gantt th,
-            #seccion-gantt #gantt td {
-                padding: 2pt 1pt !important;
-                word-break: break-word !important;
-            }
-
-            /* 0b) FORZAR COLORES DE FONDO EN TODOS LOS NAVEGADORES */
-            *, *::before, *::after {
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-                color-adjust: exact !important;
-            }
-
-            /* 1) LAYOUT GLOBAL */
-            html {
-                height: auto !important;
-                overflow: visible !important;
-                margin: 0 !important;
-                padding: 0 !important;
-            }
-            body {
-                display: block !important;
-                flex-direction: unset !important;
-                height: auto !important;
-                overflow: visible !important;
-                background: white !important;
-                color: #1a1a2e !important;
-                margin: 0 !important;
-                padding: 0 !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-            }
-
-            /* 2) AISLAMIENTO: ocultar todo fuera del documento */
-            #skeleton-screen, #control-panel, #mobile-nav, #mobile-actions,
-            .no-print, #session-timeout-overlay, #dp-overlay, #dp-container,
-            .cmd-palette-overlay, .paci-dp-overlay, .paci-dp {
-                display: none !important;
-                visibility: hidden !important;
-                width: 0 !important;
-                height: 0 !important;
-                overflow: hidden !important;
-                margin: 0 !important;
-                padding: 0 !important;
-                border: none !important;
-            }
-
-            /* 3) PANEL PREVIEW: flujo normal */
-            #preview-panel {
-                display: block !important;
-                width: 100% !important;
-                height: auto !important;
-                min-height: 0 !important;
-                max-height: none !important;
-                overflow: visible !important;
-                padding: 0 !important;
-                margin: 0 !important;
-                background: white !important;
-                position: static !important;
-                flex: none !important;
-            }
-
-            /* 4) DOCUMENTO: base de impresion */
-            #documento {
-                display: block !important;
-                visibility: visible !important;
-                opacity: 1 !important;
-                box-shadow: none !important;
-                border: none !important;
-                padding: 0 !important;
-                max-width: 100% !important;
-                width: 100% !important;
-                min-height: 0 !important;
-                height: auto !important;
-                overflow: visible !important;
-                background-color: #fff !important;
-                color: #1a1a2e !important;
-                font-family: 'Merriweather', 'Georgia', serif !important;
-                font-size: 11pt !important;
-                line-height: 1.4 !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-            }
-
-            /* 5) TEXTO OSCURO GLOBAL */
-            #documento, #documento * {
-                color: #1a1a2e !important;
-                -webkit-text-fill-color: #1a1a2e !important;
-            }
-
-            /* 6) HEADERS (.paci-header): fondo oscuro + texto blanco */
-            #documento .paci-header,
-            #documento .paci-header span,
-            #documento .paci-header i,
-            #documento .paci-header div,
-            #documento .paci-header p,
-            #documento .paci-header h3,
-            #documento h3.paci-header {
-                background-color: #091845 !important;
-                background-image: none !important;
-                color: #ffffff !important;
-                -webkit-text-fill-color: #ffffff !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-            }
-
-            /* 6b) Fondos oscuros NO-header → claro */
-            #documento [style*="background-color:#091845"]:not(.paci-header),
-            #documento [style*="background-image:linear-gradient"]:not(.paci-header) {
-                background: #e8f0fe !important;
-                background-image: none !important;
-                color: #091845 !important;
-                -webkit-text-fill-color: #091845 !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-            }
-
-            /* 7) TABLAS DE INDICADORES */
-            #documento table {
-                border-color: #cbd5e1 !important;
-                border-collapse: collapse !important;
-                width: 100% !important;
-                font-size: 10pt !important;
-            }
-            #documento th {
-                background: #e8f0fe !important;
-                background-image: none !important;
-                color: #091845 !important;
-                -webkit-text-fill-color: #091845 !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-                padding: 8pt 6pt !important;
-                font-size: 8pt !important;
-            }
-            #documento td {
-                color: #1a1a2e !important;
-                -webkit-text-fill-color: #1a1a2e !important;
-                border-color: #cbd5e1 !important;
-                padding: 8pt 6pt !important;
-                line-height: 1.15 !important;
-                vertical-align: top !important;
-            }
-            #documento td textarea,
-            #documento td div[data-print-swap] {
-                font-size: 10pt !important;
-                line-height: 1.15 !important;
-            }
-
-            /* 8) CLASES TAILWIND: texto claro → oscuro */
-            #documento .text-white, #documento .text-slate-200, #documento .text-slate-300,
-            #documento .text-slate-400, #documento .text-blue-300, #documento .text-blue-400,
-            #documento .text-red-400, #documento .text-emerald-500, #documento .text-purple-500 {
-                color: #1e3a5e !important; -webkit-text-fill-color: #1e3a5e !important;
-            }
-
-            /* 9) FONDOS OSCUROS Tailwind → claro */
-            #documento .bg-slate-700, #documento .bg-slate-800, #documento .bg-slate-900,
-            #documento .bg-blue-600 {
-                background-color: #e8f0fe !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-            }
-
-            /* 10) BADGES */
-            #documento .font-black { color: #0f172a !important; -webkit-text-fill-color: #0f172a !important; }
-            #documento .text-blue-800, #documento .text-blue-900, #documento .text-blue-700 { color: #1e3a8a !important; -webkit-text-fill-color: #1e3a8a !important; }
-
-            /* 11) Fondos claros: forzar renderizado */
-            #documento [style*="background-color:#a3c2f5"],
-            #documento [style*="background-color:#b8d4fb"],
-            #documento [style*="background-color:#e8f0fe"],
-            #documento .bg-blue-50, #documento .bg-blue-100, #documento .bg-slate-50,
-            #documento .bg-white, #documento .bg-emerald-50, #documento .bg-amber-50 {
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-            }
-
-            /* 12-PRE) Tabla de firmas: NUNCA se parte (es chica, cabe en una pagina) */
-            #documento .tabla-firmas {
-                page-break-inside: avoid !important;
-                break-inside: avoid !important;
-            }
-            /* 12-PRE) Cada OA individual: NUNCA se parte entre paginas */
-            #documento .oa-row {
-                page-break-inside: avoid !important;
-                break-inside: avoid !important;
-            }
-
-            /* 12) PAGINACION Y SALTOS - REGLAS DE FLUJO ENTRE PAGINAS
-               Filosofia: las TABLAS pueden fluir entre paginas (auto), las FILAS no se cortan,
-               los HEADERS se pegan al siguiente bloque. Asi cada item arranca limpio
-               y las tablas largas no causan paginas vacias por intentar mantenerse enteras. */
-            .evitar-corte {
-                break-inside: avoid !important;
-                page-break-inside: avoid !important;
-            }
-            #documento table {
-                page-break-inside: auto !important;
-                break-inside: auto !important;
-            }
-            #documento tr {
-                page-break-inside: avoid !important;
-                break-inside: avoid !important;
-                display: table-row !important;
-            }
-            /* Cada celda y su contenido: indivisible dentro de la fila */
-            #documento td {
-                page-break-inside: avoid !important;
-                break-inside: avoid !important;
-            }
-            #documento td textarea {
-                page-break-inside: avoid !important;
-                break-inside: avoid !important;
-            }
-            #documento thead {
-                display: table-header-group !important;
-                page-break-inside: avoid !important;
-                break-inside: avoid !important;
-                page-break-after: avoid !important;
-                break-after: avoid !important;
-            }
-            #documento thead tr {
-                display: table-row !important;
-                page-break-inside: avoid !important;
-                break-inside: avoid !important;
-                page-break-after: avoid !important;
-                break-after: avoid !important;
-            }
-            #documento thead th {
-                display: table-cell !important;
-                page-break-inside: avoid !important;
-                break-inside: avoid !important;
-                page-break-after: avoid !important;
-                break-after: avoid !important;
-            }
-            /* Headers azules (.paci-header): siempre se pegan al contenido siguiente */
-            #documento .paci-header,
-            #documento h3.paci-header,
-            #documento h4 {
-                page-break-after: avoid !important;
-                break-after: avoid !important;
-                page-break-inside: avoid !important;
-                break-inside: avoid !important;
-            }
-            /* Headers de modulo (azul oscuro) y su tabla deben quedar juntos al inicio */
-            #documento [style*="background-color:#091845"]:not(table):not(td):not(tr) {
-                page-break-after: avoid !important;
-                break-after: avoid !important;
-            }
-            /* .html2pdf__page-break: solo fuerza salto de pagina antes del elemento.
-               OJO: NO aplicar height:0/margin:0/padding:0 globalmente porque esta clase
-               tambien la usan secciones de contenido real (consolidado de materiales,
-               III. Propuesta Curricular, IV. Temporalizacion, etc.) y las haria
-               invisibles en la impresion. Solo colapsamos a height:0 si el elemento
-               esta vacio (caso marcadores standalone tipo <hr class="html2pdf__page-break">). */
-            .html2pdf__page-break {
-                page-break-before: always !important;
-                break-before: page !important;
-                display: block !important;
-                clear: both !important;
-            }
-            .html2pdf__page-break:empty {
-                height: 0 !important;
-                margin: 0 !important;
-                padding: 0 !important;
-            }
-
-            /* PACI-SECTION: clase semantica para bloques que NO deben partirse en mitad
-               (clases de estrategia pedagogica, OAs individuales, headers + primer contenido).
-               Cuando un bloque es mas alto que una pagina, el navegador igual lo dividira,
-               pero por defecto intenta mantenerlo entero. */
-            .paci-section,
-            #documento .paci-section {
-                page-break-inside: avoid !important;
-                break-inside: avoid !important;
-            }
-
-            /* 12b) CONSOLIDADO DE MATERIALES: flujo continuo */
-            /* CONSOLIDADO DE MATERIALES: SIEMPRE pegado a su tabla de clases.
-               NUNCA arranca en pagina nueva por si solo (huerfano sin header de modulo). */
-            .consolidado-materiales {
-                margin-top: 8pt !important;
-                padding-top: 0 !important;
-                /* Pegar al contenido anterior (tabla de clases del modulo) */
-                break-before: avoid !important;
-                page-break-before: avoid !important;
-                /* El bloque entero se mantiene junto si cabe */
-                break-inside: avoid !important;
-                page-break-inside: avoid !important;
-            }
-            /* Titulo pegado a la tabla (anti-orphan) */
-            .consolidado-materiales > .paci-header {
-                break-after: avoid !important;
-                page-break-after: avoid !important;
-                break-before: avoid !important;
-                page-break-before: avoid !important;
-            }
-            /* Tabla del consolidado: si es muy grande, puede fluir; lo normal es que quepa entera */
-            .consolidado-materiales table {
-                width: 100% !important;
-                table-layout: fixed !important;
-                break-inside: auto !important;
-                page-break-inside: auto !important;
-            }
-            /* Solo las FILAS no se cortan */
-            .consolidado-materiales tr {
-                page-break-inside: avoid !important;
-                break-inside: avoid !important;
-            }
-            .consolidado-materiales td {
-                vertical-align: middle !important;
-            }
-            /* Pills: imprimir fondo */
-            .consolidado-materiales td span {
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-            }
-
-            /* 12c) BLOQUE C/P/A: nunca dividir entre paginas */
-            #documento td .flex.flex-col {
-                break-inside: avoid !important;
-                page-break-inside: avoid !important;
-            }
-
-            /* 12d) SECCION OA: borde sutil + espaciado */
-            #documento div[style*="background-color:#e8f0fe"],
-            #documento div[style*="background-color:#b8d4fb"] {
-                border: 1px solid #cbd5e1 !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-            }
-
-            /* 13) INPUTS Y TEXTAREAS */
-            textarea {
-                border: none !important;
-                resize: none !important;
-                overflow: visible !important;
-                color: #1a1a2e !important;
-                -webkit-text-fill-color: #1a1a2e !important;
-            }
-            input {
-                color: #1a1a2e !important;
-                -webkit-text-fill-color: #1a1a2e !important;
-            }
-            input[type="date"]::-webkit-calendar-picker-indicator { display: none; }
-            input[type="date"] { appearance: none; -moz-appearance: none; -webkit-appearance: none; }
-
-            /* 14) SOMBRAS Y EFECTOS: quitar */
-            * { box-shadow: none !important; text-shadow: none !important; }
-            * { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
-
-            /* 15) COLUMNAS: proporciones optimas */
-            #documento td[style*="width:10%"] { width: 8% !important; }
-            #documento td[style*="width:45%"] { width: 55% !important; }
-
-            /* 16) ELIMINAR ANCLAS Y CAPAS FLOTANTES */
-            #documento, #documento * {
-                position: static !important;
-                float: none !important;
-            }
-
-            /* 17) ELEMENTOS INVISIBLES EN IMPRESION */
-            #security-status,
-            .encrypted-field::after,
-            .no-print {
-                display: none !important;
-                visibility: hidden !important;
-                opacity: 0 !important;
-                width: 0 !important;
-                height: 0 !important;
-                overflow: hidden !important;
-                position: absolute !important;
-                z-index: -1 !important;
-            }
-
-            /* 18) TABLAS: 100% ancho */
-            #documento table {
-                width: 100% !important;
-                table-layout: fixed !important;
-            }
-
-            /* 19) COMPACTACION */
-            #documento td {
-                height: auto !important;
-                min-height: 0 !important;
-            }
-            #documento textarea,
-            #documento div[data-print-swap] {
-                min-height: 0 !important;
-                height: auto !important;
-                padding: 1px 2px !important;
-                line-height: 1.15 !important;
-                font-size: 9pt !important;
-            }
-
-            /* 20) LOGOS: reducidos */
-            #documento header img {
-                max-height: 60px !important;
-                max-width: 60px !important;
-            }
-
-            /* 21) FILAS: anti-huerfanas y viudas */
-            #documento tr {
-                page-break-inside: avoid !important;
-                break-inside: avoid !important;
-            }
-            #documento tr td > div {
-                page-break-inside: avoid !important;
-                break-inside: avoid !important;
-            }
-
-            /* 22) FONDOS SUTILES C/P/A: forzar en impresion */
-            #documento div[style*="background:#f0f5ff"],
-            #documento div[style*="background:#f0fdf4"],
-            #documento div[style*="background:#faf5ff"] {
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-            }
-
-            /* 23) CHECKBOXES DE EVALUACION: compactar */
-            #documento label[style*="inline-flex"] {
-                white-space: nowrap !important;
-            }
-        }
-
-        /* === RESPONSIVE MÓVIL === */
-        @media (max-width: 768px) {
-            html { height: auto; overflow: auto; }
-            body { flex-direction: column !important; height: auto !important; overflow-y: auto !important; }
-
-            #control-panel {
-                width: 100% !important; min-width: 0 !important; height: auto !important;
-                flex-shrink: 1 !important; max-height: none !important;
-            }
-            #control-panel > div:nth-child(2) {
-                overflow-y: visible !important; flex: none !important;
-            }
-
-            #preview-panel {
-                flex: none !important; height: auto !important;
-                overflow-y: visible !important; padding: 0.5rem !important;
-            }
-            #documento { padding: 1rem !important; }
-
-            .mobile-hidden { display: none !important; }
-            #mobile-nav { display: flex !important; }
-            #mobile-actions { display: flex !important; }
-
-            /* Ocultar botones PDF/Print del header desktop */
-            #control-panel .p-5 .flex.gap-2 { display: none !important; }
-        }
-
-        @media (min-width: 769px) {
-            #mobile-nav { display: none !important; }
-            #mobile-actions { display: none !important; }
-        }
-
-        /* ==========================================
-         * TABLET-FIRST OPTIMIZACIONES
-         * Touch targets minimo 44x44px (Apple HIG)
-         * Fuentes legibles en tablet
-         * ========================================== */
-
-        /* Prevenir doble-tap zoom en tablet */
-        * { touch-action: manipulation; }
-
-        /* Inputs y selects: tamano minimo touch-friendly */
-        #control-panel input,
-        #control-panel select,
-        #control-panel textarea {
-          min-height: 44px !important;
-          font-size: 14px !important;
-          padding: 0.625rem !important;
-        }
-
-        /* Labels legibles */
-        #control-panel label {
-          font-size: 11px !important;
-          margin-bottom: 0.375rem !important;
-        }
-
-        /* Botones touch-friendly */
-        #control-panel button,
-        .topbar button,
-        .topbar a.btn,
-        #mobile-nav button {
-          min-height: 44px;
-          min-width: 44px;
-        }
-
-        /* Accordions con area de toque amplia */
-        #control-panel .accordion-content button,
-        #control-panel button[onclick^="toggleAcc"] {
-          min-height: 48px !important;
-          padding: 0.875rem 1rem !important;
-        }
-
-        /* Checkboxes mas grandes para touch */
-        #control-panel input[type="checkbox"] {
-          min-height: 20px !important;
-          min-width: 20px !important;
-          width: 20px;
-          height: 20px;
-        }
-
-        /* Tablet landscape: layout ya manejado por JS en el resize listener */
-
-        /* Tablet portrait: stack vertical con nav inferior mejorada */
-        @media (max-width: 768px) {
-          /* Botones de navegacion mas grandes */
-          #mobile-nav button {
-            padding: 12px 0 !important;
-            font-size: 12px !important;
-          }
-          #mobile-nav i {
-            font-size: 22px !important;
-          }
-
-          /* Topbar compacta pero touch-friendly */
-          .topbar-actions { flex-wrap: wrap; gap: 0.375rem; }
-          .topbar-actions button,
-          .topbar-actions a {
-            min-height: 44px;
-            padding: 0.5rem 0.75rem !important;
-          }
-
-          /* Padding inferior para no ocultar contenido bajo el nav */
-          #control-panel > div:nth-child(2) {
-            padding-bottom: 80px !important;
-          }
-        }
-
-        /* ===================================================== */
-        /* MODO CLARO (dia) — overrides con data-theme="light".    */
-        /* El tema oscuro (default / data-theme="dark") NO cambia. */
-        /* La hoja #documento NO se toca (siempre blanca).         */
-        /* ===================================================== */
-        [data-theme="light"] body { background: #f1f5f9; color: #0f172a; transition: background-color 0.35s ease, color 0.35s ease; }
-
-        [data-theme="light"] ::-webkit-scrollbar-track { background: rgba(0,0,0,0.04); }
-        [data-theme="light"] ::-webkit-scrollbar-thumb { background: rgba(37,99,235,0.3); }
-        [data-theme="light"] ::-webkit-scrollbar-thumb:hover { background: rgba(37,99,235,0.55); }
-
-        [data-theme="light"] #control-panel {
-          background: rgba(255,255,255,0.92) !important;
-          border-right: 1px solid rgba(37,99,235,0.12) !important;
-        }
-        [data-theme="light"] #control-panel .bg-white.border.border-slate-200.rounded-xl {
-          background: rgba(255,255,255,0.85) !important;
-          border: 1px solid #e2e8f0 !important;
-          box-shadow: 0 2px 12px rgba(15,23,42,0.06), inset 0 1px 0 rgba(255,255,255,0.6) !important;
-        }
-        [data-theme="light"] #control-panel .bg-white.border.border-slate-200.rounded-xl:hover {
-          border-color: rgba(37,99,235,0.3) !important;
-          box-shadow: 0 4px 20px rgba(37,99,235,0.1), inset 0 1px 0 rgba(255,255,255,0.7) !important;
-        }
-        [data-theme="light"] #control-panel .bg-slate-50 { background: #f1f5f9 !important; color: #475569 !important; }
-        [data-theme="light"] #control-panel .bg-slate-50:hover { color: #0f172a !important; }
-        [data-theme="light"] #control-panel .bg-slate-50 i { color: #2563eb !important; }
-
-        [data-theme="light"] #control-panel input[type="text"],
-        [data-theme="light"] #control-panel input[type="number"],
-        [data-theme="light"] #control-panel input[type="date"],
-        [data-theme="light"] #control-panel select,
-        [data-theme="light"] #control-panel textarea {
-          border: 1px solid #cbd5e1 !important;
-          background: #ffffff !important;
-          color: #0f172a !important;
-        }
-        [data-theme="light"] #control-panel input::placeholder,
-        [data-theme="light"] #control-panel textarea::placeholder { color: #94a3b8 !important; }
-        [data-theme="light"] #control-panel input:focus,
-        [data-theme="light"] #control-panel select:focus,
-        [data-theme="light"] #control-panel textarea:focus {
-          border-color: rgba(37,99,235,0.5) !important;
-          box-shadow: 0 0 0 3px rgba(37,99,235,0.12) !important;
-          background: #ffffff !important;
-        }
-        [data-theme="light"] #control-panel select {
-          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
-        }
-        [data-theme="light"] #control-panel select option { background: #ffffff; color: #0f172a; }
-
-        [data-theme="light"] #control-panel label,
-        [data-theme="light"] #control-panel .text-slate-600,
-        [data-theme="light"] #control-panel .text-slate-500 { color: #64748b !important; }
-        [data-theme="light"] #control-panel .font-black { color: #475569 !important; }
-        [data-theme="light"] #control-panel .text-blue-600,
-        [data-theme="light"] #control-panel .text-blue-800 { color: #2563eb !important; }
-        [data-theme="light"] #control-panel .text-slate-700,
-        [data-theme="light"] #control-panel .text-slate-800 { color: #334155 !important; }
-        [data-theme="light"] #control-panel .text-slate-900 { color: #0f172a !important; }
-
-        [data-theme="light"] .oa-card { border: 1px solid #e2e8f0 !important; background: #ffffff !important; }
-        [data-theme="light"] .oa-card:hover { border-color: rgba(37,99,235,0.35) !important; background: rgba(37,99,235,0.05) !important; }
-        [data-theme="light"] .oa-card.selected { border-color: #2563eb !important; background: rgba(37,99,235,0.1) !important; box-shadow: 0 0 16px rgba(37,99,235,0.12) !important; }
-        [data-theme="light"] .oa-card label,
-        [data-theme="light"] .oa-card .text-slate-700 { color: #334155 !important; }
-        [data-theme="light"] .oa-card .text-blue-700 { color: #2563eb !important; }
-
-        /* El header del editor (.p-5.bg-slate-900) se mantiene OSCURO en modo claro
-           (barra de marca, igual que el topbar del dashboard). Asi sus botones de
-           iconos blancos siguen legibles y no hay fugas oscuro-sobre-oscuro. */
-
-        /* Boton principal "Agregar/Generar" (era navy) -> azul de acento en claro */
-        [data-theme="light"] #control-panel #btn-generar { background: #2563eb !important; border-color: #2563eb !important; color: #ffffff !important; }
-        [data-theme="light"] #control-panel #btn-generar:hover { background: #1d4ed8 !important; }
-        [data-theme="light"] #control-panel #btn-generar:disabled { background: #94a3b8 !important; border-color: #94a3b8 !important; }
-
-        /* Texto/iconos gris muy claro (.text-slate-400) -> gris medio legible sobre claro */
-        [data-theme="light"] #control-panel .text-slate-400 { color: #64748b !important; }
-
-        /* Badge de cifrado: verde oscuro legible sobre fondo claro (WCAG AA) */
-        [data-theme="light"] #security-status { background: rgba(16,185,129,0.12) !important; border-color: rgba(16,185,129,0.35) !important; color: #047857 !important; }
-
-        /* Barras de navegacion movil (fondo inline #0f172a) -> claras (solo se ven en movil) */
-        [data-theme="light"] #mobile-nav,
-        [data-theme="light"] #mobile-actions { background: #ffffff !important; }
-        [data-theme="light"] #mobile-nav { border-top-color: #2563eb !important; box-shadow: 0 -2px 10px rgba(15,23,42,0.08) !important; }
-        [data-theme="light"] #mobile-nav button { color: #64748b !important; }
-        [data-theme="light"] #mobile-nav button.active,
-        [data-theme="light"] #mobile-nav #mob-btn-form { color: #2563eb !important; }
-
-        /* Skeleton de carga (fondos inline oscuros) -> claros para no parpadear en modo dia */
-        [data-theme="light"] #skeleton-screen { background: #f1f5f9 !important; }
-        [data-theme="light"] #skeleton-screen > div:first-child { background: rgba(255,255,255,0.92) !important; border-right-color: #e2e8f0 !important; }
-        [data-theme="light"] #skeleton-screen > div:last-child { background: #e2e8f0 !important; }
-
-        [data-theme="light"] #preview-panel { background: #e2e8f0 !important; }
-
-        [data-theme="light"] .skeleton {
-          background: linear-gradient(90deg, rgba(226,232,240,0.8) 0%, rgba(241,245,249,0.5) 40%, rgba(226,232,240,0.8) 80%);
-          background-size: 200px 100%;
-        }
-
-        [data-theme="light"] #control-panel input[type="checkbox"] { border: 1.5px solid #cbd5e1 !important; background: #ffffff !important; }
-        [data-theme="light"] #control-panel input[type="checkbox"]:checked {
-          background: linear-gradient(135deg, #2563eb, #0ea5e9) !important;
-          border-color: #2563eb !important;
-          box-shadow: 0 2px 8px rgba(37,99,235,0.3) !important;
-        }
-
-        [data-theme="light"] #control-panel .border-slate-200 { border-color: #e2e8f0 !important; }
-        [data-theme="light"] #control-panel .bg-white { background: #ffffff !important; }
-        [data-theme="light"] #control-panel .border { border-color: #e2e8f0 !important; }
-        [data-theme="light"] #control-panel .bg-blue-50,
-        [data-theme="light"] #control-panel .bg-slate-100 { background: #eff6ff !important; }
-        [data-theme="light"] #control-panel .border-blue-200 { border-color: rgba(37,99,235,0.25) !important; }
-        [data-theme="light"] #control-panel .shadow-sm,
-        [data-theme="light"] #control-panel .shadow-md { box-shadow: 0 2px 8px rgba(15,23,42,0.08) !important; }
-
-        [data-theme="light"] *:focus-visible { outline: 2px solid rgba(37,99,235,0.5); }
-
-        [data-theme="light"] #cmd-palette-overlay { background: rgba(15,23,42,0.25) !important; }
-        [data-theme="light"] #session-timeout-overlay { background: rgba(15,23,42,0.2) !important; }
-
-        /* Boton de tema en el header del editor */
-        #theme-toggle i { transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1); }
-        #theme-toggle:hover i { transform: rotate(25deg) scale(1.15); }
-        @media (prefers-reduced-motion: reduce) { #theme-toggle:hover i { transform: none !important; } }
+        .brand-logo-app:hover { transform: scale(1.05) rotate(-2deg); }
+
+        /* ===== Refuerzo de contraste en modo claro ===== */
+        [data-theme="light"] body { background: #f1f5f9; color: #0f172a; }
+        [data-theme="light"] #control-panel > div:first-child { background: #ffffff !important; border-bottom-color: #e2e8f0 !important; }
+        [data-theme="light"] #control-panel > div:first-child .text-slate-100 { color: #0f172a !important; }
+        [data-theme="light"] #control-panel > div:first-child .text-blue-400 { color: #1e40af !important; }
     </style>
 </head>
 <body style="display:flex;flex-direction:row;height:100vh;overflow:hidden;margin:0">
-
-    <!-- SKELETON LOADING SCREEN -->
     <div id="skeleton-screen" style="position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999;display:flex;background:#0c1222;">
         <div style="width:40%;min-width:340px;background:rgba(13,19,36,0.92);backdrop-filter:blur(24px);padding:0;display:flex;flex-direction:column;border-right:1px solid rgba(56,189,248,0.08);">
             <div style="background:linear-gradient(135deg,rgba(15,23,42,0.95),rgba(30,41,59,0.92));padding:1.5rem;display:flex;justify-content:space-between;align-items:center;">
@@ -1209,11 +159,14 @@ table{border-collapse:collapse}
     </div>
 
     <!-- PANEL DE CONTROL -->
-    <aside id="control-panel" style="width:40%;min-width:340px;height:100%;flex-shrink:0;display:flex;flex-direction:column" class="bg-white border-r border-slate-200 shadow-2xl z-20">
-        <div class="p-5 bg-slate-900 text-white flex justify-between items-center shadow-lg">
-            <div>
-                <h1 class="text-xl font-black tracking-tighter italic uppercase leading-none">PACI Master</h1>
-                <p class="text-[10px] text-blue-400 font-bold uppercase tracking-widest mt-1">OAs Reales Mineduc NT1-8B &middot; v2</p>
+    <aside id="control-panel" style="width:40%;min-width:340px;height:100%;flex-shrink:0;display:flex;flex-direction:column; background: rgba(13, 19, 36, 0.95); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);" class="border-r border-slate-800 z-20">
+        <div class="p-5 bg-slate-900/80 text-white flex justify-between items-center border-b border-slate-800">
+            <div class="flex items-center gap-3">
+                <img class="brand-logo-app" src="/assets/canva/logo.png" alt="PIE MASTER">
+                <div>
+                    <p class="text-sm font-black tracking-tighter uppercase leading-none text-slate-100">Editor de Planificación</p>
+                    <p class="text-[10px] text-blue-400 font-bold uppercase tracking-widest mt-1">OAs Reales Mineduc NT1-8B &middot; v2</p>
+                </div>
             </div>
             <!-- Controles de Impresión, PDF, Guardar y Sesión -->
             <div class="flex gap-2">
@@ -1225,6 +178,9 @@ table{border-collapse:collapse}
                 </button>
                 <button onclick="guardarPlanAnualVinculado()" id="btn-guardar-anual" style="display:none;background:#7c3aed;" class="text-white px-3 py-2.5 rounded-lg transition active:scale-95 shadow-lg text-xs font-bold flex items-center gap-1" title="Guardar como plan anual padre + 3 trimestres vinculados">
                     <i class="fa-solid fa-sitemap"></i> Anual + 3 trimestres
+                </button>
+                <button onclick="distribuirTrimestresIA()" id="btn-distribuir-ia" style="display:none;background:#0ea5e9;" class="text-white px-3 py-2.5 rounded-lg transition active:scale-95 shadow-lg text-xs font-bold flex items-center gap-1" title="Distribuir modulos en 3 trimestres con progresion ordenada (IA)">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> Distribuir IA
                 </button>
                 <button onclick="printPDF()" class="bg-slate-700 hover:bg-slate-600 text-white p-2.5 rounded-lg transition active:scale-95 shadow-lg text-xs font-bold" title="Imprimir directamente">
                     <i class="fa-solid fa-print"></i>
@@ -1327,6 +283,132 @@ table{border-collapse:collapse}
                         </div>
                     </div>
                     <div id="alerta-edad" class="hidden p-2.5 bg-amber-50 text-amber-800 border border-amber-200 rounded-lg text-[10px] font-medium leading-tight"></div>
+                    <div>
+                        <label class="text-[10px] font-black text-emerald-700 uppercase mb-1 block"><i class="fa-solid fa-seedling"></i> Nivel real de habilidades</label>
+                        <textarea id="in-habilidades-reales" rows="2" class="w-full border border-emerald-200 bg-emerald-50/40 p-2.5 rounded-lg text-sm" placeholder="Qué SABE HACER hoy el estudiante (no su curso): ej. reconoce vocales, cuenta hasta 20, escribe su nombre, requiere apoyo 1:1..." oninput="updatePreview()"></textarea>
+                        <p class="text-[9px] text-slate-400 leading-tight mt-1">La IA usa esto para crear clases realistas según lo que el estudiante realmente puede, no según el curso nominal.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 1.5. Necesidades educativas contextuales -->
+            <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                <button class="w-full text-left p-4 bg-slate-50 font-bold text-xs uppercase flex justify-between items-center" onclick="toggleAcc('acc-contextual')">
+                    <span>1.5. Necesidades contextuales</span>
+                    <i class="fa-solid fa-house-user text-blue-600"></i>
+                </button>
+                <div id="acc-contextual" class="accordion-content px-4 space-y-3">
+                    <p class="text-[10px] text-slate-500 leading-tight">Describe cómo el estudiante interactúa con su entorno escolar y familiar (norma MINEDUC).</p>
+                    <div>
+                        <label class="text-[10px] font-black text-slate-600 uppercase mb-1 block">Contexto escolar</label>
+                        <textarea id="in-ctx-escuela" rows="3" class="w-full border p-2.5 rounded-lg text-sm" placeholder="Cómo se desempeña en el aula, relaciones con pares, apoyos disponibles..."></textarea>
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-black text-slate-600 uppercase mb-1 block">Contexto familiar / hogar</label>
+                        <textarea id="in-ctx-hogar" rows="3" class="w-full border p-2.5 rounded-lg text-sm" placeholder="Situación familiar, apoyo en casa, factores que influyen en el aprendizaje..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 1.6. Tipos de adecuación curricular aplicados -->
+            <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                <button class="w-full text-left p-4 bg-slate-50 font-bold text-xs uppercase flex justify-between items-center" onclick="toggleAcc('acc-adecuaciones')">
+                    <span>1.6. Tipos de adecuación curricular</span>
+                    <i class="fa-solid fa-sliders text-blue-600"></i>
+                </button>
+                <div id="acc-adecuaciones" class="accordion-content px-4 space-y-3">
+                    <p class="text-[10px] text-slate-500 leading-tight">Marca los tipos de adecuación que se aplicarán (Decreto 83/2015).</p>
+
+                    <div class="border border-slate-200 rounded-lg p-3 bg-slate-50">
+                        <div class="text-[11px] font-black text-slate-700 uppercase mb-2"><i class="fa-solid fa-door-open text-emerald-600"></i> Adecuaciones de acceso</div>
+                        <div class="space-y-1.5">
+                            <label class="flex items-center gap-2 text-xs text-slate-700"><input type="checkbox" id="adec-acc-presentacion" class="adec-checkbox"> Presentación de la información</label>
+                            <label class="flex items-center gap-2 text-xs text-slate-700"><input type="checkbox" id="adec-acc-respuesta" class="adec-checkbox"> Formas de respuesta</label>
+                            <label class="flex items-center gap-2 text-xs text-slate-700"><input type="checkbox" id="adec-acc-entorno" class="adec-checkbox"> Entorno físico</label>
+                            <label class="flex items-center gap-2 text-xs text-slate-700"><input type="checkbox" id="adec-acc-tiempo" class="adec-checkbox"> Tiempos asignados</label>
+                        </div>
+                    </div>
+
+                    <div class="border border-slate-200 rounded-lg p-3 bg-slate-50">
+                        <div class="text-[11px] font-black text-slate-700 uppercase mb-2"><i class="fa-solid fa-list-check text-violet-600"></i> Adecuaciones en los OA</div>
+                        <div class="space-y-1.5">
+                            <label class="flex items-center gap-2 text-xs text-slate-700"><input type="checkbox" id="adec-oa-graduacion" class="adec-checkbox"> Graduación del nivel de complejidad</label>
+                            <label class="flex items-center gap-2 text-xs text-slate-700"><input type="checkbox" id="adec-oa-priorizacion" class="adec-checkbox"> Priorización de OA</label>
+                            <label class="flex items-center gap-2 text-xs text-slate-700"><input type="checkbox" id="adec-oa-temporalizacion" class="adec-checkbox"> Temporalización</label>
+                            <label class="flex items-center gap-2 text-xs text-slate-700"><input type="checkbox" id="adec-oa-enriquecimiento" class="adec-checkbox"> Enriquecimiento curricular</label>
+                            <label class="flex items-center gap-2 text-xs text-slate-700"><input type="checkbox" id="adec-oa-eliminacion" class="adec-checkbox"> Eliminación de aprendizajes</label>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="text-[10px] font-black text-slate-600 uppercase mb-1 block">Justificación / detalle</label>
+                        <textarea id="in-adec-detalle" rows="3" class="w-full border p-2.5 rounded-lg text-sm" placeholder="Explica brevemente por qué y cómo se aplican estas adecuaciones."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 1.7. Criterios de evaluación y promoción -->
+            <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                <button class="w-full text-left p-4 bg-slate-50 font-bold text-xs uppercase flex justify-between items-center" onclick="toggleAcc('acc-evaluacion')">
+                    <span>1.7. Criterios de evaluación y promoción</span>
+                    <i class="fa-solid fa-clipboard-check text-blue-600"></i>
+                </button>
+                <div id="acc-evaluacion" class="accordion-content px-4 space-y-3">
+                    <p class="text-[10px] text-slate-500 leading-tight">Cómo se evaluará la progresión del estudiante (alineado con sus metas adecuadas).</p>
+                    <div>
+                        <label class="text-[10px] font-black text-slate-600 uppercase mb-1 block">Criterios de evaluación</label>
+                        <textarea id="in-criterios-eval" rows="3" class="w-full border p-2.5 rounded-lg text-sm" placeholder="Indicadores de logro, instrumentos, frecuencia de evaluación..."></textarea>
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-black text-slate-600 uppercase mb-1 block">Criterios de promoción</label>
+                        <textarea id="in-criterios-prom" rows="3" class="w-full border p-2.5 rounded-lg text-sm" placeholder="Condiciones para promover al siguiente nivel."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 1.8. Metas por asignatura -->
+            <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                <button class="w-full text-left p-4 bg-slate-50 font-bold text-xs uppercase flex justify-between items-center" onclick="toggleAcc('acc-metas'); renderMetasPACI();">
+                    <span>1.8. Metas por asignatura</span>
+                    <i class="fa-solid fa-bullseye text-blue-600"></i>
+                </button>
+                <div id="acc-metas" class="accordion-content px-4 space-y-3">
+                    <p class="text-[10px] text-slate-500 leading-tight">Una meta alcanzable y verificable por cada asignatura trabajada. Se arman a partir de los OAs que ya seleccionaste; puedes generarlas con IA y editarlas.</p>
+                    <div id="metas-por-asig-list" class="space-y-3"></div>
+                </div>
+            </div>
+
+            <!-- 1.9. Vínculo al PAI padre -->
+            <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                <button class="w-full text-left p-4 bg-slate-50 font-bold text-xs uppercase flex justify-between items-center" onclick="toggleAcc('acc-link-pai')">
+                    <span>1.9. Vínculo a PAI padre</span>
+                    <i class="fa-solid fa-link text-blue-600"></i>
+                </button>
+                <div id="acc-link-pai" class="accordion-content px-4 space-y-3">
+                    <p class="text-[10px] text-slate-500 leading-tight">Opcional: si este PACI deriva de un PAI existente, vincúlalo aquí.</p>
+                    <div class="flex gap-2 items-center">
+                        <select id="in-parent-pai" class="flex-1 border p-2.5 rounded-lg text-sm">
+                            <option value="">— Sin vínculo —</option>
+                        </select>
+                        <button onclick="cargarPAIsDelEstudiante()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-2.5 rounded-lg text-xs font-bold" title="Refrescar lista de PAIs del estudiante">
+                            <i class="fa-solid fa-rotate"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 1.10. Firmas y compromisos -->
+            <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                <button class="w-full text-left p-4 bg-slate-50 font-bold text-xs uppercase flex justify-between items-center" onclick="toggleAcc('acc-firmas')">
+                    <span>1.10. Firmas y compromisos</span>
+                    <i class="fa-solid fa-signature text-blue-600"></i>
+                </button>
+                <div id="acc-firmas" class="accordion-content px-4 space-y-3">
+                    <p class="text-[10px] text-slate-500 leading-tight">Registro formal de aceptación del PACI (familia, dirección, docentes, equipo PIE).</p>
+                    <div id="firmas-paci-list" class="space-y-2"></div>
+                    <button onclick="agregarFirmaPACI()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-xs font-bold">
+                        <i class="fa-solid fa-plus"></i> Agregar firma
+                    </button>
                 </div>
             </div>
 
@@ -1643,7 +725,7 @@ table{border-collapse:collapse}
                     <h2 class="text-4xl font-black uppercase tracking-tighter leading-none mb-1">PACI</h2>
                     <div class="w-16 h-1 bg-blue-600 mx-auto rounded-full mb-2"></div>
                     <p class="text-[12px] font-black text-slate-600 uppercase tracking-widest leading-none mb-3">Plan de Adecuación Curricular Individual</p>
-                    <p class="text-[10px] font-bold text-slate-700 uppercase leading-tight" id="out-escuela">ESCUELA LUIS CRUZ MARTÍNEZ</p>
+                    <p class="text-[10px] font-bold text-slate-700 uppercase leading-tight" id="out-escuela">CARGANDO...</p>
                     <p class="text-[9px] font-bold text-slate-500 uppercase leading-tight mt-1">Decreto N° 170 / N° 83 / N° 67</p>
                 </div>
                 <!-- Logo PIE -->
@@ -1698,12 +780,17 @@ table{border-collapse:collapse}
             </section>
 
             <section class="mb-10 html2pdf__page-break">
-                <h3 class="paci-header font-black text-white mb-4 uppercase rounded" style="background-color:#091845;background-image:linear-gradient(135deg,#091845 0%,#1240c4 100%);padding:12px 16px;font-size:13px;letter-spacing:0.15em;color:#ffffff;">III. Propuesta Curricular (Clase a Clase)</h3>
+                <h3 class="paci-header font-black text-white mb-4 uppercase rounded" style="background-color:#091845;background-image:linear-gradient(135deg,#091845 0%,#1240c4 100%);padding:12px 16px;font-size:13px;letter-spacing:0.15em;color:#ffffff;">III. Metas por Asignatura</h3>
+                <div id="out-metas" class="space-y-4"></div>
+            </section>
+
+            <section class="mb-10 html2pdf__page-break">
+                <h3 class="paci-header font-black text-white mb-4 uppercase rounded" style="background-color:#091845;background-image:linear-gradient(135deg,#091845 0%,#1240c4 100%);padding:12px 16px;font-size:13px;letter-spacing:0.15em;color:#ffffff;">IV. Propuesta Curricular (Clase a Clase)</h3>
                 <div id="out-modulos" class="space-y-10"></div>
             </section>
 
             <section id="seccion-gantt" class="mb-10 html2pdf__page-break">
-                <h3 class="paci-header font-black text-white mb-4 uppercase rounded" style="background-color:#091845;background-image:linear-gradient(135deg,#091845 0%,#1240c4 100%);padding:12px 16px;font-size:13px;letter-spacing:0.15em;color:#ffffff;">IV. Temporalización</h3>
+                <h3 class="paci-header font-black text-white mb-4 uppercase rounded" style="background-color:#091845;background-image:linear-gradient(135deg,#091845 0%,#1240c4 100%);padding:12px 16px;font-size:13px;letter-spacing:0.15em;color:#ffffff;">V. Temporalización</h3>
                 <div id="gantt-wrapper" class="overflow-x-auto border-2 border-slate-900 rounded-xl overflow-hidden shadow-lg">
                     <table class="w-full text-[9px] border-collapse border border-slate-300 text-center" id="gantt"></table>
                 </div>
@@ -1731,7 +818,8 @@ table{border-collapse:collapse}
                 diagnosis: document.getElementById('in-diag') ? document.getElementById('in-diag').options[document.getElementById('in-diag').selectedIndex]?.text || '' : '',
                 diagnosisId: document.getElementById('in-diag') ? document.getElementById('in-diag').value : '',
                 realLevel: document.getElementById('in-nivel-real') ? document.getElementById('in-nivel-real').options[document.getElementById('in-nivel-real').selectedIndex]?.text || '' : '',
-                workLevel: document.getElementById('in-nivel-trabajo') ? document.getElementById('in-nivel-trabajo').options[document.getElementById('in-nivel-trabajo').selectedIndex]?.text || '' : ''
+                workLevel: document.getElementById('in-nivel-trabajo') ? document.getElementById('in-nivel-trabajo').options[document.getElementById('in-nivel-trabajo').selectedIndex]?.text || '' : '',
+                realSkills: (document.getElementById('in-habilidades-reales')?.value || '').trim()
             };
 
             const trimester = document.getElementById('in-duracion') ? document.getElementById('in-duracion').options[document.getElementById('in-duracion').selectedIndex]?.text || '' : '';
@@ -1774,7 +862,284 @@ table{border-collapse:collapse}
                 };
             });
 
-            return { student, trimester, team, modules };
+            // ===== Extras MINEDUC (Decreto 83/2015) =====
+            const contextual = {
+                escuela: (document.getElementById('in-ctx-escuela')?.value || '').trim(),
+                hogar: (document.getElementById('in-ctx-hogar')?.value || '').trim()
+            };
+            const adecuaciones = {
+                acceso: {
+                    presentacion: !!document.getElementById('adec-acc-presentacion')?.checked,
+                    respuesta: !!document.getElementById('adec-acc-respuesta')?.checked,
+                    entorno: !!document.getElementById('adec-acc-entorno')?.checked,
+                    tiempo: !!document.getElementById('adec-acc-tiempo')?.checked
+                },
+                oa: {
+                    graduacion: !!document.getElementById('adec-oa-graduacion')?.checked,
+                    priorizacion: !!document.getElementById('adec-oa-priorizacion')?.checked,
+                    temporalizacion: !!document.getElementById('adec-oa-temporalizacion')?.checked,
+                    enriquecimiento: !!document.getElementById('adec-oa-enriquecimiento')?.checked,
+                    eliminacion: !!document.getElementById('adec-oa-eliminacion')?.checked
+                },
+                detalle: (document.getElementById('in-adec-detalle')?.value || '').trim()
+            };
+            const criteriosEvaluacion = {
+                evaluacion: (document.getElementById('in-criterios-eval')?.value || '').trim(),
+                promocion: (document.getElementById('in-criterios-prom')?.value || '').trim()
+            };
+            const parentPaiId = document.getElementById('in-parent-pai')?.value
+                ? parseInt(document.getElementById('in-parent-pai').value, 10) || null
+                : null;
+            const firmas = (window.firmasPACI || []).map(f => ({
+                rol: f.rol, nombre: f.nombre, email: f.email, firmadoEn: f.firmadoEn || ''
+            }));
+
+            // Metas por asignatura: una entrada por asignatura presente en los modulos,
+            // tomando lo escrito/generado en state.metas. Solo las que tengan contenido.
+            const metas = asignaturasDePlan().map(asig => ({
+                asignatura: asig,
+                meta: (state.metas[asig]?.meta || '').trim(),
+                verificacion: (state.metas[asig]?.verificacion || '').trim()
+            })).filter(x => x.meta || x.verificacion);
+
+            return { student, trimester, team, modules, contextual, adecuaciones, criteriosEvaluacion, metas, parentPaiId, firmas };
+        }
+
+        // ====== Firmas PACI (state global window.firmasPACI) ======
+        window.firmasPACI = window.firmasPACI || [];
+        let firmaPaciSeq = 0;
+        const ROLES_FIRMA_PACI = [
+            'Familia / Apoderado',
+            'Director(a) del establecimiento',
+            'Coordinador(a) PIE',
+            'Profesor(a) Jefe',
+            'Profesional Educación Diferencial',
+            'Otro profesional del equipo PIE'
+        ];
+        function agregarFirmaPACI(data) {
+            const f = data || {};
+            window.firmasPACI.push({
+                _id: ++firmaPaciSeq,
+                rol: f.rol || ROLES_FIRMA_PACI[0],
+                nombre: f.nombre || '',
+                email: f.email || '',
+                firmadoEn: f.firmadoEn || ''
+            });
+            renderFirmasPACI();
+        }
+        function eliminarFirmaPACI(id) {
+            window.firmasPACI = window.firmasPACI.filter(f => f._id !== id);
+            renderFirmasPACI();
+        }
+        function setFirmaPACI(id, campo, valor) {
+            const f = window.firmasPACI.find(x => x._id === id);
+            if (f) f[campo] = valor;
+        }
+        function marcarFirmaPACI(id) {
+            const f = window.firmasPACI.find(x => x._id === id);
+            if (!f) return;
+            f.firmadoEn = f.firmadoEn ? '' : new Date().toISOString();
+            renderFirmasPACI();
+        }
+        function escapePaciHtml(s) {
+            return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+        function renderFirmasPACI() {
+            const cont = document.getElementById('firmas-paci-list');
+            if (!cont) return;
+            if (!window.firmasPACI.length) {
+                cont.innerHTML = '<div class="text-xs text-slate-500 italic p-2">Sin firmas. Agrega al menos una para formalizar el plan.</div>';
+                return;
+            }
+            cont.innerHTML = window.firmasPACI.map(f => {
+                const roles = ROLES_FIRMA_PACI.map(r =>
+                    '<option value="' + escapePaciHtml(r) + '"' + (r === f.rol ? ' selected' : '') + '>' + escapePaciHtml(r) + '</option>'
+                ).join('');
+                const ya = !!f.firmadoEn;
+                const fechaTxt = ya ? new Date(f.firmadoEn).toLocaleString('es-CL', { dateStyle: 'medium', timeStyle: 'short' }) : 'Pendiente';
+                return '' +
+                    '<div class="border border-slate-200 rounded-lg p-2.5 bg-slate-50 space-y-1.5">' +
+                        '<div class="grid grid-cols-2 gap-2">' +
+                            '<select class="border p-1.5 rounded text-xs" onchange="setFirmaPACI(' + f._id + ',\'rol\',this.value)">' + roles + '</select>' +
+                            '<input type="text" class="border p-1.5 rounded text-xs" placeholder="Nombre firmante" value="' + escapePaciHtml(f.nombre) + '" oninput="setFirmaPACI(' + f._id + ',\'nombre\',this.value)">' +
+                        '</div>' +
+                        '<input type="email" class="w-full border p-1.5 rounded text-xs" placeholder="email@correo.cl" value="' + escapePaciHtml(f.email) + '" oninput="setFirmaPACI(' + f._id + ',\'email\',this.value)">' +
+                        '<div class="flex justify-between items-center pt-1">' +
+                            '<span class="text-[10px] ' + (ya ? 'text-emerald-600' : 'text-amber-600') + ' font-bold">' +
+                                (ya ? '<i class="fa-solid fa-circle-check"></i> ' + escapePaciHtml(fechaTxt) : '<i class="fa-solid fa-clock"></i> Pendiente') +
+                            '</span>' +
+                            '<div class="flex gap-1">' +
+                                '<button class="bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1 rounded text-[10px] font-bold" onclick="marcarFirmaPACI(' + f._id + ')">' +
+                                    (ya ? '<i class="fa-solid fa-rotate-left"></i> Revocar' : '<i class="fa-solid fa-pen-to-square"></i> Firmar') +
+                                '</button>' +
+                                '<button class="bg-red-400 hover:bg-red-500 text-white px-2 py-1 rounded text-[10px]" onclick="eliminarFirmaPACI(' + f._id + ')"><i class="fa-solid fa-trash"></i></button>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>';
+            }).join('');
+        }
+
+        // ====== Metas por asignatura (Decreto 83/2015) ======
+        // Asignaturas distintas presentes en los modulos del plan (orden estable).
+        function asignaturasDePlan() {
+            return [...new Set(state.modulos.map(m => (m.asig || '').trim()).filter(Boolean))];
+        }
+
+        // Renderiza las tarjetas de meta (una por asignatura) en el editor.
+        // Conserva lo ya escrito en state.metas. NO se llama en cada tecla (eso lo hace
+        // setMetaPACI), sino al abrir la seccion, al cargar un PACI o al cambiar los modulos.
+        function renderMetasPACI() {
+            const cont = document.getElementById('metas-por-asig-list');
+            if (!cont) return;
+            const asigs = asignaturasDePlan();
+            if (!asigs.length) {
+                cont.innerHTML = '<div class="text-xs text-slate-500 italic p-2">Primero agrega al menos un módulo con su asignatura (sección 3) y aquí aparecerán las metas.</div>';
+                renderMetasPreview();
+                return;
+            }
+            cont.innerHTML = asigs.map((asig, idx) => {
+                const color = getAsigColor(asig);
+                const m = state.metas[asig] || { meta: '', verificacion: '' };
+                return '' +
+                    '<div class="border border-slate-200 rounded-lg p-3 bg-slate-50 space-y-2" style="border-left:4px solid ' + color.hex + ';">' +
+                        '<div class="flex justify-between items-center">' +
+                            '<span class="text-[11px] font-black uppercase" style="color:' + color.hex + ';"><i class="fa-solid fa-bullseye mr-1"></i>' + escapePaciHtml(asig) + '</span>' +
+                            '<button type="button" id="btn-meta-ia-' + idx + '" onclick="generarMetaIA(' + idx + ')" class="bg-violet-600 hover:bg-violet-700 text-white px-2.5 py-1 rounded text-[10px] font-bold" title="Generar meta con IA a partir de los OAs de esta asignatura">' +
+                                '<i class="fa-solid fa-wand-magic-sparkles"></i> IA' +
+                            '</button>' +
+                        '</div>' +
+                        '<div>' +
+                            '<label class="text-[10px] font-black text-slate-600 uppercase mb-1 block">Meta</label>' +
+                            '<textarea id="meta-' + idx + '-meta" rows="2" class="w-full border p-2 rounded-lg text-sm" placeholder="Qué se espera que logre el estudiante en esta asignatura." oninput="setMetaPACI(' + idx + ',\'meta\',this.value)">' + escapePaciHtml(m.meta) + '</textarea>' +
+                        '</div>' +
+                        '<div>' +
+                            '<label class="text-[10px] font-black text-slate-600 uppercase mb-1 block">¿Cómo se verifica?</label>' +
+                            '<textarea id="meta-' + idx + '-verif" rows="2" class="w-full border p-2 rounded-lg text-sm" placeholder="Evidencia o instrumento con que se comprobará el logro." oninput="setMetaPACI(' + idx + ',\'verificacion\',this.value)">' + escapePaciHtml(m.verificacion) + '</textarea>' +
+                        '</div>' +
+                    '</div>';
+            }).join('');
+            renderMetasPreview();
+        }
+
+        // Actualiza state.metas en cada tecla (sin re-render, para no perder el foco)
+        // y refresca solo la vista previa imprimible.
+        function setMetaPACI(idx, campo, valor) {
+            const asig = asignaturasDePlan()[idx];
+            if (!asig) return;
+            if (!state.metas[asig]) state.metas[asig] = { meta: '', verificacion: '' };
+            state.metas[asig][campo] = valor;
+            renderMetasPreview();
+        }
+
+        // Renderiza la seccion imprimible "III. Metas por Asignatura" (#out-metas).
+        function renderMetasPreview() {
+            const cont = document.getElementById('out-metas');
+            if (!cont) return;
+            const conMeta = asignaturasDePlan().filter(asig => {
+                const m = state.metas[asig];
+                return m && ((m.meta || '').trim() || (m.verificacion || '').trim());
+            });
+            if (!conMeta.length) {
+                cont.innerHTML = '<div style="padding:10px 12px;font-size:11px;color:#64748b;font-style:italic;border:1px dashed #cbd5e1;border-radius:8px;">Sin metas definidas.</div>';
+                return;
+            }
+            cont.innerHTML = conMeta.map(asig => {
+                const color = getAsigColor(asig);
+                const m = state.metas[asig];
+                return '' +
+                    '<div style="border:1px solid #bcd0f7;border-left:5px solid ' + color.hex + ';border-radius:8px;overflow:hidden;margin-bottom:8px;">' +
+                        '<div style="background:#e8f0fe;padding:6px 10px;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.08em;color:' + color.hex + ';">' + escapePaciHtml(asig) + '</div>' +
+                        '<table style="width:100%;font-size:11px;border-collapse:collapse;">' +
+                            '<tr style="border-bottom:1px solid #e2e8f0;">' +
+                                '<td style="width:28%;padding:6px 10px;font-weight:900;text-transform:uppercase;font-size:8px;color:#091845;background:#f1f5f9;vertical-align:top;">Meta</td>' +
+                                '<td style="padding:6px 10px;color:#0f172a;">' + escapePaciHtml(m.meta || '-') + '</td>' +
+                            '</tr>' +
+                            '<tr>' +
+                                '<td style="width:28%;padding:6px 10px;font-weight:900;text-transform:uppercase;font-size:8px;color:#091845;background:#f1f5f9;vertical-align:top;">¿Cómo se verifica?</td>' +
+                                '<td style="padding:6px 10px;color:#0f172a;">' + escapePaciHtml(m.verificacion || '-') + '</td>' +
+                            '</tr>' +
+                        '</table>' +
+                    '</div>';
+            }).join('');
+        }
+
+        // Genera con IA la meta + verificacion de UNA asignatura, a partir de sus OAs
+        // y el contexto del estudiante. Rellena los campos (editables despues).
+        async function generarMetaIA(idx) {
+            if (typeof PACI_CAN_EDIT !== 'undefined' && !PACI_CAN_EDIT) {
+                alert('Tu rol (' + PACI_ROLE + ') solo permite lectura.');
+                return;
+            }
+            const asig = asignaturasDePlan()[idx];
+            if (!asig) return;
+
+            // OAs de esta asignatura (de todos sus modulos).
+            const oas = [];
+            state.modulos.filter(m => (m.asig || '').trim() === asig).forEach(m => {
+                (m.oas || []).forEach(o => {
+                    oas.push({ code: o.code || '', texto: o.textoAdecuado || o.textoOriginal || o.text || '' });
+                });
+            });
+            if (!oas.length) {
+                alert('Esta asignatura no tiene OAs seleccionados todavía. Agrega OAs en la sección 3 antes de generar la meta.');
+                return;
+            }
+
+            const btn = document.getElementById('btn-meta-ia-' + idx);
+            const orig = btn ? btn.innerHTML : '';
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>'; }
+
+            try {
+                const token = localStorage.getItem('paci_token');
+                const diagSel = document.getElementById('in-diag');
+                const diagnosis = diagSel ? (diagSel.options[diagSel.selectedIndex]?.text || '') : '';
+                const ntSel = document.getElementById('in-nivel-trabajo');
+                const studentLevel = ntSel ? (ntSel.options[ntSel.selectedIndex]?.text || '') : '';
+
+                const res = await fetch('/api/ai/generate-metas', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ _token: token, asignatura: asig, oas, diagnosis, studentLevel })
+                });
+                const data = await res.json();
+                if (!data.ok) {
+                    alert('No se pudo generar la meta: ' + (data.error || 'error desconocido'));
+                    return;
+                }
+                if (!state.metas[asig]) state.metas[asig] = { meta: '', verificacion: '' };
+                state.metas[asig].meta = data.meta || '';
+                state.metas[asig].verificacion = data.verificacion || '';
+                const taMeta = document.getElementById('meta-' + idx + '-meta');
+                const taVerif = document.getElementById('meta-' + idx + '-verif');
+                if (taMeta) { taMeta.value = state.metas[asig].meta; autoExpand(taMeta); }
+                if (taVerif) { taVerif.value = state.metas[asig].verificacion; autoExpand(taVerif); }
+                renderMetasPreview();
+            } catch (e) {
+                alert('Error de conexión al generar la meta. Intenta de nuevo.');
+            } finally {
+                if (btn) { btn.disabled = false; btn.innerHTML = orig; }
+            }
+        }
+
+        // ====== Cargar PAIs disponibles para vincular ======
+        async function cargarPAIsDelEstudiante() {
+            const sel = document.getElementById('in-parent-pai');
+            if (!sel) return;
+            try {
+                const token = localStorage.getItem('paci_token');
+                const res = await fetch('/api/documents/list', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ _token: token })
+                });
+                const data = await res.json();
+                if (!data.ok) return;
+                const studentName = (document.getElementById('in-nombre')?.value || '').trim();
+                const pais = (data.documents || []).filter(d => d.plan_type === 'pai' && (!studentName || d.student_name === studentName));
+                const currentVal = sel.value;
+                sel.innerHTML = '<option value="">— Sin vínculo —</option>' +
+                    pais.map(p => '<option value="' + p.id + '"' + (String(p.id) === currentVal ? ' selected' : '') + '>PAI #' + p.id + ' — ' + escapePaciHtml(p.student_name || 'sin nombre') + ' (' + escapePaciHtml(p.trimester || '') + ')</option>').join('');
+            } catch (e) { /* silencioso */ }
         }
 
         async function guardarPACI() {
@@ -1795,7 +1160,7 @@ table{border-collapse:collapse}
 
                 const datos = recolectarDatosPACI();
                 if (!datos) return;
-                const { student, trimester, team, modules } = datos;
+                const { student, trimester, team, modules, contextual, adecuaciones, criteriosEvaluacion, metas, parentPaiId, firmas } = datos;
 
                 const res = await fetch('/api/documents/save', {
                     method: 'POST',
@@ -1806,6 +1171,13 @@ table{border-collapse:collapse}
                         modules,
                         trimester,
                         team,
+                        // Extras MINEDUC (Decreto 83/2015)
+                        contextual,
+                        adecuaciones,
+                        criteriosEvaluacion,
+                        metas,
+                        parentPaiId,
+                        firmas,
                         // Si estamos editando un documento ya guardado, enviamos su id
                         // para ACTUALIZARLO en vez de crear un duplicado.
                         documentId: autosave.lastDocumentId || undefined
@@ -1894,7 +1266,8 @@ table{border-collapse:collapse}
                         student: datos.student,
                         team: datos.team,
                         annual: { trimester: 'Anual', modules: datos.modules },
-                        trimesters
+                        trimesters,
+                        metas: datos.metas
                     })
                 });
 
@@ -1921,13 +1294,111 @@ table{border-collapse:collapse}
             }
         }
 
-        // Muestra el boton "Anual + 3 trimestres" solo cuando la duracion es Anual.
+        // Muestra los botones "Anual + 3 trimestres" y "Distribuir IA" solo cuando la duracion es Anual.
         function actualizarBotonAnual() {
-            const btn = document.getElementById('btn-guardar-anual');
-            if (!btn) return;
             const sel = document.getElementById('in-duracion');
             const esAnual = sel && (sel.options[sel.selectedIndex]?.text || '').toLowerCase().includes('anual');
-            btn.style.display = esAnual ? 'flex' : 'none';
+            const btn = document.getElementById('btn-guardar-anual');
+            if (btn) btn.style.display = esAnual ? 'flex' : 'none';
+            const btnIA = document.getElementById('btn-distribuir-ia');
+            if (btnIA) btnIA.style.display = esAnual ? 'flex' : 'none';
+        }
+
+        // ==========================================
+        // DISTRIBUCION IA DE MODULOS EN 3 TRIMESTRES
+        // ==========================================
+        // Pide a la IA que ordene los modulos del plan anual en 3 trimestres
+        // con progresion paulatina segun complejidad de habilidades.
+        async function distribuirTrimestresIA() {
+            if (!PACI_CAN_EDIT) {
+                alert('Tu rol (' + PACI_ROLE + ') solo permite lectura.');
+                return;
+            }
+            if (!state.modulos || !state.modulos.length) {
+                alert('Primero agrega al menos un modulo de planificacion al plan anual.');
+                return;
+            }
+
+            const btn = document.getElementById('btn-distribuir-ia');
+            const orig = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Analizando...';
+
+            try {
+                const token = localStorage.getItem('paci_token');
+
+                // Construir contexto del estudiante
+                const diagSel = document.getElementById('in-diag');
+                const diagnosis = diagSel ? (diagSel.options[diagSel.selectedIndex]?.text || '') : '';
+                const nivelTrabajoSel = document.getElementById('in-nivel-trabajo');
+                const studentLevel = nivelTrabajoSel ? (nivelTrabajoSel.options[nivelTrabajoSel.selectedIndex]?.text || '') : '';
+                const contextual = {
+                    escuela: (document.getElementById('in-ctx-escuela')?.value || '').trim(),
+                    hogar: (document.getElementById('in-ctx-hogar')?.value || '').trim()
+                };
+                // Evaluacion integral (si llegamos a tenerla en el editor; por ahora vacio)
+                const evaluacion = { fortalezas: '', dificultades: '' };
+
+                // Enviar modulos minimalistas (id, asig, unit, OAs)
+                const modulosLite = state.modulos.map(m => ({
+                    id: m.id,
+                    asig: m.asig,
+                    unit: m.unit,
+                    oas: (m.oas || []).map(o => ({ code: o.code, textoOriginal: o.textoOriginal, textoAdecuado: o.textoAdecuado, text: o.text }))
+                }));
+
+                const res = await fetch('/api/ai/sequence-trimesters', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        _token: token,
+                        modulos: modulosLite,
+                        studentLevel,
+                        diagnosis,
+                        contextual,
+                        evaluacion
+                    })
+                });
+                const data = await res.json();
+                if (!data.ok) {
+                    alert('No se pudo generar la secuencia: ' + (data.error || 'error desconocido'));
+                    return;
+                }
+
+                // Aplicar asignaciones a state.modulos
+                let aplicados = 0;
+                (data.asignaciones || []).forEach(a => {
+                    const mod = state.modulos.find(m => String(m.id) === String(a.moduloId));
+                    if (mod) {
+                        mod.trimestre = a.trimestre;
+                        aplicados += 1;
+                    }
+                });
+
+                // Re-renderizar
+                if (typeof renderModulos === 'function') renderModulos();
+                if (typeof updatePreview === 'function') updatePreview();
+
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> ' + aplicados + ' modulos distribuidos';
+                btn.style.background = '#10b981';
+
+                // Mostrar resumen al usuario
+                const resumen = data.resumen ? '\n\nLogica IA: ' + data.resumen : '';
+                setTimeout(() => {
+                    alert('Distribucion aplicada: ' + aplicados + ' modulo(s) re-asignados en 3 trimestres.' + resumen + '\n\nRevisalos en la previa antes de guardar como plan anual + 3 trimestres.');
+                }, 100);
+
+                setTimeout(() => {
+                    btn.innerHTML = orig;
+                    btn.style.background = '#0ea5e9';
+                }, 3000);
+            } catch (e) {
+                console.error(e);
+                alert('Error de conexion con la IA. Intenta de nuevo.');
+            } finally {
+                btn.disabled = false;
+                if (btn.innerHTML.includes('Analizando')) btn.innerHTML = orig;
+            }
         }
 
         // ==========================================
@@ -1958,6 +1429,19 @@ table{border-collapse:collapse}
                 loadPreviousOAs(sid).then(oas => {
                     window._previousOAs = oas;
                 });
+                // Cargar el mapa de niveles por asignatura del estudiante (profile_json.workLevels)
+                window._paciStudentWorkLevels = {};
+                fetch('/api/students/get', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ _token: localStorage.getItem('paci_token'), studentId: parseInt(sid), fullAccess: true })
+                }).then(r => r.json()).then(out => {
+                    if (out && out.ok && out.student && out.student.profile_json) {
+                        let prof = out.student.profile_json;
+                        if (typeof prof === 'string') { try { prof = JSON.parse(prof); } catch(e) { prof = {}; } }
+                        window._paciStudentWorkLevels = (prof && prof.workLevels) || {};
+                    }
+                }).catch(() => {});
             }
         })();
 
@@ -3539,7 +3023,9 @@ table{border-collapse:collapse}
                 {id: 9, rol: 'Jefe/a UTP / Coordinador/a PIE', nom: ''}
             ],
             modulos: [],
-            bufferOAs: []
+            bufferOAs: [],
+            // Metas por asignatura (Decreto 83/2015): { [asignatura]: { meta, verificacion } }
+            metas: {}
         };
 
         // ==========================================
@@ -3575,7 +3061,8 @@ table{border-collapse:collapse}
                 diagnosis: document.getElementById('in-diag')?.selectedOptions[0]?.text || '',
                 diagnosisId: document.getElementById('in-diag')?.value || '',
                 realLevel: document.getElementById('in-nivel-real')?.selectedOptions[0]?.text || '',
-                workLevel: document.getElementById('in-nivel-trabajo')?.selectedOptions[0]?.text || ''
+                workLevel: document.getElementById('in-nivel-trabajo')?.selectedOptions[0]?.text || '',
+                realSkills: (document.getElementById('in-habilidades-reales')?.value || '').trim()
               },
               team: state.equipo.map(m => ({ rol: m.rol, nom: m.nom })),
               modules: state.modulos,
@@ -4079,6 +3566,7 @@ table{border-collapse:collapse}
                 // Niveles
                 if (st.realLevel || st.real_level) setSelect('in-nivel-real', st.realLevel || st.real_level);
                 if (st.workLevel || st.work_level) setSelect('in-nivel-trabajo', st.workLevel || st.work_level);
+                setVal('in-habilidades-reales', st.realSkills || st.real_skills);
 
                 // Trimestre
                 const trimester = documents[0].trimester || '';
@@ -4092,6 +3580,56 @@ table{border-collapse:collapse}
 
                 // Cargar unidades para que esten disponibles
                 if (typeof loadUnidades === 'function') loadUnidades();
+
+                // Cargar extras MINEDUC desde el primer documento (todos los hijos comparten estos campos a nivel macro)
+                if (firstDoc) {
+                    // Necesidades contextuales
+                    const ctx = firstDoc.contextual || {};
+                    const ctxE = document.getElementById('in-ctx-escuela'); if (ctxE) ctxE.value = ctx.escuela || '';
+                    const ctxH = document.getElementById('in-ctx-hogar');   if (ctxH) ctxH.value = ctx.hogar || '';
+
+                    // Adecuaciones (checkboxes + detalle)
+                    const adec = firstDoc.adecuaciones || {};
+                    const acc = adec.acceso || {};
+                    const oa = adec.oa || {};
+                    ['adec-acc-presentacion','adec-acc-respuesta','adec-acc-entorno','adec-acc-tiempo'].forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el) el.checked = !!acc[id.replace('adec-acc-', '')];
+                    });
+                    ['adec-oa-graduacion','adec-oa-priorizacion','adec-oa-temporalizacion','adec-oa-enriquecimiento','adec-oa-eliminacion'].forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el) el.checked = !!oa[id.replace('adec-oa-', '')];
+                    });
+                    const adecDet = document.getElementById('in-adec-detalle'); if (adecDet) adecDet.value = adec.detalle || '';
+
+                    // Criterios evaluacion + promocion
+                    const cr = firstDoc.criteriosEvaluacion || {};
+                    const crEv = document.getElementById('in-criterios-eval'); if (crEv) crEv.value = cr.evaluacion || '';
+                    const crPr = document.getElementById('in-criterios-prom'); if (crPr) crPr.value = cr.promocion || '';
+
+                    // Metas por asignatura
+                    state.metas = {};
+                    (firstDoc.metas || []).forEach(mt => {
+                        if (mt && mt.asignatura) state.metas[mt.asignatura] = { meta: mt.meta || '', verificacion: mt.verificacion || '' };
+                    });
+
+                    // Link PAI padre: rellenar el option seleccionado
+                    if (firstDoc.parentPaiId) {
+                        const selPai = document.getElementById('in-parent-pai');
+                        if (selPai) {
+                            const opt = document.createElement('option');
+                            opt.value = firstDoc.parentPaiId;
+                            opt.textContent = 'PAI #' + firstDoc.parentPaiId;
+                            opt.selected = true;
+                            selPai.appendChild(opt);
+                        }
+                    }
+
+                    // Firmas
+                    window.firmasPACI = [];
+                    (firstDoc.firmas || []).forEach(f => agregarFirmaPACI(f));
+                    renderFirmasPACI();
+                }
 
                 // Reconstruir modulos desde los documentos
                 state.modulos = [];
@@ -4117,6 +3655,7 @@ table{border-collapse:collapse}
                 // Renderizar todo
                 renderModulos();
                 renderFirmas();
+                renderMetasPACI();
                 updatePreview();
                 updateGantt();
 
@@ -4157,6 +3696,11 @@ table{border-collapse:collapse}
 
         window.onload = () => {
             try {
+                // Inicializar lista de firmas PACI vacia
+                if (typeof renderFirmasPACI === 'function') renderFirmasPACI();
+                // Precargar lista de PAIs del estudiante para el dropdown de vinculacion
+                if (typeof cargarPAIsDelEstudiante === 'function') setTimeout(cargarPAIsDelEstudiante, 800);
+
                 // Mostrar/ocultar el boton de plan anual vinculado segun la duracion actual.
                 if (typeof actualizarBotonAnual === 'function') actualizarBotonAnual();
 
@@ -4223,6 +3767,7 @@ table{border-collapse:collapse}
                 renderEquipoForm();
                 initGantt();
                 updatePreview();
+                renderMetasPACI();
                 startPassivePolling();
 
                 // Inicializar layout móvil
@@ -4697,8 +4242,8 @@ table{border-collapse:collapse}
                 const opcionesNombre = nombresDelCargo.map(n =>
                     `<option value="${n}" ${m.nom === n ? 'selected' : ''}>${n}</option>`
                 ).join('');
-                const esManual = sinListaNombres || (m.nom && !nombresDelCargo.some(n => n === m.nom || n.replace(/\s*\(.*?\)\s*$/, '').trim() === m.nom));
-                c.innerHTML += `<div class="border border-slate-200 rounded-lg p-3 mb-3 bg-white space-y-2">
+                const staggerClass = `stagger-${(m.id % 3) + 1}`;
+                c.innerHTML += `<div class="animate-fade-in ${staggerClass} border border-slate-200 rounded-lg p-3 mb-3 bg-white space-y-2">
                     <div class="flex items-center gap-2">
                         <label class="text-[10px] font-bold text-slate-500 uppercase flex-shrink-0">Cargo:</label>
                         <select class="flex-1 border p-2.5 rounded-lg text-sm font-bold text-blue-800 outline-none" onchange="cambiarCargo(${m.id}, this.value)">
@@ -4886,6 +4431,19 @@ table{border-collapse:collapse}
             if(!asigEl || !uSel || !list || !ntEl) return;
 
             const asig = asigEl.value;
+
+            // Si el estudiante tiene un nivel específico configurado para esta asignatura,
+            // aplicarlo automáticamente (profile_json.workLevels[asig]).
+            if (asig && window._paciStudentWorkLevels && window._paciStudentWorkLevels[asig]) {
+                const nivelEspecifico = window._paciStudentWorkLevels[asig];
+                if (ntEl.value !== nivelEspecifico) {
+                    ntEl.value = nivelEspecifico;
+                    // Indicador visual sutil
+                    ntEl.style.boxShadow = '0 0 0 2px rgba(56, 189, 248, 0.45)';
+                    setTimeout(() => { ntEl.style.boxShadow = ''; }, 1500);
+                }
+            }
+
             let nivel = ntEl.value;
             const isParvularia = (nivel === 'nt1' || nivel === 'nt2');
 
@@ -6033,7 +5591,20 @@ table{border-collapse:collapse}
             const detalleAnual = esAnual
                 ? `Plan ANUAL: se generaran 3 bloques (1er, 2do y 3er trimestre), ${numClases} clase(s) cada uno.\n\n`
                 : '';
-            const confirmMsg = detalleAnual +
+            // Aviso de realismo: si falta el nivel real de habilidades o los recursos
+            // disponibles, la IA puede generar clases ideales pero poco realistas.
+            // No se bloquea (el docente decide), solo se advierte.
+            const habilidadesReales = (document.getElementById('in-habilidades-reales')?.value || '').trim();
+            const recursosCtx = (readAIContextState().recursos || '').trim();
+            const faltantesRealismo = [];
+            if (!habilidadesReales) faltantesRealismo.push('• Nivel real de habilidades del estudiante (datos del estudiante)');
+            if (!recursosCtx) faltantesRealismo.push('• Recursos disponibles (panel "Contexto para la IA")');
+            const avisoRealismo = faltantesRealismo.length
+                ? '⚠️ Para clases REALISTAS conviene completar:\n' + faltantesRealismo.join('\n') +
+                  '\n\nSin estos datos la IA puede crear clases idóneas pero poco reales. Puedes continuar igual o cancelar y completarlos.\n\n'
+                : '';
+
+            const confirmMsg = avisoRealismo + detalleAnual +
                 `La IA generara ${numClases * segmentos.length} clase(s) personalizadas en base a los OAs (adaptados o originales).\n\n` +
                 `Esto consume ${segmentos.length} consulta(s) de IA (de 100 diarias) y puede tardar ${tiempoEstimado}.\n\n¿Continuar?`;
             if (!confirm(confirmMsg)) return;
@@ -6084,6 +5655,7 @@ table{border-collapse:collapse}
                             asignatura: asigName,
                             nivel: targetLevel,
                             studentLevel: studentLevel,
+                            realSkills: habilidadesReales,
                             diagnosisId: diagId,
                             diagnosisName: diagName,
                             numClases: numClases,
@@ -6381,6 +5953,9 @@ table{border-collapse:collapse}
 
                 c.appendChild(asigGroup);
             });
+
+            // Mantener la seccion de metas y su vista previa sincronizadas con las asignaturas.
+            if (typeof renderMetasPACI === 'function') renderMetasPACI();
 
             // Auto-expandir todos los textareas para mostrar texto completo
             setTimeout(autoExpandAll, 50);
@@ -7154,7 +6729,7 @@ table{border-collapse:collapse}
 
             html += `
               <div class="footer">
-                <p>Documento generado por PACI Master - ${new Date().toLocaleDateString('es-CL')}</p>
+                <p>Documento generado por PIE MASTER - ${new Date().toLocaleDateString('es-CL')}</p>
                 <p>Este documento es confidencial y de uso exclusivo del establecimiento educacional.</p>
               </div>
               </body></html>`;

@@ -3,666 +3,384 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PACI Master - Iniciar Sesion</title>
+  <title>PIE MASTER - Iniciar Sesión</title>
   <link rel="icon" href="/favicon.svg?v=2" type="image/svg+xml">
   <link rel="shortcut icon" href="/favicon.png?v=2" type="image/png">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/paci.css">
+  <link rel="stylesheet" href="/tailwind-utils.css">
   <!-- Google Identity Services (GIS) - Sign in with Google -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: 'Inter', sans-serif;
+      font-family: 'Plus Jakarta Sans', sans-serif;
       min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #0f172a 100%);
+      background: var(--bg-deep);
       padding: 1rem;
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden;
     }
+    
+    /* Fondo animado: 5 blobs de gradiente radial que flotan en loop */
+    body::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        background:
+            radial-gradient(circle at 18% 25%, rgba(56, 189, 248, 0.32)  0%, transparent 38%),
+            radial-gradient(circle at 78% 22%, rgba(168, 139, 250, 0.28) 0%, transparent 42%),
+            radial-gradient(circle at 52% 78%, rgba(244, 114, 182, 0.24) 0%, transparent 40%),
+            radial-gradient(circle at 88% 88%, rgba(52, 211, 153, 0.22)  0%, transparent 38%),
+            radial-gradient(circle at 8% 92%,  rgba(251, 146, 60, 0.22)  0%, transparent 38%);
+        background-size: 220% 220%;
+        background-attachment: fixed;
+        z-index: -2;
+        pointer-events: none;
+        animation: bg-flow 28s ease-in-out infinite alternate;
+    }
+    body::after {
+        content: '';
+        position: fixed;
+        inset: 0;
+        background-image: url('/assets/canva/bg-pattern.png');
+        background-size: cover;
+        background-position: center;
+        opacity: 0.08;
+        z-index: -1;
+        pointer-events: none;
+        mix-blend-mode: overlay;
+    }
+    @keyframes bg-flow {
+        0%   { background-position: 0% 0%,   100% 0%,   50% 100%, 100% 100%, 0% 100%; }
+        25%  { background-position: 20% 15%, 80% 20%,   45% 90%,  90% 95%,   5% 95%; }
+        50%  { background-position: 100% 50%, 0% 50%,   100% 50%, 50% 0%,    50% 100%; }
+        75%  { background-position: 80% 85%, 15% 80%,   25% 10%,  10% 5%,    95% 5%; }
+        100% { background-position: 100% 100%, 0% 100%, 50% 0%,   0% 0%,     100% 0%; }
+    }
+    [data-theme="light"] body::before {
+        background:
+            radial-gradient(circle at 18% 25%, rgba(125, 211, 252, 0.55) 0%, transparent 38%),
+            radial-gradient(circle at 78% 22%, rgba(196, 181, 253, 0.5)  0%, transparent 42%),
+            radial-gradient(circle at 52% 78%, rgba(251, 207, 232, 0.5)  0%, transparent 40%),
+            radial-gradient(circle at 88% 88%, rgba(167, 243, 208, 0.45) 0%, transparent 38%),
+            radial-gradient(circle at 8% 92%,  rgba(254, 215, 170, 0.5)  0%, transparent 38%);
+        background-size: 220% 220%;
+        background-attachment: fixed;
+    }
+    [data-theme="light"] body::after { opacity: 0.05; mix-blend-mode: multiply; filter: invert(1) hue-rotate(180deg); }
+
+    .brand-logo-login {
+        display: block;
+        width: 128px;
+        height: 128px;
+        margin: 0 auto 1rem;
+        border-radius: 1.5rem;
+        box-shadow: 0 14px 38px rgba(18, 64, 196, 0.5);
+        animation: floatLogo 4s ease-in-out infinite;
+    }
+    @keyframes floatLogo {
+        0%, 100% { transform: translateY(0) rotate(0); }
+        50% { transform: translateY(-6px) rotate(-2deg); }
+    }
+
     .card {
-      background: #fff;
-      border-radius: 1.5rem;
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border-radius: 2rem;
+      border: 1px solid var(--glass-border);
       box-shadow: 0 25px 60px rgba(0,0,0,0.5);
       width: 100%;
       max-width: 420px;
       overflow: hidden;
+      animation: fadeInUp 0.8s var(--ease-out-expo);
     }
+    
     .card-header {
-      background: #0f172a;
-      padding: 2rem 2rem 1.5rem;
+      padding: 2.5rem 2rem 2rem;
       text-align: center;
-      color: #fff;
     }
     .card-header h1 {
-      font-size: 2.25rem;
-      font-weight: 900;
-      text-transform: uppercase;
-      letter-spacing: -0.05em;
-      font-style: italic;
-      line-height: 1;
-    }
-    .card-header .subtitle {
-      font-size: 0.65rem;
-      color: #60a5fa;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.2em;
-      margin-top: 0.5rem;
-    }
-    .card-header .desc {
-      font-size: 0.75rem;
-      color: #94a3b8;
-      margin-top: 0.75rem;
-    }
-    .bar { width: 3rem; height: 3px; background: #2563eb; margin: 0.75rem auto 0; border-radius: 4px; }
-
-    /* Tabs */
-    .tabs {
-      display: flex;
-      border-bottom: 2px solid #e2e8f0;
-    }
-    .tab {
-      flex: 1;
-      padding: 0.875rem;
-      text-align: center;
-      font-size: 0.8rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      cursor: pointer;
-      color: #94a3b8;
-      border-bottom: 3px solid transparent;
-      transition: all 0.2s;
-      background: none;
-      border-top: none;
-      border-left: none;
-      border-right: none;
-    }
-    .tab:hover { color: #1e3a8a; }
-    .tab:focus-visible { outline: 3px solid #93c5fd; outline-offset: -3px; border-radius: 4px; }
-    .tab.active {
-      color: #1e3a8a;
-      border-bottom-color: #2563eb;
-    }
-
-    /* Forms */
-    .form-body { padding: 1.5rem 2rem 2rem; }
-    .form-section { display: none; }
-    .form-section.active { display: block; }
-    .field { margin-bottom: 1rem; }
-    .field label {
-      display: block;
-      font-size: 0.7rem;
+      font-size: 2.5rem;
       font-weight: 800;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      color: #475569;
-      margin-bottom: 0.375rem;
+      background: linear-gradient(to right, #38bdf8, #818cf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      line-height: 1;
+      filter: drop-shadow(0 0 10px rgba(56, 189, 248, 0.4));
     }
-    .field .input-wrap {
-      display: flex;
-      align-items: center;
-      border: 2px solid #e2e8f0;
-      border-radius: 0.625rem;
-      padding: 0 0.75rem;
-      transition: border-color 0.2s;
-    }
-    .field .input-wrap:focus-within { border-color: #2563eb; }
-    .field .input-wrap i { color: #94a3b8; font-size: 0.875rem; margin-right: 0.625rem; }
-    .field .input-wrap input {
-      flex: 1;
-      border: none;
-      outline: none;
-      padding: 0.75rem 0;
-      font-size: 0.875rem;
-      font-family: 'Inter', sans-serif;
-      color: #0f172a;
-    }
-    .field .input-wrap input::placeholder { color: #94a3b8; }
-    .field .input-wrap .toggle-pass {
-      cursor: pointer;
-      color: #94a3b8;
-      padding: 0.25rem;
-      background: none;
-      border: none;
-      font-size: 0.875rem;
-      border-radius: 4px;
-    }
-    .field .input-wrap .toggle-pass:hover { color: #475569; }
-    .field .input-wrap .toggle-pass:focus-visible { outline: 2px solid #2563eb; outline-offset: 1px; }
-
-    .btn {
-      width: 100%;
-      padding: 0.875rem;
-      border: none;
-      border-radius: 0.625rem;
-      font-family: 'Inter', sans-serif;
-      font-size: 0.875rem;
+    .card-header .subtitle {
+      font-size: 0.7rem;
+      color: var(--glow-primary);
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
-      cursor: pointer;
-      transition: all 0.2s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
+      letter-spacing: 0.25em;
+      margin-top: 0.75rem;
+      opacity: 0.8;
     }
-    .btn-primary {
-      background: linear-gradient(135deg, #1e3a8a, #2563eb);
-      color: #fff;
-      box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
-    }
-    .btn-primary:hover { box-shadow: 0 6px 20px rgba(37, 99, 235, 0.6); transform: translateY(-1px); }
-    .btn-primary:active { transform: scale(0.98); }
-    .btn-primary:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-      transform: none !important;
-      box-shadow: none !important;
-    }
-
-    .link-forgot {
-      display: block;
-      text-align: right;
-      font-size: 0.75rem;
-      color: #2563eb;
-      text-decoration: none;
-      font-weight: 600;
-      margin-bottom: 1rem;
-      cursor: pointer;
-    }
-    .link-forgot:hover { text-decoration: underline; }
-    .link-forgot:focus-visible, .back-link:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; border-radius: 4px; text-decoration: underline; }
-    .btn-primary:focus-visible { outline: 3px solid #93c5fd; outline-offset: 2px; }
-
-    .google-signin-wrap { display: flex; justify-content: center; }
-    .google-signin-wrap:empty { display: none; }
-    .google-divider {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      margin: 1rem 0;
-      color: #94a3b8;
-      font-size: 0.7rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-    .google-divider::before,
-    .google-divider::after {
-      content: '';
-      flex: 1;
-      height: 1px;
-      background: #e2e8f0;
-    }
-    .google-divider span { white-space: nowrap; }
-
-    .msg {
-      padding: 0.75rem 1rem;
-      border-radius: 0.5rem;
+    .card-header .desc {
       font-size: 0.8rem;
-      font-weight: 600;
-      margin-bottom: 1rem;
-      display: none;
-      align-items: center;
-      gap: 0.5rem;
+      color: rgba(226, 232, 240, 0.78);
+      font-weight: 500;
+      margin-top: 0.65rem;
+      line-height: 1.45;
+      max-width: 320px;
+      margin-left: auto;
+      margin-right: auto;
     }
-    .msg.error { display: flex; background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
-    .msg.success { display: flex; background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
-    .msg.info { display: flex; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+    [data-theme="light"] .card-header .desc { color: #334155; }
+    [data-theme="light"] .card-header .subtitle { color: #1e40af; opacity: 1; }
+    [data-theme="light"] .field label { color: #334155; }
+    [data-theme="light"] .field input { background: #ffffff; color: #0f172a; border-color: #cbd5e1; }
+    [data-theme="light"] .field input::placeholder { color: #94a3b8; }
+    [data-theme="light"] .divider { color: #475569; }
+    [data-theme="light"] .divider::before, [data-theme="light"] .divider::after { background: rgba(15,23,42,0.12); }
 
-    .spinner { display: none; width: 1rem; height: 1rem; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    .footer-text {
-      text-align: center;
-      font-size: 0.7rem;
-      color: #94a3b8;
-      padding: 0 2rem 1.5rem;
-    }
-
-    /* Forgot password view */
-    #forgot-view { display: none; }
-    #forgot-view.active { display: block; }
-    #auth-tabs { display: flex; }
-    #auth-forms { display: block; }
-    .back-link {
-      font-size: 0.8rem;
-      color: #2563eb;
-      cursor: pointer;
-      font-weight: 600;
-      display: inline-flex;
-      align-items: center;
+    .tabs {
+      display: flex;
+      background: rgba(2, 6, 23, 0.4);
+      padding: 0.5rem;
+      margin: 0 1.5rem;
+      border-radius: 1rem;
       gap: 0.25rem;
-      margin-bottom: 1rem;
     }
-    .back-link:hover { text-decoration: underline; }
-
-    /* Tablet-first: touch targets */
-    * { touch-action: manipulation; }
-    .form-input { min-height: 48px; font-size: 1rem; }
-    .form-btn { min-height: 48px; font-size: 1rem; }
-    .tab-btn { min-height: 48px; }
-    .card { max-width: 420px; }
-
-    @media (max-width: 768px) {
-      .card { margin: 1rem; max-width: 100%; border-radius: 1.25rem; }
+    .tab {
+      flex: 1; padding: 0.75rem; text-align: center; font-size: 0.75rem; font-weight: 700;
+      text-transform: uppercase; cursor: pointer; color: #94a3b8; border-radius: 0.75rem;
+      transition: all 0.3s var(--ease-out-expo); background: none; border: none;
     }
+    .tab.active { color: #020617; background: var(--glow-primary); box-shadow: 0 4px 12px rgba(56, 189, 248, 0.3); }
 
-    /* Accesibilidad: respetar usuarios que prefieren menos movimiento */
-    @media (prefers-reduced-motion: reduce) {
-      *, .btn-primary:hover { transition: none !important; transform: none !important; }
-      .spinner { animation: none !important; }
+    .form-body { padding: 2rem 2.5rem 2.5rem; }
+    .form-section { display: none; animation: fadeInUp 0.4s var(--ease-out-expo); }
+    .form-section.active { display: block; }
+    
+    .field { margin-bottom: 1.25rem; }
+    .field label {
+      display: block; font-size: 0.65rem; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 0.1em; color: #64748b; margin-bottom: 0.5rem;
+    }
+    .field input {
+      width: 100%; background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(56, 189, 248, 0.1);
+      border-radius: 0.875rem; padding: 0.875rem 1rem; font-size: 0.9rem; color: #fff; outline: none; transition: all 0.3s;
+    }
+    .field input:focus { border-color: var(--glow-primary); box-shadow: 0 0 15px rgba(56, 189, 248, 0.15); }
+    
+    .btn-submit {
+      width: 100%; padding: 1rem; border-radius: 1rem; border: none;
+      background: linear-gradient(135deg, var(--glow-primary), var(--glow-secondary));
+      color: #020617; font-weight: 800; text-transform: uppercase; cursor: pointer;
+      transition: all 0.3s var(--ease-out-expo); box-shadow: 0 10px 20px -5px rgba(56, 189, 248, 0.4);
+    }
+    .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 15px 30px -5px rgba(56, 189, 248, 0.6); }
+
+    .divider {
+      display: flex; align-items: center; gap: 1rem; margin: 1.5rem 0;
+      color: #475569; font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+    }
+    .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.05); }
+    
+    #google-btn-container {
+      display: flex; justify-content: center; background: #fff; border-radius: 1rem; padding: 0.5rem;
     }
   </style>
 </head>
 <body>
   <div class="card">
     <div class="card-header">
-      <h1>PACI Master</h1>
-      <div class="bar"></div>
-      <p class="subtitle">Plan de Adecuacion Curricular Individual</p>
-      <p class="desc">Plataforma para docentes de educacion diferencial</p>
+      <img class="brand-logo-login" src="/assets/canva/logo.png" alt="PIE MASTER">
+      <div class="subtitle" id="tenant-name-sub">Cargando...</div>
+      <div class="desc">Plataforma Inteligente de Adecuación Curricular Individual</div>
     </div>
 
-    <!-- Tabs -->
     <div class="tabs" id="auth-tabs">
-      <button type="button" class="tab active" onclick="showTab('login')">Iniciar Sesion</button>
-      <button type="button" class="tab" onclick="showTab('register')">Registrarse</button>
+      <button type="button" class="tab active" onclick="showTab('login')">Entrar</button>
+      <button type="button" class="tab" onclick="showTab('register')">Unirse</button>
     </div>
 
-    <!-- Auth Forms -->
-    <div id="auth-forms">
-      <!-- Login -->
-      <div class="form-body form-section active" id="form-login">
-        <div class="msg" id="msg-login" role="alert" aria-live="assertive"></div>
+    <div class="form-body">
+      <div id="error-msg" style="color:#f87171; background:rgba(248,113,113,0.1); padding:0.75rem; border-radius:0.75rem; font-size:0.8rem; margin-bottom:1rem; display:none;"></div>
+      
+      <!-- LOGIN -->
+      <form id="form-login" class="form-section active" onsubmit="handleLogin(event)">
+        <div class="field">
+          <label>Correo Electrónico</label>
+          <input type="email" id="login-email" required placeholder="tu@correo.com">
+        </div>
+        <div class="field">
+          <label>Contraseña</label>
+          <input type="password" id="login-password" required placeholder="••••••••">
+        </div>
+        <button type="submit" class="btn-submit" id="btn-login">Iniciar Sesión</button>
+        
+        <div class="divider">o continúa con</div>
+        <div id="google-btn-container">
+            <div id="g_id_onload" data-auto_prompt="false"></div>
+            <div class="g_id_signin" data-type="standard" data-size="large" data-theme="outline" data-text="signin_with" data-shape="rectangular" data-logo_alignment="left"></div>
+        </div>
+      </form>
 
-        <!-- Google Sign-In: se renderiza dinamicamente via JS si GOOGLE_CLIENT_ID esta configurado -->
-        <div id="google-signin-login" class="google-signin-wrap" style="margin-bottom: 1rem;"></div>
-        <div id="google-divider-login" class="google-divider" style="display:none;"><span>o continua con tu correo</span></div>
-
+      <!-- REGISTER -->
+      <form id="form-register" class="form-section" onsubmit="handleRegister(event)">
         <div class="field">
-          <label for="login-email">Correo electronico</label>
-          <div class="input-wrap">
-            <i class="fa-solid fa-envelope" aria-hidden="true"></i>
-            <input type="email" id="login-email" placeholder="tu@correo.com" autocomplete="email">
-          </div>
+          <label>Nombre Completo</label>
+          <input type="text" id="reg-name" required placeholder="Nombre Apellido">
         </div>
         <div class="field">
-          <label for="login-pass">Contrasena</label>
-          <div class="input-wrap">
-            <i class="fa-solid fa-lock" aria-hidden="true"></i>
-            <input type="password" id="login-pass" placeholder="Tu contrasena" autocomplete="current-password">
-            <button type="button" class="toggle-pass" onclick="togglePassword('login-pass', this)" aria-label="Mostrar u ocultar contrasena"><i class="fa-solid fa-eye" aria-hidden="true"></i></button>
-          </div>
-        </div>
-        <a class="link-forgot" role="button" tabindex="0" onclick="showForgot()">Olvidaste tu contrasena?</a>
-        <button type="button" class="btn btn-primary" id="btn-login" onclick="handleLogin()">
-          <span class="spinner" id="spin-login" aria-hidden="true"></span>
-          <i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i> Iniciar Sesion
-        </button>
-      </div>
-
-      <!-- Register -->
-      <div class="form-body form-section" id="form-register">
-        <div class="msg" id="msg-register" role="alert" aria-live="assertive"></div>
-
-        <!-- Google Sign-In tambien sirve para registrarse (crea cuenta si no existe) -->
-        <div id="google-signin-register" class="google-signin-wrap" style="margin-bottom: 1rem;"></div>
-        <div id="google-divider-register" class="google-divider" style="display:none;"><span>o crea tu cuenta con correo</span></div>
-
-        <div class="field">
-          <label for="reg-name">Nombre completo</label>
-          <div class="input-wrap">
-            <i class="fa-solid fa-user" aria-hidden="true"></i>
-            <input type="text" id="reg-name" placeholder="Tu nombre" autocomplete="name">
-          </div>
+          <label>Correo Electrónico</label>
+          <input type="email" id="reg-email" required placeholder="tu@correo.com">
         </div>
         <div class="field">
-          <label for="reg-email">Correo electronico</label>
-          <div class="input-wrap">
-            <i class="fa-solid fa-envelope" aria-hidden="true"></i>
-            <input type="email" id="reg-email" placeholder="tu@correo.com" autocomplete="email">
-          </div>
+          <label>Contraseña</label>
+          <input type="password" id="reg-password" required minlength="6" placeholder="Mínimo 6 caracteres">
         </div>
-        <div class="field">
-          <label for="reg-pass">Contrasena</label>
-          <div class="input-wrap">
-            <i class="fa-solid fa-lock" aria-hidden="true"></i>
-            <input type="password" id="reg-pass" placeholder="Min 8 chars, 1 mayuscula, 1 numero" autocomplete="new-password">
-            <button type="button" class="toggle-pass" onclick="togglePassword('reg-pass', this)" aria-label="Mostrar u ocultar contrasena"><i class="fa-solid fa-eye" aria-hidden="true"></i></button>
-          </div>
-        </div>
-        <div class="field">
-          <label for="reg-pass2">Confirmar contrasena</label>
-          <div class="input-wrap">
-            <i class="fa-solid fa-lock" aria-hidden="true"></i>
-            <input type="password" id="reg-pass2" placeholder="Repite tu contrasena" autocomplete="new-password">
-          </div>
-        </div>
-        <button type="button" class="btn btn-primary" id="btn-register" onclick="handleRegister()" style="margin-top: 0.5rem;">
-          <span class="spinner" id="spin-register" aria-hidden="true"></span>
-          <i class="fa-solid fa-user-plus" aria-hidden="true"></i> Crear Cuenta
-        </button>
-      </div>
+        <button type="submit" class="btn-submit" id="btn-register">Crear Cuenta</button>
+      </form>
     </div>
-
-    <!-- Forgot Password -->
-    <div id="forgot-view">
-      <div class="form-body">
-        <span class="back-link" role="button" tabindex="0" onclick="hideForgot()"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Volver</span>
-        <div class="msg" id="msg-forgot" role="alert" aria-live="assertive"></div>
-        <p style="font-size:0.85rem;color:#475569;margin-bottom:1rem;">Ingresa tu correo y te enviaremos instrucciones para recuperar tu contrasena.</p>
-        <div class="field">
-          <label for="forgot-email">Correo electronico</label>
-          <div class="input-wrap">
-            <i class="fa-solid fa-envelope" aria-hidden="true"></i>
-            <input type="email" id="forgot-email" placeholder="tu@correo.com" autocomplete="email">
-          </div>
-        </div>
-        <button type="button" class="btn btn-primary" id="btn-forgot" onclick="handleForgot()">
-          <span class="spinner" id="spin-forgot" aria-hidden="true"></span>
-          <i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Enviar Instrucciones
-        </button>
-      </div>
-    </div>
-
-    <p class="footer-text"><span id="tenant-nombre">Establecimiento</span> &middot; Programa de Integracion Escolar</p>
   </div>
 
   <script>
-    // Si ya tiene sesion activa, ir directo a la app. La sesion real es la cookie
-    // httpOnly; verificamos contra el servidor (la cookie viaja sola).
-    (function() {
-      const loggedIn = localStorage.getItem('paci_user');
-      if (loggedIn) {
-        fetch('/api/verify', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'same-origin',
-          body: JSON.stringify({})
-        }).then(r => r.json()).then(data => {
-          if (data.ok) window.location.href = '/dashboard.html';
-          else localStorage.removeItem('paci_user');
-        }).catch(() => {});
-      }
-    })();
+    const errorEl = document.getElementById('error-msg');
 
-    // ===== Google Sign-In (GIS) =====
-    // Carga el client_id desde /api/google-config y renderiza el boton.
-    // Si GOOGLE_CLIENT_ID no esta configurado en el server, el boton no aparece
-    // y el usuario solo ve la opcion email/password.
-    let GOOGLE_INIT_DONE = false;
-
-    async function initGoogleSignIn() {
-      try {
-        const res = await fetch('/api/google-config');
-        const cfg = await res.json();
-        if (!cfg.enabled || !cfg.client_id) return; // Sin client_id, oculto silenciosamente
-
-        // Esperar a que el script GIS termine de cargar
-        if (typeof google === 'undefined' || !google.accounts) {
-          setTimeout(initGoogleSignIn, 300);
-          return;
-        }
-
-        google.accounts.id.initialize({
-          client_id: cfg.client_id,
-          callback: handleGoogleCredential,
-          auto_select: false,
-          cancel_on_tap_outside: true
-        });
-
-        // Renderizar boton en login y register
-        ['google-signin-login', 'google-signin-register'].forEach(function(id) {
-          var el = document.getElementById(id);
-          if (!el) return;
-          google.accounts.id.renderButton(el, {
-            theme: 'outline',
-            size: 'large',
-            text: id.endsWith('register') ? 'signup_with' : 'signin_with',
-            shape: 'rectangular',
-            logo_alignment: 'center',
-            width: 340
-          });
-        });
-
-        // Mostrar divisores
-        var divLogin = document.getElementById('google-divider-login');
-        var divReg = document.getElementById('google-divider-register');
-        if (divLogin) divLogin.style.display = 'flex';
-        if (divReg) divReg.style.display = 'flex';
-
-        GOOGLE_INIT_DONE = true;
-      } catch (e) {
-        console.warn('Google Sign-In no disponible:', e);
-      }
+    function showTab(name) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.form-section').forEach(s => s.classList.remove('active'));
+      
+      const btn = event.currentTarget;
+      btn.classList.add('active');
+      document.getElementById('form-' + name).classList.add('active');
+      errorEl.style.display = 'none';
     }
 
-    async function handleGoogleCredential(response) {
-      // Determinar en que tab esta el usuario para mostrar el msg correcto
-      var inRegister = document.getElementById('form-register').classList.contains('active');
-      var msgId = inRegister ? 'msg-register' : 'msg-login';
-
-      showMsg(msgId, 'Validando con Google...', 'info');
-      try {
-        var res = await fetch('/api/login-google', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ credential: response.credential })
-        });
-        var data = await res.json();
-        if (!res.ok || !data.ok) {
-          showMsg(msgId, data.error || 'Error al iniciar sesion con Google.', 'error');
-          return;
-        }
-        // La sesion queda en la cookie httpOnly. Guardamos solo datos no-secretos
-        // del usuario (para la UI), nunca el token.
-        if (data.user) {
-          localStorage.setItem('paci_user', JSON.stringify({ email: data.user.email, name: data.user.name, role: data.user.role || 'teacher' }));
-        }
-        showMsg(msgId, 'Sesion iniciada con Google. Redirigiendo...', 'success');
-        setTimeout(function() { window.location.href = '/dashboard.html'; }, 600);
-      } catch (e) {
-        showMsg(msgId, 'Error de red al validar con Google.', 'error');
-      }
+    function showError(msg) {
+      errorEl.textContent = msg;
+      errorEl.style.display = 'block';
     }
 
-    // Iniciar GIS al cargar la pagina (espera al script async)
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', initGoogleSignIn);
-    } else {
-      initGoogleSignIn();
-    }
-
-    // Cargar nombre del establecimiento desde el config del tenant
-    (function() {
-      var TENANT_SLUG = 'lcm-pulebu';
-      fetch('/data/tenants/' + TENANT_SLUG + '/config.json')
-        .then(function(r) { return r.json(); })
-        .then(function(cfg) {
-          var el = document.getElementById('tenant-nombre');
-          if (el && cfg && cfg.nombre) el.textContent = cfg.nombre;
-        })
-        .catch(function(err) { console.error('No se pudo cargar config del tenant:', err); });
-    })();
-
-    // Tabs
-    function showTab(tab) {
-      document.querySelectorAll('.tab').forEach((t, i) => {
-        t.classList.toggle('active', (tab === 'login' && i === 0) || (tab === 'register' && i === 1));
-      });
-      document.getElementById('form-login').classList.toggle('active', tab === 'login');
-      document.getElementById('form-register').classList.toggle('active', tab === 'register');
-      clearMessages();
-    }
-
-    // Forgot password view
-    function showForgot() {
-      document.getElementById('auth-tabs').style.display = 'none';
-      document.getElementById('auth-forms').style.display = 'none';
-      document.getElementById('forgot-view').classList.add('active');
-      clearMessages();
-    }
-    function hideForgot() {
-      document.getElementById('auth-tabs').style.display = 'flex';
-      document.getElementById('auth-forms').style.display = 'block';
-      document.getElementById('forgot-view').classList.remove('active');
-      clearMessages();
-    }
-
-    // Toggle password visibility
-    function togglePassword(inputId, btn) {
-      const input = document.getElementById(inputId);
-      const icon = btn.querySelector('i');
-      if (input.type === 'password') {
-        input.type = 'text';
-        icon.className = 'fa-solid fa-eye-slash';
-      } else {
-        input.type = 'password';
-        icon.className = 'fa-solid fa-eye';
-      }
-    }
-
-    // Messages
-    function showMsg(id, text, type) {
-      const el = document.getElementById(id);
-      el.className = 'msg ' + type;
-      el.innerHTML = '<i class="fa-solid fa-' + (type === 'error' ? 'circle-exclamation' : type === 'success' ? 'circle-check' : 'circle-info') + '"></i>' + text;
-    }
-    function clearMessages() {
-      document.querySelectorAll('.msg').forEach(m => { m.className = 'msg'; m.innerHTML = ''; });
-    }
-
-    // Loading state
-    function setLoading(btnId, spinId, loading) {
-      const btn = document.getElementById(btnId);
-      const spin = document.getElementById(spinId);
-      btn.disabled = loading;
-      spin.style.display = loading ? 'inline-block' : 'none';
-    }
-
-    // Login
-    async function handleLogin() {
-      const email = document.getElementById('login-email').value.trim().toLowerCase();
-      const pass = document.getElementById('login-pass').value;
-
-      if (!email || !pass) {
-        showMsg('msg-login', 'Completa todos los campos.', 'error');
-        return;
-      }
-
-      setLoading('btn-login', 'spin-login', true);
-      clearMessages();
+    async function handleLogin(e) {
+      e.preventDefault();
+      const email = document.getElementById('login-email').value;
+      const password = document.getElementById('login-password').value;
+      const btn = document.getElementById('btn-login');
+      
+      btn.disabled = true;
+      btn.textContent = 'Verificando...';
+      errorEl.style.display = 'none';
 
       try {
         const res = await fetch('/api/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password: pass })
+          body: JSON.stringify({ email, password })
         });
         const data = await res.json();
-
         if (data.ok) {
-          // La sesion real es la cookie httpOnly; solo guardamos datos no-secretos para la UI.
-          localStorage.setItem('paci_user', JSON.stringify({ email: data.email, name: data.name, role: data.role || 'teacher' }));
-          showMsg('msg-login', 'Bienvenido/a! Redirigiendo...', 'success');
-          setTimeout(() => { window.location.href = '/dashboard.html'; }, 600);
+          localStorage.setItem('paci_token', data.token);
+          localStorage.setItem('paci_user', JSON.stringify({ email: data.email, name: data.name, role: data.role }));
+          window.location.href = '/dashboard.html';
         } else {
-          showMsg('msg-login', data.error || 'Credenciales incorrectas.', 'error');
+          showError(data.error || 'Error al iniciar sesión');
+          btn.disabled = false;
+          btn.textContent = 'Iniciar Sesión';
         }
-      } catch (e) {
-        showMsg('msg-login', 'Error de conexion. Intenta de nuevo.', 'error');
+      } catch (err) {
+        showError('Error de conexión');
+        btn.disabled = false;
+        btn.textContent = 'Iniciar Sesión';
       }
-
-      setLoading('btn-login', 'spin-login', false);
     }
 
-    // Register
-    async function handleRegister() {
-      const name = document.getElementById('reg-name').value.trim();
-      const email = document.getElementById('reg-email').value.trim().toLowerCase();
-      const pass = document.getElementById('reg-pass').value;
-      const pass2 = document.getElementById('reg-pass2').value;
+    async function handleRegister(e) {
+      e.preventDefault();
+      const name = document.getElementById('reg-name').value;
+      const email = document.getElementById('reg-email').value;
+      const password = document.getElementById('reg-password').value;
+      const btn = document.getElementById('btn-register');
 
-      if (!name || !email || !pass || !pass2) {
-        showMsg('msg-register', 'Completa todos los campos.', 'error');
-        return;
-      }
-      if (pass.length < 8) {
-        showMsg('msg-register', 'La contrasena debe tener al menos 8 caracteres.', 'error');
-        return;
-      }
-      if (!/[A-Z]/.test(pass) || !/[0-9]/.test(pass)) {
-        showMsg('msg-register', 'La contrasena debe incluir al menos 1 mayuscula y 1 numero.', 'error');
-        return;
-      }
-      if (pass !== pass2) {
-        showMsg('msg-register', 'Las contrasenas no coinciden.', 'error');
-        return;
-      }
-
-      setLoading('btn-register', 'spin-register', true);
-      clearMessages();
+      btn.disabled = true;
+      btn.textContent = 'Creando cuenta...';
+      errorEl.style.display = 'none';
 
       try {
         const res = await fetch('/api/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, email, password: pass })
+          body: JSON.stringify({ name, email, password })
         });
         const data = await res.json();
-
         if (data.ok) {
-          showMsg('msg-register', 'Cuenta creada! Ahora inicia sesion.', 'success');
-          setTimeout(() => { showTab('login'); }, 1500);
+          localStorage.setItem('paci_token', data.token);
+          localStorage.setItem('paci_user', JSON.stringify({ email: data.email, name: data.name, role: data.role }));
+          window.location.href = '/dashboard.html';
         } else {
-          showMsg('msg-register', data.error || 'Error al registrar.', 'error');
+          showError(data.error || 'Error al crear cuenta');
+          btn.disabled = false;
+          btn.textContent = 'Crear Cuenta';
         }
-      } catch (e) {
-        showMsg('msg-register', 'Error de conexion. Intenta de nuevo.', 'error');
+      } catch (err) {
+        showError('Error de conexión');
+        btn.disabled = false;
+        btn.textContent = 'Crear Cuenta';
       }
-
-      setLoading('btn-register', 'spin-register', false);
     }
 
-    // Forgot password
-    async function handleForgot() {
-      const email = document.getElementById('forgot-email').value.trim().toLowerCase();
-
-      if (!email) {
-        showMsg('msg-forgot', 'Ingresa tu correo electronico.', 'error');
-        return;
-      }
-
-      setLoading('btn-forgot', 'spin-forgot', true);
-      clearMessages();
-
+    // Google Sign-In
+    async function handleGoogleResponse(response) {
       try {
-        const res = await fetch('/api/forgot-password', {
+        const res = await fetch('/api/login-google', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email })
+          body: JSON.stringify({ credential: response.credential })
         });
         const data = await res.json();
-        showMsg('msg-forgot', data.message || 'Si el correo existe, recibiras instrucciones.', 'info');
-      } catch (e) {
-        showMsg('msg-forgot', 'Si el correo existe, recibiras instrucciones.', 'info');
+        if (data.ok) {
+          localStorage.setItem('paci_token', data.token);
+          localStorage.setItem('paci_user', JSON.stringify({ email: data.email, name: data.name, role: data.role }));
+          window.location.href = '/dashboard.html';
+        } else {
+          showError(data.error || 'Error con Google');
+        }
+      } catch (err) {
+        showError('Error de conexión con Google');
       }
-
-      setLoading('btn-forgot', 'spin-forgot', false);
     }
 
-    // Enter key submits forms
-    document.addEventListener('keydown', function(e) {
-      if (e.key !== 'Enter') return;
-      if (document.getElementById('form-login').classList.contains('active')) handleLogin();
-      else if (document.getElementById('form-register').classList.contains('active')) handleRegister();
-      else if (document.getElementById('forgot-view').classList.contains('active')) handleForgot();
-    });
+    window.onload = async function () {
+      // Configuración del colegio
+      try {
+        const cfg = await fetch('/api/tenant-config').then(r => r.json());
+        if(cfg.nombre) {
+            document.getElementById('tenant-name-sub').textContent = cfg.nombre;
+        }
+      } catch(e) {}
+
+      // Inicializar Google
+      try {
+        const googleCfg = await fetch('/api/google-config').then(r => r.json());
+        if (googleCfg.enabled && googleCfg.client_id) {
+          google.accounts.id.initialize({
+            client_id: googleCfg.client_id,
+            callback: handleGoogleResponse
+          });
+          google.accounts.id.renderButton(
+            document.querySelector('.g_id_signin'),
+            { theme: 'outline', size: 'large', width: 340 }
+          );
+        } else {
+          document.getElementById('google-btn-container').style.display = 'none';
+          document.querySelector('.divider').style.display = 'none';
+        }
+      } catch (e) {
+        console.error('Google client init failed', e);
+      }
+    };
   </script>
 </body>
 </html>

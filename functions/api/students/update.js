@@ -41,7 +41,11 @@ export async function onRequestPost(context) {
       ['nee_type', 'nee_type'], ['last_evaluation_date', 'last_evaluation_date'],
       ['next_evaluation_date', 'next_evaluation_date'],
       ['evaluation_periodicity', 'evaluation_periodicity'],
-      ['diagnosis_date', 'diagnosis_date'], ['observations', 'observations']
+      ['diagnosis_date', 'diagnosis_date'], ['observations', 'observations'],
+      // NUEVOS (migration 008): curso y profile_json (datos centralizados del estudiante)
+      ['curso', 'curso'], ['profile_json', 'profile_json'],
+      // NUEVO (migration 010): nivel real de habilidades (descripcion funcional para la IA)
+      ['real_skills', 'real_skills']
     ]);
 
     // Campos que se cifran antes de guardar
@@ -56,6 +60,10 @@ export async function onRequestPost(context) {
       if (!Object.prototype.hasOwnProperty.call(data, inputKey)) continue;
       let value = Reflect.get(data, inputKey);
       if (value === undefined) continue;
+      // profile_json: si llega como objeto, lo serializamos como string JSON
+      if (inputKey === 'profile_json' && value !== null && typeof value === 'object') {
+        value = JSON.stringify(value);
+      }
       // Cifrar campos sensibles
       if (ENCRYPTED_FIELDS.has(inputKey) && env.ENCRYPTION_KEY) {
         value = await encrypt(String(value), env.ENCRYPTION_KEY);

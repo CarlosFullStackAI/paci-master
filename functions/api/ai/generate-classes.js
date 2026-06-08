@@ -37,7 +37,7 @@ export async function onRequestPost(context) {
     const body = await request.json();
     const {
       oas, asignatura, nivel, diagnosisId, diagnosisName,
-      studentLevel, numClases, esParvularia,
+      studentLevel, realSkills, numClases, esParvularia,
       // contextoFormateado: bloque markdown consolidado con los 8 campos
       // (duracion, eval, contexto, conocimientos previos, intereses, recursos,
       // pautas DUA y detalle DUA). Si llega, se usa este en lugar de los
@@ -66,6 +66,7 @@ export async function onRequestPost(context) {
       nivel: sanitizeForPrompt(nivel || ''),
       diagnostico: sanitizeForPrompt(diagnosisName || diagnosisId || 'NEE no especificada'),
       studentLevel: sanitizeForPrompt(studentLevel || nivel || ''),
+      realSkills: sanitizeForPrompt(realSkills || '', 600),
       ambitoLabel: esParvularia ? 'Nucleo de Aprendizaje' : 'Asignatura',
       oasFormateados,
       total: numClases,
@@ -184,18 +185,29 @@ async function generarLote(env, ctx, { desde, hasta, cantidadLote, lote, numLote
   const messages = [
     {
       role: 'system',
-      content: `Eres un experto en educacion diferencial chilena, especializado en planificacion pedagogica DUA (Diseno Universal para el Aprendizaje) para estudiantes con Necesidades Educativas Especiales segun Decreto 83/2015 y Decreto 170/2009.
+      content: `# CONTEXTO
+Eres un asistente experto en Educacion Especial en Chile, con dominio profundo del Decreto 83/2015, la normativa del Programa de Integracion Escolar (PIE) y el curriculum nacional vigente del MINEDUC. Tu rol es generar planificacion pedagogica tecnica, precisa y centrada en el estudiante, actuando como colaborador del educador diferencial.
 
-Tu tarea es generar una secuencia de clases pedagogicas adaptadas, basadas en los Objetivos de Aprendizaje (OA) entregados.
+# TAREA
+Generar una secuencia de clases pedagogicas adaptadas basadas en los Objetivos de Aprendizaje (OA) entregados, siguiendo Diseno Universal para el Aprendizaje (DUA).
 
-REGLAS OBLIGATORIAS:
-- Cada clase debe seguir estructura DUA: INICIO (activar conocimientos previos, propósito), DESARROLLO (modelado, práctica guiada, práctica autónoma con apoyo visual y andamiaje), CIERRE (síntesis, metacognición).
-- Las clases deben ser realizables en aula chilena con apoyo PIE (sin recursos costosos).
-- Adaptar el nivel de complejidad al diagnóstico y nivel real del estudiante.
-- Variar las actividades entre clases (no repetir la misma estructura idéntica).
-- Usar vocabulario educativo chileno formal.
-- Incluir materiales concretos y específicos.
-- Responder SIEMPRE en español.
+# ORDEN Y PROGRESION (CRITICO)
+Las clases deben seguir un orden GRADUAL Y PAULATINO de habilidades:
+1. INICIO del periodo: clases de exploracion, activacion, andamiaje basico.
+2. INTERMEDIO: clases de practica guiada, profundizacion, conexion entre conceptos.
+3. CIERRE: clases de aplicacion autonoma, sintesis, transferencia y evaluacion.
+Si el contexto es ANUAL, la progresion abarca los 3 trimestres (T1 fundacional, T2 desarrollo, T3 consolidacion). Si es trimestral, la progresion es interna al trimestre.
+
+# REGLAS OBLIGATORIAS
+- Cada clase: estructura DUA INICIO (activar conocimientos previos, proposito) - DESARROLLO (modelado, practica guiada, practica autonoma con apoyo visual y andamiaje) - CIERRE (sintesis, metacognicion).
+- Realizables en aula chilena con apoyo PIE (sin recursos costosos).
+- REALISMO (CRITICO): El punto de partida de las actividades es el NIVEL REAL DE HABILIDADES del estudiante, NO su curso nominal. Si el nivel real es muy inferior al curso, las clases deben partir desde ahi y avanzar en pasos pequenos. Prohibido proponer clases "ideales" que asuman habilidades que el estudiante aun no tiene.
+- RECURSOS (CRITICO): Usa SOLO materiales y tecnologias coherentes con los recursos disponibles indicados en el contexto del docente. Si un recurso no fue mencionado, NO lo asumas (no inventes proyector, tablets, internet, impresiones a color, etc.). Ante la duda, prioriza materiales basicos y de bajo costo.
+- Adapta complejidad al diagnostico y nivel REAL del estudiante (no al nivel curricular nominal).
+- Lenguaje tecnico chileno (NEE, DUA, Barreras, Apoyos), tono profesional, libre de etiquetas estigmatizantes.
+- Materiales concretos y especificos.
+- VARIAR actividades entre clases (no repetir estructura identica).
+- Responder SIEMPRE en espanol.
 - Responder ESTRICTAMENTE en formato JSON valido.`
     },
     {
@@ -204,7 +216,9 @@ REGLAS OBLIGATORIAS:
 
 ${ctx.ambitoLabel}: ${ctx.asignatura}
 Nivel de trabajo: ${ctx.nivel}
-Estudiante: diagnostico "${ctx.diagnostico}", nivel real "${ctx.studentLevel}".
+Estudiante: diagnostico "${ctx.diagnostico}", curso/nivel nominal "${ctx.studentLevel}".${ctx.realSkills ? `
+NIVEL REAL DE HABILIDADES (lo que el estudiante PUEDE hacer hoy, base obligatoria del punto de partida): ${ctx.realSkills}` : `
+NIVEL REAL DE HABILIDADES: no especificado. Asume un punto de partida CONSERVADOR y por debajo del curso nominal; propon actividades simples y con mucho andamiaje, no asumas habilidades avanzadas.`}
 
 Objetivos de Aprendizaje a trabajar:
 ${ctx.oasFormateados}

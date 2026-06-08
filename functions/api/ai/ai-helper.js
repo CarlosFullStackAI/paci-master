@@ -40,6 +40,24 @@ export async function checkRateLimit(env, userEmail) {
   return { allowed: true, remaining: MAX_CALLS_PER_DAY - count - 1, count: count + 1 };
 }
 
+const MAX_CHATBOT_CALLS_PER_DAY = 50;
+
+// Rate limit independiente para el chatbot (mas restrictivo: 50/dia).
+// Razon: el chatbot puede ser usado de forma conversacional intensiva y
+// queremos preservar la cuota de IA para tareas pedagogicas (adapt-oa, generate-classes).
+export async function checkChatbotRateLimit(env, userEmail) {
+  const today = new Date().toISOString().split('T')[0];
+  const key = `chatbot_rl:${userEmail}:${today}`;
+  const count = parseInt(await env.PACI_USERS.get(key) || '0');
+
+  if (count >= MAX_CHATBOT_CALLS_PER_DAY) {
+    return { allowed: false, remaining: 0, count };
+  }
+
+  await env.PACI_USERS.put(key, String(count + 1), { expirationTtl: 86400 });
+  return { allowed: true, remaining: MAX_CHATBOT_CALLS_PER_DAY - count - 1, count: count + 1 };
+}
+
 // Sanitizar texto del usuario contra prompt injection antes de incluir en prompts.
 // maxLength permite ampliar el limite cuando el campo legitimamente puede ser
 // mas grande (ej. un bloque markdown consolidado de varios campos).

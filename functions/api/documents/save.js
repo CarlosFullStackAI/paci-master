@@ -2,7 +2,26 @@ import { getUser } from '../auth-helper.js';
 import { encrypt } from '../crypto-helper.js';
 import { checkPermission } from '../rbac-helper.js';
 
-const VALID_PLAN_TYPES = ['paci', 'pai'];
+// Los 13 tipos de documento del ciclo PIE (debe coincidir con docs-registry.js).
+// 'paci' y 'pai' son los originales con editores propios; el resto usa /docs.html.
+const VALID_PLAN_TYPES = [
+  'paci', 'pai',
+  // Fase ingreso
+  'anamnesis', 'informe_psicopedagogico', 'fudei',
+  'informe_especialista', 'autorizacion_familia', 'valoracion_salud',
+  // Fase planificacion (extras a paci/pai)
+  'registro_colaborativo', 'registro_atencion',
+  // Fase seguimiento
+  'informe_familia', 'fur', 'informe_avance'
+];
+
+// Tipos "stub": guardamos student + fecha + notas, sin requerir modulos/apoyos/etc.
+const STUB_PLAN_TYPES = new Set([
+  'anamnesis', 'informe_psicopedagogico', 'fudei',
+  'informe_especialista', 'autorizacion_familia', 'valoracion_salud',
+  'registro_colaborativo', 'registro_atencion',
+  'informe_familia', 'fur', 'informe_avance'
+]);
 
 // Inserta UN documento (anual, trimestral o suelto) junto con sus OAs.
 // Centraliza la logica para reutilizarla tanto en el caso de un solo documento
@@ -36,7 +55,24 @@ async function insertDocument(db, userEmail, studentId, opts) {
   const numClasses = isPai ? apoyos.length : allClases.length;
 
   // El PAI guarda sus apoyos en document_json; el PACI guarda sus modulos.
-  const docJson = JSON.stringify({ student, team, modules, apoyos });
+  // Extras MINEDUC: PAI (evaluacion, metas, estrategias DUA, seguimiento, firmas, antecedentes salud)
+  // y PACI (necesidades contextuales, adecuaciones tipificadas, criterios evaluacion, firmas, link PAI padre).
+  // Si no vienen en opts, intentamos heredarlos del docJson previo (en update) o quedan undefined.
+  const extras = {
+    antecedentesSalud: opts.antecedentesSalud,
+    evaluacion: opts.evaluacion,
+    metas: opts.metas,
+    estrategiasDua: opts.estrategiasDua,
+    seguimiento: opts.seguimiento,
+    firmas: opts.firmas,
+    contextual: opts.contextual,
+    criteriosEvaluacion: opts.criteriosEvaluacion,
+    adecuaciones: opts.adecuaciones,
+    parentPaiId: opts.parentPaiId,
+    fecha: opts.fecha,
+    notas: opts.notas
+  };
+  const docJson = JSON.stringify({ student, team, modules, apoyos, ...extras });
 
   const docRes = await db.prepare(
     `INSERT INTO documents
@@ -123,7 +159,24 @@ async function updateDocument(db, userEmail, documentId, opts) {
   const dateStart = allClases.length ? allClases[0].date || '' : '';
   const dateEnd = allClases.length ? allClases[allClases.length - 1].date || '' : '';
   const numClasses = isPai ? apoyos.length : allClases.length;
-  const docJson = JSON.stringify({ student, team, modules, apoyos });
+  // Extras MINEDUC: PAI (evaluacion, metas, estrategias DUA, seguimiento, firmas, antecedentes salud)
+  // y PACI (necesidades contextuales, adecuaciones tipificadas, criterios evaluacion, firmas, link PAI padre).
+  // Si no vienen en opts, intentamos heredarlos del docJson previo (en update) o quedan undefined.
+  const extras = {
+    antecedentesSalud: opts.antecedentesSalud,
+    evaluacion: opts.evaluacion,
+    metas: opts.metas,
+    estrategiasDua: opts.estrategiasDua,
+    seguimiento: opts.seguimiento,
+    firmas: opts.firmas,
+    contextual: opts.contextual,
+    criteriosEvaluacion: opts.criteriosEvaluacion,
+    adecuaciones: opts.adecuaciones,
+    parentPaiId: opts.parentPaiId,
+    fecha: opts.fecha,
+    notas: opts.notas
+  };
+  const docJson = JSON.stringify({ student, team, modules, apoyos, ...extras });
 
   await db.prepare(
     `UPDATE documents SET trimester = ?, subject = ?, subject_key = ?, work_level = ?,
@@ -179,11 +232,26 @@ export async function onRequestPost(context) {
     if (denied) return denied;
 
     const body = await request.json();
-    const { student, modules, trimester, team, trimesters, apoyos } = body;
+    const {
+      student, modules, trimester, team, trimesters, apoyos,
+      // Extras MINEDUC: PAI
+      antecedentesSalud, evaluacion, metas, estrategiasDua, seguimiento, firmas,
+      // Extras MINEDUC: PACI
+      contextual, criteriosEvaluacion, adecuaciones, parentPaiId,
+      // Extras para tipos stub (anamnesis, fudei, registro colaborativo, etc.)
+      fecha, notas
+    } = body;
 
     // planType: 'paci' (adapta curriculum) o 'pai' (organiza apoyos). Default 'paci'.
     const planType = VALID_PLAN_TYPES.includes(body.planType) ? body.planType : 'paci';
     const isPai = planType === 'pai';
+
+    // Empaqueta los extras MINEDUC + extras de docs stub para pasarlos a insertDocument/updateDocument.
+    const minEducExtras = {
+      antecedentesSalud, evaluacion, metas, estrategiasDua, seguimiento, firmas,
+      contextual, criteriosEvaluacion, adecuaciones, parentPaiId,
+      fecha, notas
+    };
 
     // Caso "familia": solo aplica a PACI. Llega un arreglo de trimestres -> 1 anual padre + N hijos.
     const hasFamily = !isPai && Array.isArray(trimesters) && trimesters.length > 0;
@@ -191,8 +259,10 @@ export async function onRequestPost(context) {
     // Validacion segun tipo de plan:
     // - PAI requiere al menos un apoyo.
     // - PACI requiere modulos (o un arreglo de trimestres en el caso familia).
-    const missingPai = isPai && (!Array.isArray(apoyos) || !apoyos.length);
-    const missingPaci = !isPai && !hasFamily && (!modules || !modules.length);
+    // - Stub (anamnesis, fudei, etc.): solo requiere nombre del estudiante.
+    const isStub = STUB_PLAN_TYPES.has(planType);
+    const missingPai = isPai && !isStub && (!Array.isArray(apoyos) || !apoyos.length);
+    const missingPaci = !isPai && !isStub && !hasFamily && (!modules || !modules.length);
     if (!student || !student.name || missingPai || missingPaci) {
       return new Response(JSON.stringify({ ok: false, error: 'Datos incompletos.' }), { status: 400, headers });
     }
@@ -211,23 +281,23 @@ export async function onRequestPost(context) {
 
     if (!studentRow) {
       const res = await db.prepare(
-        `INSERT INTO students (user_email, name, diagnosis, diagnosis_id, real_level, work_level, school, birth_date, age)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO students (user_email, name, diagnosis, diagnosis_id, real_level, work_level, school, birth_date, age, real_skills)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       ).bind(
         user.email, student.name, encDiag, student.diagnosisId || '',
         student.realLevel || '', student.workLevel || '', student.school || '',
-        student.birthDate || '', student.age || 0
+        student.birthDate || '', student.age || 0, student.realSkills || ''
       ).run();
       studentRow = { id: res.meta.last_row_id };
     } else {
       await db.prepare(
         `UPDATE students SET diagnosis = ?, diagnosis_id = ?, real_level = ?, work_level = ?,
-         school = ?, birth_date = ?, age = ?, updated_at = datetime('now')
+         school = ?, birth_date = ?, age = ?, real_skills = ?, updated_at = datetime('now')
          WHERE id = ?`
       ).bind(
         encDiag, student.diagnosisId || '', student.realLevel || '',
         student.workLevel || '', student.school || '', student.birthDate || '',
-        student.age || 0, studentRow.id
+        student.age || 0, student.realSkills || '', studentRow.id
       ).run();
     }
 
@@ -243,7 +313,8 @@ export async function onRequestPost(context) {
         trimester: (body.annual && body.annual.trimester) || 'Anual',
         planType, planScope: 'anual', parentId: null, trimesterIndex: null,
         // El padre no materializa OAs: viven en los trimestres hijos (evita doble conteo).
-        skipOas: true
+        skipOas: true,
+        ...minEducExtras
       });
 
       // 2) Crear los trimestrales (hijos), cada uno vinculado al padre por parent_id.
@@ -256,7 +327,8 @@ export async function onRequestPost(context) {
           trimester: (t && t.trimester) || `${idx}º Trimestre`,
           planType, planScope: 'trimestral',
           parentId: parent.docId,
-          trimesterIndex: (t && t.trimesterIndex) || idx
+          trimesterIndex: (t && t.trimesterIndex) || idx,
+          ...minEducExtras
         });
         childIds.push(child.docId);
       }
@@ -278,7 +350,8 @@ export async function onRequestPost(context) {
         student, team, modules, apoyos, trimester, planType,
         planScope: body.planScope,
         parentId: body.parentId,
-        trimesterIndex: body.trimesterIndex
+        trimesterIndex: body.trimesterIndex,
+        ...minEducExtras
       });
       if (updated) {
         const detalleUpd = isPai
@@ -303,7 +376,8 @@ export async function onRequestPost(context) {
       planType,
       planScope: body.planScope || inferredScope,
       parentId: body.parentId || null,
-      trimesterIndex: body.trimesterIndex || null
+      trimesterIndex: body.trimesterIndex || null,
+      ...minEducExtras
     });
 
     const detalle = isPai

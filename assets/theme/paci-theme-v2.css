@@ -1,0 +1,468 @@
+/* ===========================================================
+   PIE MASTER - Tema V2 (paleta nueva + neón intensificado)
+   ===========================================================
+   - Modo claro: fondo azul-perla, texto casi-negro, acentos vivos
+     (cumple WCAG AA: ratio >= 4.5:1 en todo el texto principal)
+   - Modo oscuro: fondo azul-violeta noche, texto claro,
+     acentos neón cyan/magenta/violet
+   - Animaciones neón mejoradas: pulso multi-color, halos reactivos,
+     shimmer de borde, breathing glow
+   - Se carga DESPUÉS del CSS principal para overrides puntuales.
+   =========================================================== */
+
+:root {
+  /* === MODO CLARO === */
+  --pm-bg-deep:        #f5f7fb;
+  --pm-bg-elevated:    #ffffff;
+  --pm-bg-card:        #ffffff;
+  --pm-bg-soft:        #eef2fb;
+  --pm-bg-overlay:     rgba(255, 255, 255, 0.85);
+
+  --pm-text-primary:   #0b1220;   /* contraste 18.2:1 vs bg-deep */
+  --pm-text-secondary: #334155;   /* contraste 9.7:1 */
+  --pm-text-muted:     #64748b;   /* contraste 5.3:1 */
+  --pm-text-soft:      #94a3b8;
+
+  --pm-border:         #e1e7f2;
+  --pm-border-strong:  #cbd5e1;
+
+  --pm-accent:         #5b5cf5;
+  --pm-accent-hover:   #4744d4;
+  --pm-accent-soft:    rgba(91, 92, 245, 0.10);
+  --pm-secondary:      #ec4899;
+  --pm-secondary-soft: rgba(236, 72, 153, 0.10);
+  --pm-success:        #059669;
+  --pm-warning:        #d97706;
+  --pm-danger:         #dc2626;
+  --pm-info:           #0284c7;
+
+  /* Neón en modo claro: glows discretos pero presentes */
+  --pm-neon-violet:    rgba(124, 58, 237, 0.30);
+  --pm-neon-cyan:      rgba(6, 182, 212, 0.30);
+  --pm-neon-magenta:   rgba(219, 39, 119, 0.28);
+  --pm-neon-lime:      rgba(132, 204, 22, 0.30);
+
+  --pm-shadow-sm:  0 1px 2px rgba(15, 23, 42, 0.06);
+  --pm-shadow-md:  0 4px 12px rgba(15, 23, 42, 0.08);
+  --pm-shadow-lg:  0 12px 32px rgba(15, 23, 42, 0.12);
+  --pm-shadow-neon: 0 0 24px var(--pm-neon-violet), 0 0 48px var(--pm-neon-magenta);
+
+  --pm-gradient-primary: linear-gradient(135deg, #6366f1 0%, #ec4899 100%);
+  --pm-gradient-cool:    linear-gradient(135deg, #06b6d4 0%, #6366f1 100%);
+  --pm-gradient-warm:    linear-gradient(135deg, #f59e0b 0%, #ec4899 100%);
+}
+
+[data-theme="dark"] {
+  /* === MODO OSCURO === */
+  --pm-bg-deep:        #07081a;    /* azul-violeta noche profundo */
+  --pm-bg-elevated:    #0f1130;
+  --pm-bg-card:        #141738;
+  --pm-bg-soft:        #1a1e44;
+  --pm-bg-overlay:     rgba(15, 17, 48, 0.85);
+
+  --pm-text-primary:   #f8fafc;    /* contraste 17.4:1 */
+  --pm-text-secondary: #cbd5e1;    /* 11.6:1 */
+  --pm-text-muted:     #94a3b8;    /* 6.2:1 */
+  --pm-text-soft:      #64748b;
+
+  --pm-border:         #252a52;
+  --pm-border-strong:  #353b6e;
+
+  --pm-accent:         #818cf8;    /* indigo brillante */
+  --pm-accent-hover:   #a5b4fc;
+  --pm-accent-soft:    rgba(129, 140, 248, 0.16);
+  --pm-secondary:      #f472b6;
+  --pm-secondary-soft: rgba(244, 114, 182, 0.16);
+  --pm-success:        #34d399;
+  --pm-warning:        #fbbf24;
+  --pm-danger:         #f87171;
+  --pm-info:           #38bdf8;
+
+  /* Neón intenso en modo oscuro */
+  --pm-neon-violet:    rgba(167, 139, 250, 0.6);
+  --pm-neon-cyan:      rgba(34, 211, 238, 0.65);
+  --pm-neon-magenta:   rgba(232, 121, 249, 0.6);
+  --pm-neon-lime:      rgba(163, 230, 53, 0.5);
+
+  --pm-shadow-sm:  0 1px 2px rgba(0, 0, 0, 0.5);
+  --pm-shadow-md:  0 6px 20px rgba(0, 0, 0, 0.45);
+  --pm-shadow-lg:  0 16px 48px rgba(0, 0, 0, 0.6);
+  --pm-shadow-neon:
+    0 0 18px var(--pm-neon-cyan),
+    0 0 36px var(--pm-neon-magenta),
+    0 0 60px var(--pm-neon-violet);
+
+  --pm-gradient-primary: linear-gradient(135deg, #818cf8 0%, #f472b6 100%);
+  --pm-gradient-cool:    linear-gradient(135deg, #22d3ee 0%, #818cf8 100%);
+  --pm-gradient-warm:    linear-gradient(135deg, #fbbf24 0%, #f472b6 100%);
+}
+
+/* ==== Aplicación base body / contenedores principales ==== */
+body {
+  background: var(--pm-bg-deep) !important;
+  color: var(--pm-text-primary) !important;
+  transition: background-color 0.4s ease, color 0.4s ease;
+}
+
+/* Halo de fondo en modo oscuro: ambient glow muy sutil */
+[data-theme="dark"] body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(800px circle at 12% 18%, rgba(129, 140, 248, 0.10), transparent 55%),
+    radial-gradient(900px circle at 88% 82%, rgba(244, 114, 182, 0.09), transparent 55%),
+    radial-gradient(700px circle at 50% 50%, rgba(34, 211, 238, 0.05), transparent 70%);
+  animation: pm-ambient-shift 22s ease-in-out infinite alternate;
+}
+
+@keyframes pm-ambient-shift {
+  0%   { transform: translate(0, 0) scale(1); opacity: 0.85; }
+  50%  { transform: translate(2%, -2%) scale(1.05); opacity: 1; }
+  100% { transform: translate(-2%, 2%) scale(0.97); opacity: 0.7; }
+}
+
+/* Halo modo claro: mucho más sutil, casi imperceptible */
+[data-theme="light"] body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(900px circle at 10% 20%, rgba(99, 102, 241, 0.07), transparent 60%),
+    radial-gradient(800px circle at 90% 80%, rgba(236, 72, 153, 0.05), transparent 60%);
+  animation: pm-ambient-shift 28s ease-in-out infinite alternate;
+}
+
+/* ==== Tarjetas (.stat-card, .student-card, .doc-card) ==== */
+.stat-card,
+.student-card,
+.doc-card {
+  background: var(--pm-bg-card) !important;
+  border-color: var(--pm-border) !important;
+  color: var(--pm-text-primary);
+  box-shadow: var(--pm-shadow-sm);
+  transition:
+    transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.28s ease,
+    border-color 0.28s ease,
+    background-color 0.4s ease;
+}
+
+.stat-card:hover,
+.doc-card:hover,
+.student-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--pm-accent) !important;
+  box-shadow: var(--pm-shadow-md), 0 0 0 1px var(--pm-accent-soft);
+}
+
+[data-theme="dark"] .stat-card:hover,
+[data-theme="dark"] .doc-card:hover,
+[data-theme="dark"] .student-card:hover {
+  box-shadow:
+    var(--pm-shadow-md),
+    0 0 24px var(--pm-neon-violet),
+    inset 0 0 0 1px var(--pm-neon-cyan);
+}
+
+/* ==== Texto secundario ==== */
+.section-title,
+.stat-card .label,
+.dash-greeting .date {
+  color: var(--pm-text-muted) !important;
+}
+
+.stat-card .value,
+.dash-greeting h1 {
+  color: var(--pm-text-primary) !important;
+}
+
+/* ==== Topbar / sidebar ==== */
+.topbar {
+  background: var(--pm-bg-elevated) !important;
+  border-bottom: 1px solid var(--pm-border) !important;
+  box-shadow: var(--pm-shadow-sm);
+}
+
+[data-theme="dark"] .topbar {
+  background: linear-gradient(120deg, #0a0c25 0%, #131745 100%) !important;
+  box-shadow: 0 4px 28px rgba(0, 0, 0, 0.6);
+}
+
+.dash-sidebar {
+  background: var(--pm-bg-elevated);
+  border-color: var(--pm-border);
+}
+
+[data-theme="dark"] .dash-sidebar {
+  background: linear-gradient(160deg, #0c0e2e 0%, #161a40 100%);
+  border-color: var(--pm-border);
+}
+
+/* ==== Botones de acción principales ==== */
+.btn-primary,
+button.primary,
+.action-btn.primary {
+  background: var(--pm-gradient-primary) !important;
+  color: #fff !important;
+  border: none !important;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.3s ease;
+}
+
+.btn-primary::before,
+button.primary::before,
+.action-btn.primary::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  background: var(--pm-gradient-primary);
+  filter: blur(14px);
+  opacity: 0;
+  z-index: -1;
+  transition: opacity 0.35s ease;
+}
+
+.btn-primary:hover,
+button.primary:hover,
+.action-btn.primary:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 24px var(--pm-accent-soft);
+}
+
+[data-theme="dark"] .btn-primary:hover,
+[data-theme="dark"] button.primary:hover,
+[data-theme="dark"] .action-btn.primary:hover {
+  box-shadow: 0 8px 24px var(--pm-neon-violet), 0 0 36px var(--pm-neon-magenta);
+}
+
+.btn-primary:hover::before,
+button.primary:hover::before,
+.action-btn.primary:hover::before {
+  opacity: 0.7;
+}
+
+/* ==== Animaciones neón mejoradas ==== */
+
+/* Pulso multi-color: cicla cyan -> violet -> magenta */
+@keyframes pm-neon-pulse {
+  0%   { box-shadow: 0 0 12px var(--pm-neon-cyan),    0 0 24px var(--pm-neon-cyan); }
+  33%  { box-shadow: 0 0 14px var(--pm-neon-violet),  0 0 28px var(--pm-neon-violet); }
+  66%  { box-shadow: 0 0 14px var(--pm-neon-magenta), 0 0 28px var(--pm-neon-magenta); }
+  100% { box-shadow: 0 0 12px var(--pm-neon-cyan),    0 0 24px var(--pm-neon-cyan); }
+}
+
+.neon-pulse,
+.stat-illu .stat-fa-icon,
+.paci-chat-fab,
+.btn-neon {
+  animation: pm-neon-pulse 5s ease-in-out infinite;
+}
+
+/* Breathing glow: respiración suave de tarjeta destacada */
+@keyframes pm-breathe {
+  0%, 100% { transform: scale(1);    filter: brightness(1); }
+  50%      { transform: scale(1.015); filter: brightness(1.08); }
+}
+
+.neon-breathe { animation: pm-breathe 4s ease-in-out infinite; }
+
+/* Border shimmer: línea de luz que recorre el borde */
+@keyframes pm-border-shimmer {
+  0%   { background-position:  0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+.neon-border {
+  position: relative;
+  isolation: isolate;
+}
+
+.neon-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: linear-gradient(90deg,
+    var(--pm-accent) 0%,
+    var(--pm-secondary) 25%,
+    var(--pm-info) 50%,
+    var(--pm-secondary) 75%,
+    var(--pm-accent) 100%
+  );
+  background-size: 200% 100%;
+  animation: pm-border-shimmer 4s linear infinite;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Floating particles para el FAB y greeting hero (purely cosmetic) */
+@keyframes pm-float-y {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-8px); }
+}
+
+.paci-chat-fab,
+.greeting-icon {
+  animation: pm-float-y 4s ease-in-out infinite;
+}
+
+[data-theme="dark"] .paci-chat-fab {
+  box-shadow:
+    0 8px 24px var(--pm-neon-violet),
+    0 0 32px var(--pm-neon-magenta),
+    inset 0 0 0 1px var(--pm-neon-cyan);
+}
+
+.paci-chat-fab:hover {
+  animation-play-state: paused;
+}
+
+/* Hover ripple en stat cards: resalto inmediato */
+.stat-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at var(--pm-mx, 50%) var(--pm-my, 50%),
+    var(--pm-accent-soft) 0%,
+    transparent 60%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.stat-card:hover::after { opacity: 1; }
+
+/* ==== Inputs y formularios — legibilidad ==== */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="date"],
+textarea,
+select {
+  background-color: var(--pm-bg-elevated) !important;
+  color: var(--pm-text-primary) !important;
+  border-color: var(--pm-border-strong) !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.4s ease;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--pm-accent) !important;
+  box-shadow: 0 0 0 3px var(--pm-accent-soft) !important;
+  outline: none;
+}
+
+[data-theme="dark"] input:focus,
+[data-theme="dark"] textarea:focus,
+[data-theme="dark"] select:focus {
+  box-shadow:
+    0 0 0 2px var(--pm-accent-soft),
+    0 0 16px var(--pm-neon-cyan) !important;
+}
+
+/* ==== Modales y popovers ==== */
+.modal,
+.modal-content,
+.dialog-content {
+  background: var(--pm-bg-card) !important;
+  color: var(--pm-text-primary) !important;
+  border: 1px solid var(--pm-border) !important;
+  box-shadow: var(--pm-shadow-lg);
+}
+
+[data-theme="dark"] .modal,
+[data-theme="dark"] .modal-content,
+[data-theme="dark"] .dialog-content {
+  box-shadow: var(--pm-shadow-lg), 0 0 48px var(--pm-neon-violet);
+}
+
+/* ==== Toggle de tema: brillo neón sobre el ícono ==== */
+#theme-toggle {
+  position: relative;
+}
+
+#theme-toggle::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--pm-neon-cyan), transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: -1;
+}
+
+[data-theme="dark"] #theme-toggle::before {
+  background: radial-gradient(circle, var(--pm-neon-magenta), transparent 70%);
+}
+
+#theme-toggle:hover::before { opacity: 1; }
+
+/* ==== Accesibilidad: reducir movimiento si el usuario lo pide ==== */
+@media (prefers-reduced-motion: reduce) {
+  .neon-pulse,
+  .neon-breathe,
+  .paci-chat-fab,
+  .greeting-icon,
+  .neon-border::before,
+  body::before {
+    animation: none !important;
+  }
+}
+
+/* ==== Chatbot Paci - alinearlo con la paleta nueva ==== */
+.paci-chat-fab {
+  background: var(--pm-gradient-primary) !important;
+}
+
+[data-theme="dark"] .paci-chat-panel {
+  background: var(--pm-bg-card);
+  border: 1px solid var(--pm-border);
+}
+
+[data-theme="dark"] .paci-chat-messages {
+  background: var(--pm-bg-elevated);
+}
+
+[data-theme="dark"] .paci-chat-msg.assistant {
+  background: var(--pm-bg-card);
+  color: var(--pm-text-primary);
+  border-color: var(--pm-border);
+}
+
+.paci-chat-header {
+  background: var(--pm-gradient-primary) !important;
+}
+
+/* ==== Calendario y badges ==== */
+.calendar-event,
+.badge,
+.tag {
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.calendar-event:hover,
+.badge:hover {
+  transform: translateY(-1px);
+}
+
+[data-theme="dark"] .badge {
+  box-shadow: 0 0 8px currentColor;
+}

@@ -1,0 +1,1145 @@
+:root {
+    /* --- Modern Glow Palette --- */
+    --glow-primary: #38bdf8;
+    --glow-primary-rgb: 56, 189, 248;
+    --glow-secondary: #818cf8;
+    --glow-accent: #c084fc;
+    --glow-success: #34d399;
+    --glow-error: #f87171;
+    
+    /* --- Backgrounds & Glass --- */
+    --bg-deep: #020617;
+    --bg-dark: #0f172a;
+    --glass-bg: rgba(15, 23, 42, 0.6);
+    --glass-border: rgba(56, 189, 248, 0.1);
+    --glass-blur: blur(12px);
+    
+    /* --- Animations --- */
+    --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-in-out-soft: cubic-bezier(0.4, 0, 0.2, 1);
+    --anim-duration: 0.4s;
+}
+
+/* --- ANIMATION UTILITIES (Phase 2) --- */
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInScale {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes glowPulse {
+    0%, 100% { box-shadow: 0 0 5px rgba(var(--glow-primary-rgb), 0.2); }
+    50% { box-shadow: 0 0 15px rgba(var(--glow-primary-rgb), 0.4); }
+}
+
+.animate-fade-in { animation: fadeInUp var(--anim-duration) var(--ease-out-expo) forwards; }
+.animate-scale-in { animation: fadeInScale var(--anim-duration) var(--ease-out-expo) forwards; }
+.stagger-1 { animation-delay: 0.1s; }
+.stagger-2 { animation-delay: 0.2s; }
+.stagger-3 { animation-delay: 0.3s; }
+
+/* --- GLASS & GLOW CLASSES --- */
+.glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    transition: all var(--anim-duration) var(--ease-in-out-soft);
+}
+
+.glass-card:hover {
+    border-color: rgba(var(--glow-primary-rgb), 0.3);
+    box-shadow: 0 8px 32px 0 rgba(var(--glow-primary-rgb), 0.1);
+    transform: translateY(-2px);
+}
+
+.glow-text {
+    text-shadow: 0 0 10px rgba(var(--glow-primary-rgb), 0.5);
+}
+
+.glow-border-focus:focus-within {
+    border-color: var(--glow-primary) !important;
+    box-shadow: 0 0 15px rgba(var(--glow-primary-rgb), 0.2) !important;
+}
+
+/* === Section cards (dark glass) === */
+        #control-panel .bg-white.border.border-slate-200.rounded-xl {
+            background: rgba(15,23,42,0.6) !important;
+            backdrop-filter: blur(12px) !important;
+            -webkit-backdrop-filter: blur(12px) !important;
+            border: 1px solid rgba(56,189,248,0.08) !important;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.03) !important;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        }
+        #control-panel .bg-white.border.border-slate-200.rounded-xl:hover {
+            border-color: rgba(56,189,248,0.2) !important;
+            box-shadow: 0 4px 20px rgba(56,189,248,0.06), inset 0 1px 0 rgba(255,255,255,0.05) !important;
+        }
+
+        /* Section toggle buttons */
+        #control-panel .bg-slate-50 { background: rgba(15,23,42,0.4) !important; color: #94a3b8 !important; }
+        #control-panel .bg-slate-50:hover { color: #e2e8f0 !important; }
+        #control-panel .bg-slate-50 i { color: #38bdf8 !important; }
+
+        /* === Inputs (dark theme) === */
+        #control-panel input[type="text"],
+        #control-panel input[type="number"],
+        #control-panel input[type="date"],
+        #control-panel select,
+        #control-panel textarea {
+            border: 1px solid rgba(56,189,248,0.12) !important;
+            border-radius: 0.625rem !important;
+            padding: 0.625rem 0.875rem !important;
+            font-family: 'Plus Jakarta Sans', sans-serif !important;
+            font-size: 0.85rem !important;
+            transition: all 0.25s ease !important;
+            background: rgba(15,23,42,0.5) !important;
+            color: #e2e8f0 !important;
+            outline: none !important;
+        }
+        #control-panel input::placeholder, #control-panel textarea::placeholder { color: #475569 !important; }
+        #control-panel input:focus,
+        #control-panel select:focus,
+        #control-panel textarea:focus {
+            border-color: rgba(56,189,248,0.4) !important;
+            box-shadow: 0 0 0 3px rgba(56,189,248,0.08), 0 0 20px rgba(56,189,248,0.06) !important;
+            background: rgba(15,23,42,0.7) !important;
+        }
+
+        /* === Select arrow === */
+        #control-panel select {
+            appearance: none !important;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2338bdf8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
+            background-repeat: no-repeat !important;
+            background-position: right 0.75rem center !important;
+            padding-right: 2.25rem !important;
+        }
+        #control-panel select option { background: #0f172a; color: #e2e8f0; }
+
+        /* === Labels === */
+        #control-panel label, #control-panel .text-slate-600, #control-panel .text-slate-500 {
+            color: #64748b !important; transition: color 0.2s !important;
+        }
+        #control-panel .font-black { color: #94a3b8 !important; }
+        #control-panel .text-blue-600, #control-panel .text-blue-800 { color: #38bdf8 !important; }
+        #control-panel .text-slate-700, #control-panel .text-slate-800 { color: #cbd5e1 !important; }
+        #control-panel .text-slate-900 { color: #e2e8f0 !important; }
+
+        /* === OA Cards === */
+        .oa-card {
+            cursor: pointer;
+            transition: all 0.25s ease;
+            border: 1px solid rgba(56,189,248,0.08) !important;
+            background: rgba(15,23,42,0.5) !important;
+        }
+        .oa-card:hover {
+            border-color: rgba(56,189,248,0.25) !important;
+            background: rgba(56,189,248,0.06) !important;
+            transform: translateY(-1px);
+        }
+        .oa-card.selected {
+            border-color: #38bdf8 !important;
+            background: rgba(56,189,248,0.1) !important;
+            box-shadow: 0 0 20px rgba(56,189,248,0.08) !important;
+        }
+        .oa-card label, .oa-card .text-slate-700 { color: #cbd5e1 !important; }
+        .oa-card .text-blue-700 { color: #38bdf8 !important; }
+
+        .evitar-corte { break-inside: avoid; page-break-inside: avoid; }
+        .html2pdf__page-break {
+            page-break-before: always !important;
+            break-before: page !important;
+            display: block !important;
+            clear: both !important;
+        }
+        .consolidado-materiales { margin-top: 1rem; }
+
+        /* === FIX TABLA: forzar layout correcto para html2canvas/PDF ===
+           html2canvas renderiza el DOM en modo pantalla (no @media print). Algunas
+           reglas globales o resets de Tailwind pueden hacer que <thead>/<tr>/<th>
+           pierdan su display nativo, lo que causa que los encabezados se apilen
+           verticalmente en una columna estrecha a la izquierda en vez de extenderse
+           horizontalmente sobre cada columna. Forzamos el display correcto. */
+        #documento table { display: table !important; }
+        #documento thead { display: table-header-group !important; }
+        #documento tbody { display: table-row-group !important; }
+        #documento tfoot { display: table-footer-group !important; }
+        #documento tr { display: table-row !important; }
+        #documento th, #documento td { display: table-cell !important; }
+
+        /* === Day toggle === */
+        .day-active {
+            background: #0ea5e9 !important;
+            color: #fff !important;
+            border-color: #0ea5e9 !important;
+            box-shadow: 0 2px 10px rgba(14,165,233,0.35) !important;
+        }
+
+        /* === Module animation === */
+        @keyframes slideInModule {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .module-animate-in { animation: slideInModule 0.4s ease-out forwards; }
+
+        /* === Buttons === */
+        #control-panel button, #control-panel a[class*="btn"] {
+            transition: all 0.25s ease !important;
+        }
+        #control-panel .flex.gap-2 > button:hover,
+        #control-panel .flex.gap-2 > a:hover {
+            transform: translateY(-1px) !important;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3) !important;
+        }
+        #control-panel .flex.gap-2 > button:active,
+        #control-panel .flex.gap-2 > a:active {
+            transform: scale(0.97) !important;
+        }
+
+        /* Guardar button */
+        #btn-guardar {
+            background: linear-gradient(135deg, #059669, #10b981) !important;
+            box-shadow: 0 2px 8px rgba(16,185,129,0.25) !important;
+        }
+        #btn-guardar:hover { box-shadow: 0 4px 20px rgba(16,185,129,0.35) !important; }
+
+        /* PDF button */
+        button[onclick="downloadPDF()"] {
+            background: linear-gradient(135deg, #0369a1, #0ea5e9) !important;
+            box-shadow: 0 2px 8px rgba(14,165,233,0.25) !important;
+        }
+
+        /* === Header (deep dark) === */
+        #control-panel > .p-5.bg-slate-900 {
+            background: rgba(2,6,18,0.95) !important;
+            border-bottom: 1px solid rgba(56,189,248,0.08) !important;
+        }
+        #control-panel > .p-5.bg-slate-900 .text-blue-400 { color: #38bdf8 !important; }
+
+        /* === Preview panel === */
+        #preview-panel {
+            background: #111827 !important;
+        }
+
+        /* === Skeleton loading === */
+        @keyframes skeletonShine {
+            0% { background-position: -200px 0; }
+            100% { background-position: calc(200px + 100%) 0; }
+        }
+        .skeleton {
+            background: linear-gradient(90deg, rgba(30,41,59,0.6) 0%, rgba(51,65,85,0.4) 40%, rgba(30,41,59,0.6) 80%);
+            background-size: 200px 100%;
+            animation: skeletonShine 1.4s ease-in-out infinite;
+            border-radius: 0.5rem;
+        }
+
+        /* === Section transitions === */
+        @keyframes fadeSlideIn {
+            from { opacity: 0; transform: translateX(10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        .accordion-content.open > * {
+            animation: fadeSlideIn 0.35s ease both;
+        }
+        .accordion-content.open > *:nth-child(1) { animation-delay: 0.02s; }
+        .accordion-content.open > *:nth-child(2) { animation-delay: 0.05s; }
+        .accordion-content.open > *:nth-child(3) { animation-delay: 0.08s; }
+        .accordion-content.open > *:nth-child(4) { animation-delay: 0.11s; }
+        .accordion-content.open > *:nth-child(5) { animation-delay: 0.14s; }
+
+        /* === Checkboxes === */
+        #control-panel input[type="checkbox"] {
+            appearance: none !important; -webkit-appearance: none !important;
+            width: 1.125rem !important; height: 1.125rem !important;
+            border: 1.5px solid rgba(56,189,248,0.2) !important;
+            border-radius: 0.375rem !important;
+            transition: all 0.2s ease !important;
+            cursor: pointer !important; position: relative !important;
+            background: rgba(15,23,42,0.5) !important;
+        }
+        #control-panel input[type="checkbox"]:checked {
+            background: linear-gradient(135deg, #0ea5e9, #38bdf8) !important;
+            border-color: #38bdf8 !important;
+            box-shadow: 0 2px 8px rgba(56,189,248,0.3) !important;
+        }
+        #control-panel input[type="checkbox"]:checked::after {
+            content: '' !important; position: absolute !important;
+            left: 4px !important; top: 1px !important;
+            width: 5px !important; height: 9px !important;
+            border: solid white !important; border-width: 0 2px 2px 0 !important;
+            transform: rotate(45deg) !important;
+        }
+
+        /* === Misc dark overrides === */
+        #control-panel .border-slate-200 { border-color: rgba(56,189,248,0.08) !important; }
+        #control-panel .bg-white { background: rgba(15,23,42,0.4) !important; }
+        #control-panel .border { border-color: rgba(56,189,248,0.1) !important; }
+        #control-panel .bg-blue-50, #control-panel .bg-slate-100 { background: rgba(56,189,248,0.04) !important; }
+        #control-panel .border-blue-200 { border-color: rgba(56,189,248,0.15) !important; }
+        #control-panel .shadow-sm, #control-panel .shadow-md { box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important; }
+
+        /* === Focus visible === */
+        *:focus-visible {
+            outline: 2px solid rgba(56,189,248,0.4);
+            outline-offset: 2px;
+            border-radius: 4px;
+        }
+
+        /* ========================================== */
+        /* LAYER 2: UX INTELIGENTE + SEGURIDAD        */
+        /* ========================================== */
+
+        /* === Indicador de cifrado (candado animado) === */
+        .encrypted-field { position: relative; }
+        .encrypted-field::after {
+            content: '\f023';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.6rem;
+            color: #10b981;
+            opacity: 0.5;
+            animation: lockPulse 3s ease-in-out infinite;
+            pointer-events: none;
+        }
+        @keyframes lockPulse {
+            0%, 100% { opacity: 0.3; transform: translateY(-50%) scale(1); }
+            50% { opacity: 0.7; transform: translateY(-50%) scale(1.1); }
+        }
+
+        /* === Session timeout frost overlay === */
+        #session-timeout-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.3);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            z-index: 10000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+        #session-timeout-overlay.show { display: flex; opacity: 1; }
+        .timeout-card {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 1.5rem;
+            padding: 2.5rem;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+            max-width: 360px;
+            width: 90%;
+            animation: fadeUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .timeout-ring {
+            width: 80px; height: 80px;
+            margin: 0 auto 1.25rem;
+            position: relative;
+        }
+        .timeout-ring svg { transform: rotate(-90deg); }
+        .timeout-ring circle {
+            fill: none; stroke-width: 4; stroke-linecap: round;
+        }
+        .timeout-ring .bg { stroke: #e2e8f0; }
+        .timeout-ring .fg { stroke: #2563eb; transition: stroke-dashoffset 1s linear; }
+        .timeout-ring .time {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.5rem; font-weight: 800; color: #0f172a;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        .timeout-btn {
+            display: inline-block; padding: 0.875rem 2rem;
+            background: linear-gradient(135deg, #2563eb, #3b82f6);
+            color: #fff; border: none; border-radius: 0.75rem;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 0.875rem; font-weight: 700;
+            cursor: pointer; transition: all 0.2s;
+            box-shadow: 0 4px 16px rgba(37,99,235,0.3);
+        }
+        .timeout-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(37,99,235,0.4); }
+
+        /* === Command Palette (CMD+K) === */
+        #cmd-palette-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.4);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            z-index: 10001;
+            display: none; align-items: flex-start; justify-content: center;
+            padding-top: 20vh;
+        }
+        #cmd-palette-overlay.show { display: flex; }
+        .cmd-palette {
+            background: rgba(255,255,255,0.97);
+            backdrop-filter: blur(20px);
+            border-radius: 1rem;
+            width: 90%; max-width: 520px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+            overflow: hidden;
+            animation: fadeUp 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .cmd-input {
+            width: 100%; border: none; outline: none;
+            padding: 1rem 1.25rem;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 1rem; color: #0f172a;
+            background: transparent;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .cmd-input::placeholder { color: #94a3b8; }
+        .cmd-results { max-height: 300px; overflow-y: auto; }
+        .cmd-item {
+            padding: 0.75rem 1.25rem;
+            display: flex; align-items: center; gap: 0.75rem;
+            cursor: pointer; transition: background 0.15s;
+            font-size: 0.85rem; color: #475569;
+        }
+        .cmd-item:hover, .cmd-item.active { background: #eff6ff; color: #1e3a8a; }
+        .cmd-item i { width: 1.25rem; text-align: center; opacity: 0.5; }
+        .cmd-item .shortcut {
+            margin-left: auto; font-size: 0.65rem; color: #94a3b8;
+            background: #f1f5f9; padding: 0.125rem 0.5rem; border-radius: 0.25rem;
+            font-weight: 600;
+        }
+        .cmd-hint {
+            padding: 0.5rem 1.25rem; font-size: 0.65rem; color: #94a3b8;
+            border-top: 1px solid #f1f5f9; text-align: center;
+        }
+
+        /* === Inline validation === */
+        .field-error {
+            font-size: 0.7rem; color: #ef4444; margin-top: 0.25rem;
+            animation: fadeSlideIn 0.3s ease both;
+            display: flex; align-items: center; gap: 0.25rem;
+        }
+        .field-error i { font-size: 0.6rem; }
+        @keyframes shakeField {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-4px); }
+            40% { transform: translateX(4px); }
+            60% { transform: translateX(-3px); }
+            80% { transform: translateX(2px); }
+        }
+        .shake { animation: shakeField 0.4s ease; }
+
+        /* === Optimistic UI - save states === */
+        @keyframes checkPop {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .save-check { animation: checkPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+        /* === Status bar sutil (cifrado activo) === */
+        #security-status {
+            position: fixed; bottom: 12px; right: 12px;
+            background: rgba(16, 185, 129, 0.08);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(16, 185, 129, 0.15);
+            border-radius: 2rem;
+            padding: 0.375rem 0.875rem;
+            font-size: 0.6rem; font-weight: 700;
+            color: #34d399;
+            display: flex; align-items: center; gap: 0.375rem;
+            z-index: 100;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            transition: opacity 0.3s;
+        }
+        #security-status i { font-size: 0.55rem; animation: lockPulse 3s ease-in-out infinite; }
+
+        /* ===================================================== */
+        /* @MEDIA PRINT - Estilos de impresion                   */
+        /* ===================================================== */
+        @media print {
+            /* 0) PAGINA: tamaño carta, margenes 1cm (maximo aprovechamiento) */
+            @page { size: letter; margin: 1cm; }
+            /* Pagina de la Gantt: landscape para que las 11 columnas (asignatura + 10 meses)
+               quepan sin recorte. Named pages funcionan en algunos navegadores;
+               donde no funcionen, el transform:scale del wrapper es respaldo. */
+            @page gantt-landscape { size: letter landscape; margin: 1cm; }
+            #seccion-gantt { page: gantt-landscape; }
+            /* Respaldo siempre activo: escalar la Gantt al 80% para que entre
+               horizontalmente aunque el navegador no soporte named pages. */
+            #gantt-wrapper {
+                transform: scale(0.85) !important;
+                transform-origin: top left !important;
+                width: 117% !important;
+            }
+            #seccion-gantt #gantt {
+                font-size: 7pt !important;
+            }
+            #seccion-gantt #gantt th,
+            #seccion-gantt #gantt td {
+                padding: 2pt 1pt !important;
+                word-break: break-word !important;
+            }
+
+            /* 0b) FORZAR COLORES DE FONDO EN TODOS LOS NAVEGADORES */
+            *, *::before, *::after {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                color-adjust: exact !important;
+            }
+
+            /* 1) LAYOUT GLOBAL */
+            html {
+                height: auto !important;
+                overflow: visible !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            body {
+                display: block !important;
+                flex-direction: unset !important;
+                height: auto !important;
+                overflow: visible !important;
+                background: white !important;
+                color: #1a1a2e !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            /* 2) AISLAMIENTO: ocultar todo fuera del documento */
+            #skeleton-screen, #control-panel, #mobile-nav, #mobile-actions,
+            .no-print, #session-timeout-overlay, #dp-overlay, #dp-container,
+            .cmd-palette-overlay, .paci-dp-overlay, .paci-dp {
+                display: none !important;
+                visibility: hidden !important;
+                width: 0 !important;
+                height: 0 !important;
+                overflow: hidden !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                border: none !important;
+            }
+
+            /* 3) PANEL PREVIEW: flujo normal */
+            #preview-panel {
+                display: block !important;
+                width: 100% !important;
+                height: auto !important;
+                min-height: 0 !important;
+                max-height: none !important;
+                overflow: visible !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                background: white !important;
+                position: static !important;
+                flex: none !important;
+            }
+
+            /* 4) DOCUMENTO: base de impresion */
+            #documento {
+                display: block !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+                box-shadow: none !important;
+                border: none !important;
+                padding: 0 !important;
+                max-width: 100% !important;
+                width: 100% !important;
+                min-height: 0 !important;
+                height: auto !important;
+                overflow: visible !important;
+                background-color: #fff !important;
+                color: #1a1a2e !important;
+                font-family: 'Merriweather', 'Georgia', serif !important;
+                font-size: 11pt !important;
+                line-height: 1.4 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            /* 5) TEXTO OSCURO GLOBAL */
+            #documento, #documento * {
+                color: #1a1a2e !important;
+                -webkit-text-fill-color: #1a1a2e !important;
+            }
+
+            /* 6) HEADERS (.paci-header): fondo oscuro + texto blanco */
+            #documento .paci-header,
+            #documento .paci-header span,
+            #documento .paci-header i,
+            #documento .paci-header div,
+            #documento .paci-header p,
+            #documento .paci-header h3,
+            #documento h3.paci-header {
+                background-color: #091845 !important;
+                background-image: none !important;
+                color: #ffffff !important;
+                -webkit-text-fill-color: #ffffff !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            /* 6b) Fondos oscuros NO-header → claro */
+            #documento [style*="background-color:#091845"]:not(.paci-header),
+            #documento [style*="background-image:linear-gradient"]:not(.paci-header) {
+                background: #e8f0fe !important;
+                background-image: none !important;
+                color: #091845 !important;
+                -webkit-text-fill-color: #091845 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            /* 7) TABLAS DE INDICADORES */
+            #documento table {
+                border-color: #cbd5e1 !important;
+                border-collapse: collapse !important;
+                width: 100% !important;
+                font-size: 10pt !important;
+            }
+            #documento th {
+                background: #e8f0fe !important;
+                background-image: none !important;
+                color: #091845 !important;
+                -webkit-text-fill-color: #091845 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                padding: 8pt 6pt !important;
+                font-size: 8pt !important;
+            }
+            #documento td {
+                color: #1a1a2e !important;
+                -webkit-text-fill-color: #1a1a2e !important;
+                border-color: #cbd5e1 !important;
+                padding: 8pt 6pt !important;
+                line-height: 1.15 !important;
+                vertical-align: top !important;
+            }
+            #documento td textarea,
+            #documento td div[data-print-swap] {
+                font-size: 10pt !important;
+                line-height: 1.15 !important;
+            }
+
+            /* 8) CLASES TAILWIND: texto claro → oscuro */
+            #documento .text-white, #documento .text-slate-200, #documento .text-slate-300,
+            #documento .text-slate-400, #documento .text-blue-300, #documento .text-blue-400,
+            #documento .text-red-400, #documento .text-emerald-500, #documento .text-purple-500 {
+                color: #1e3a5e !important; -webkit-text-fill-color: #1e3a5e !important;
+            }
+
+            /* 9) FONDOS OSCUROS Tailwind → claro */
+            #documento .bg-slate-700, #documento .bg-slate-800, #documento .bg-slate-900,
+            #documento .bg-blue-600 {
+                background-color: #e8f0fe !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            /* 10) BADGES */
+            #documento .font-black { color: #0f172a !important; -webkit-text-fill-color: #0f172a !important; }
+            #documento .text-blue-800, #documento .text-blue-900, #documento .text-blue-700 { color: #1e3a8a !important; -webkit-text-fill-color: #1e3a8a !important; }
+
+            /* 11) Fondos claros: forzar renderizado */
+            #documento [style*="background-color:#a3c2f5"],
+            #documento [style*="background-color:#b8d4fb"],
+            #documento [style*="background-color:#e8f0fe"],
+            #documento .bg-blue-50, #documento .bg-blue-100, #documento .bg-slate-50,
+            #documento .bg-white, #documento .bg-emerald-50, #documento .bg-amber-50 {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            /* 12-PRE) Tabla de firmas: NUNCA se parte (es chica, cabe en una pagina) */
+            #documento .tabla-firmas {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+            /* 12-PRE) Cada OA individual: NUNCA se parte entre paginas */
+            #documento .oa-row {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+
+            /* 12) PAGINACION Y SALTOS - REGLAS DE FLUJO ENTRE PAGINAS
+               Filosofia: las TABLAS pueden fluir entre paginas (auto), las FILAS no se cortan,
+               los HEADERS se pegan al siguiente bloque. Asi cada item arranca limpio
+               y las tablas largas no causan paginas vacias por intentar mantenerse enteras. */
+            .evitar-corte {
+                break-inside: avoid !important;
+                page-break-inside: avoid !important;
+            }
+            #documento table {
+                page-break-inside: auto !important;
+                break-inside: auto !important;
+            }
+            #documento tr {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                display: table-row !important;
+            }
+            /* Cada celda y su contenido: indivisible dentro de la fila */
+            #documento td {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+            #documento td textarea {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+            #documento thead {
+                display: table-header-group !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                page-break-after: avoid !important;
+                break-after: avoid !important;
+            }
+            #documento thead tr {
+                display: table-row !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                page-break-after: avoid !important;
+                break-after: avoid !important;
+            }
+            #documento thead th {
+                display: table-cell !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                page-break-after: avoid !important;
+                break-after: avoid !important;
+            }
+            /* Headers azules (.paci-header): siempre se pegan al contenido siguiente */
+            #documento .paci-header,
+            #documento h3.paci-header,
+            #documento h4 {
+                page-break-after: avoid !important;
+                break-after: avoid !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+            /* Headers de modulo (azul oscuro) y su tabla deben quedar juntos al inicio */
+            #documento [style*="background-color:#091845"]:not(table):not(td):not(tr) {
+                page-break-after: avoid !important;
+                break-after: avoid !important;
+            }
+            /* .html2pdf__page-break: solo fuerza salto de pagina antes del elemento.
+               OJO: NO aplicar height:0/margin:0/padding:0 globalmente porque esta clase
+               tambien la usan secciones de contenido real (consolidado de materiales,
+               III. Propuesta Curricular, IV. Temporalizacion, etc.) y las haria
+               invisibles en la impresion. Solo colapsamos a height:0 si el elemento
+               esta vacio (caso marcadores standalone tipo <hr class="html2pdf__page-break">). */
+            .html2pdf__page-break {
+                page-break-before: always !important;
+                break-before: page !important;
+                display: block !important;
+                clear: both !important;
+            }
+            .html2pdf__page-break:empty {
+                height: 0 !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+
+            /* PACI-SECTION: clase semantica para bloques que NO deben partirse en mitad
+               (clases de estrategia pedagogica, OAs individuales, headers + primer contenido).
+               Cuando un bloque es mas alto que una pagina, el navegador igual lo dividira,
+               pero por defecto intenta mantenerlo entero. */
+            .paci-section,
+            #documento .paci-section {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+
+            /* 12b) CONSOLIDADO DE MATERIALES: flujo continuo */
+            /* CONSOLIDADO DE MATERIALES: SIEMPRE pegado a su tabla de clases.
+               NUNCA arranca en pagina nueva por si solo (huerfano sin header de modulo). */
+            .consolidado-materiales {
+                margin-top: 8pt !important;
+                padding-top: 0 !important;
+                /* Pegar al contenido anterior (tabla de clases del modulo) */
+                break-before: avoid !important;
+                page-break-before: avoid !important;
+                /* El bloque entero se mantiene junto si cabe */
+                break-inside: avoid !important;
+                page-break-inside: avoid !important;
+            }
+            /* Titulo pegado a la tabla (anti-orphan) */
+            .consolidado-materiales > .paci-header {
+                break-after: avoid !important;
+                page-break-after: avoid !important;
+                break-before: avoid !important;
+                page-break-before: avoid !important;
+            }
+            /* Tabla del consolidado: si es muy grande, puede fluir; lo normal es que quepa entera */
+            .consolidado-materiales table {
+                width: 100% !important;
+                table-layout: fixed !important;
+                break-inside: auto !important;
+                page-break-inside: auto !important;
+            }
+            /* Solo las FILAS no se cortan */
+            .consolidado-materiales tr {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+            .consolidado-materiales td {
+                vertical-align: middle !important;
+            }
+            /* Pills: imprimir fondo */
+            .consolidado-materiales td span {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            /* 12c) BLOQUE C/P/A: nunca dividir entre paginas */
+            #documento td .flex.flex-col {
+                break-inside: avoid !important;
+                page-break-inside: avoid !important;
+            }
+
+            /* 12d) SECCION OA: borde sutil + espaciado */
+            #documento div[style*="background-color:#e8f0fe"],
+            #documento div[style*="background-color:#b8d4fb"] {
+                border: 1px solid #cbd5e1 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            /* 13) INPUTS Y TEXTAREAS */
+            textarea {
+                border: none !important;
+                resize: none !important;
+                overflow: visible !important;
+                color: #1a1a2e !important;
+                -webkit-text-fill-color: #1a1a2e !important;
+            }
+            input {
+                color: #1a1a2e !important;
+                -webkit-text-fill-color: #1a1a2e !important;
+            }
+            input[type="date"]::-webkit-calendar-picker-indicator { display: none; }
+            input[type="date"] { appearance: none; -moz-appearance: none; -webkit-appearance: none; }
+
+            /* 14) SOMBRAS Y EFECTOS: quitar */
+            * { box-shadow: none !important; text-shadow: none !important; }
+            * { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+
+            /* 15) COLUMNAS: proporciones optimas */
+            #documento td[style*="width:10%"] { width: 8% !important; }
+            #documento td[style*="width:45%"] { width: 55% !important; }
+
+            /* 16) ELIMINAR ANCLAS Y CAPAS FLOTANTES */
+            #documento, #documento * {
+                position: static !important;
+                float: none !important;
+            }
+
+            /* 17) ELEMENTOS INVISIBLES EN IMPRESION */
+            #security-status,
+            .encrypted-field::after,
+            .no-print {
+                display: none !important;
+                visibility: hidden !important;
+                opacity: 0 !important;
+                width: 0 !important;
+                height: 0 !important;
+                overflow: hidden !important;
+                position: absolute !important;
+                z-index: -1 !important;
+            }
+
+            /* 18) TABLAS: 100% ancho */
+            #documento table {
+                width: 100% !important;
+                table-layout: fixed !important;
+            }
+
+            /* 19) COMPACTACION */
+            #documento td {
+                height: auto !important;
+                min-height: 0 !important;
+            }
+            #documento textarea,
+            #documento div[data-print-swap] {
+                min-height: 0 !important;
+                height: auto !important;
+                padding: 1px 2px !important;
+                line-height: 1.15 !important;
+                font-size: 9pt !important;
+            }
+
+            /* 20) LOGOS: reducidos */
+            #documento header img {
+                max-height: 60px !important;
+                max-width: 60px !important;
+            }
+
+            /* 21) FILAS: anti-huerfanas y viudas */
+            #documento tr {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+            #documento tr td > div {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+
+            /* 22) FONDOS SUTILES C/P/A: forzar en impresion */
+            #documento div[style*="background:#f0f5ff"],
+            #documento div[style*="background:#f0fdf4"],
+            #documento div[style*="background:#faf5ff"] {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            /* 23) CHECKBOXES DE EVALUACION: compactar */
+            #documento label[style*="inline-flex"] {
+                white-space: nowrap !important;
+            }
+        }
+
+        /* === RESPONSIVE MÓVIL === */
+        @media (max-width: 768px) {
+            html { height: auto; overflow: auto; }
+            body { flex-direction: column !important; height: auto !important; overflow-y: auto !important; }
+
+            #control-panel {
+                width: 100% !important; min-width: 0 !important; height: auto !important;
+                flex-shrink: 1 !important; max-height: none !important;
+            }
+            #control-panel > div:nth-child(2) {
+                overflow-y: visible !important; flex: none !important;
+            }
+
+            #preview-panel {
+                flex: none !important; height: auto !important;
+                overflow-y: visible !important; padding: 0.5rem !important;
+            }
+            #documento { padding: 1rem !important; }
+
+            .mobile-hidden { display: none !important; }
+            #mobile-nav { display: flex !important; }
+            #mobile-actions { display: flex !important; }
+
+            /* Ocultar botones PDF/Print del header desktop */
+            #control-panel .p-5 .flex.gap-2 { display: none !important; }
+        }
+
+        @media (min-width: 769px) {
+            #mobile-nav { display: none !important; }
+            #mobile-actions { display: none !important; }
+        }
+
+        /* ==========================================
+         * TABLET-FIRST OPTIMIZACIONES
+         * Touch targets minimo 44x44px (Apple HIG)
+         * Fuentes legibles en tablet
+         * ========================================== */
+
+        /* Prevenir doble-tap zoom en tablet */
+        * { touch-action: manipulation; }
+
+        /* Inputs y selects: tamano minimo touch-friendly */
+        #control-panel input,
+        #control-panel select,
+        #control-panel textarea {
+          min-height: 44px !important;
+          font-size: 14px !important;
+          padding: 0.625rem !important;
+        }
+
+        /* Labels legibles */
+        #control-panel label {
+          font-size: 11px !important;
+          margin-bottom: 0.375rem !important;
+        }
+
+        /* Botones touch-friendly */
+        #control-panel button,
+        .topbar button,
+        .topbar a.btn,
+        #mobile-nav button {
+          min-height: 44px;
+          min-width: 44px;
+        }
+
+        /* Accordions con area de toque amplia */
+        #control-panel .accordion-content button,
+        #control-panel button[onclick^="toggleAcc"] {
+          min-height: 48px !important;
+          padding: 0.875rem 1rem !important;
+        }
+
+        /* Checkboxes mas grandes para touch */
+        #control-panel input[type="checkbox"] {
+          min-height: 20px !important;
+          min-width: 20px !important;
+          width: 20px;
+          height: 20px;
+        }
+
+        /* Tablet landscape: layout ya manejado por JS en el resize listener */
+
+        /* Tablet portrait: stack vertical con nav inferior mejorada */
+        @media (max-width: 768px) {
+          /* Botones de navegacion mas grandes */
+          #mobile-nav button {
+            padding: 12px 0 !important;
+            font-size: 12px !important;
+          }
+          #mobile-nav i {
+            font-size: 22px !important;
+          }
+
+          /* Topbar compacta pero touch-friendly */
+          .topbar-actions { flex-wrap: wrap; gap: 0.375rem; }
+          .topbar-actions button,
+          .topbar-actions a {
+            min-height: 44px;
+            padding: 0.5rem 0.75rem !important;
+          }
+
+          /* Padding inferior para no ocultar contenido bajo el nav */
+          #control-panel > div:nth-child(2) {
+            padding-bottom: 80px !important;
+          }
+        }
+
+        /* ===================================================== */
+        /* MODO CLARO (dia) — overrides con data-theme="light".    */
+        /* El tema oscuro (default / data-theme="dark") NO cambia. */
+        /* La hoja #documento NO se toca (siempre blanca).         */
+        /* ===================================================== */
+        [data-theme="light"] body { background: #f1f5f9; color: #0f172a; transition: background-color 0.35s ease, color 0.35s ease; }
+
+        [data-theme="light"] ::-webkit-scrollbar-track { background: rgba(0,0,0,0.04); }
+        [data-theme="light"] ::-webkit-scrollbar-thumb { background: rgba(37,99,235,0.3); }
+        [data-theme="light"] ::-webkit-scrollbar-thumb:hover { background: rgba(37,99,235,0.55); }
+
+        [data-theme="light"] #control-panel {
+          background: rgba(255,255,255,0.92) !important;
+          border-right: 1px solid rgba(37,99,235,0.12) !important;
+        }
+        [data-theme="light"] #control-panel .bg-white.border.border-slate-200.rounded-xl {
+          background: rgba(255,255,255,0.85) !important;
+          border: 1px solid #e2e8f0 !important;
+          box-shadow: 0 2px 12px rgba(15,23,42,0.06), inset 0 1px 0 rgba(255,255,255,0.6) !important;
+        }
+        [data-theme="light"] #control-panel .bg-white.border.border-slate-200.rounded-xl:hover {
+          border-color: rgba(37,99,235,0.3) !important;
+          box-shadow: 0 4px 20px rgba(37,99,235,0.1), inset 0 1px 0 rgba(255,255,255,0.7) !important;
+        }
+        [data-theme="light"] #control-panel .bg-slate-50 { background: #f1f5f9 !important; color: #475569 !important; }
+        [data-theme="light"] #control-panel .bg-slate-50:hover { color: #0f172a !important; }
+        [data-theme="light"] #control-panel .bg-slate-50 i { color: #2563eb !important; }
+
+        [data-theme="light"] #control-panel input[type="text"],
+        [data-theme="light"] #control-panel input[type="number"],
+        [data-theme="light"] #control-panel input[type="date"],
+        [data-theme="light"] #control-panel select,
+        [data-theme="light"] #control-panel textarea {
+          border: 1px solid #cbd5e1 !important;
+          background: #ffffff !important;
+          color: #0f172a !important;
+        }
+        [data-theme="light"] #control-panel input::placeholder,
+        [data-theme="light"] #control-panel textarea::placeholder { color: #94a3b8 !important; }
+        [data-theme="light"] #control-panel input:focus,
+        [data-theme="light"] #control-panel select:focus,
+        [data-theme="light"] #control-panel textarea:focus {
+          border-color: rgba(37,99,235,0.5) !important;
+          box-shadow: 0 0 0 3px rgba(37,99,235,0.12) !important;
+          background: #ffffff !important;
+        }
+        [data-theme="light"] #control-panel select {
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
+        }
+        [data-theme="light"] #control-panel select option { background: #ffffff; color: #0f172a; }
+
+        [data-theme="light"] #control-panel label,
+        [data-theme="light"] #control-panel .text-slate-600,
+        [data-theme="light"] #control-panel .text-slate-500 { color: #64748b !important; }
+        [data-theme="light"] #control-panel .font-black { color: #475569 !important; }
+        [data-theme="light"] #control-panel .text-blue-600,
+        [data-theme="light"] #control-panel .text-blue-800 { color: #2563eb !important; }
+        [data-theme="light"] #control-panel .text-slate-700,
+        [data-theme="light"] #control-panel .text-slate-800 { color: #334155 !important; }
+        [data-theme="light"] #control-panel .text-slate-900 { color: #0f172a !important; }
+
+        [data-theme="light"] .oa-card { border: 1px solid #e2e8f0 !important; background: #ffffff !important; }
+        [data-theme="light"] .oa-card:hover { border-color: rgba(37,99,235,0.35) !important; background: rgba(37,99,235,0.05) !important; }
+        [data-theme="light"] .oa-card.selected { border-color: #2563eb !important; background: rgba(37,99,235,0.1) !important; box-shadow: 0 0 16px rgba(37,99,235,0.12) !important; }
+        [data-theme="light"] .oa-card label,
+        [data-theme="light"] .oa-card .text-slate-700 { color: #334155 !important; }
+        [data-theme="light"] .oa-card .text-blue-700 { color: #2563eb !important; }
+
+        /* El header del editor (.p-5.bg-slate-900) se mantiene OSCURO en modo claro
+           (barra de marca, igual que el topbar del dashboard). Asi sus botones de
+           iconos blancos siguen legibles y no hay fugas oscuro-sobre-oscuro. */
+
+        /* Boton principal "Agregar/Generar" (era navy) -> azul de acento en claro */
+        [data-theme="light"] #control-panel #btn-generar { background: #2563eb !important; border-color: #2563eb !important; color: #ffffff !important; }
+        [data-theme="light"] #control-panel #btn-generar:hover { background: #1d4ed8 !important; }
+        [data-theme="light"] #control-panel #btn-generar:disabled { background: #94a3b8 !important; border-color: #94a3b8 !important; }
+
+        /* Texto/iconos gris muy claro (.text-slate-400) -> gris medio legible sobre claro */
+        [data-theme="light"] #control-panel .text-slate-400 { color: #64748b !important; }
+
+        /* Badge de cifrado: verde oscuro legible sobre fondo claro (WCAG AA) */
+        [data-theme="light"] #security-status { background: rgba(16,185,129,0.12) !important; border-color: rgba(16,185,129,0.35) !important; color: #047857 !important; }
+
+        /* Barras de navegacion movil (fondo inline #0f172a) -> claras (solo se ven en movil) */
+        [data-theme="light"] #mobile-nav,
+        [data-theme="light"] #mobile-actions { background: #ffffff !important; }
+        [data-theme="light"] #mobile-nav { border-top-color: #2563eb !important; box-shadow: 0 -2px 10px rgba(15,23,42,0.08) !important; }
+        [data-theme="light"] #mobile-nav button { color: #64748b !important; }
+        [data-theme="light"] #mobile-nav button.active,
+        [data-theme="light"] #mobile-nav #mob-btn-form { color: #2563eb !important; }
+
+        /* Skeleton de carga (fondos inline oscuros) -> claros para no parpadear en modo dia */
+        [data-theme="light"] #skeleton-screen { background: #f1f5f9 !important; }
+        [data-theme="light"] #skeleton-screen > div:first-child { background: rgba(255,255,255,0.92) !important; border-right-color: #e2e8f0 !important; }
+        [data-theme="light"] #skeleton-screen > div:last-child { background: #e2e8f0 !important; }
+
+        [data-theme="light"] #preview-panel { background: #e2e8f0 !important; }
+
+        [data-theme="light"] .skeleton {
+          background: linear-gradient(90deg, rgba(226,232,240,0.8) 0%, rgba(241,245,249,0.5) 40%, rgba(226,232,240,0.8) 80%);
+          background-size: 200px 100%;
+        }
+
+        [data-theme="light"] #control-panel input[type="checkbox"] { border: 1.5px solid #cbd5e1 !important; background: #ffffff !important; }
+        [data-theme="light"] #control-panel input[type="checkbox"]:checked {
+          background: linear-gradient(135deg, #2563eb, #0ea5e9) !important;
+          border-color: #2563eb !important;
+          box-shadow: 0 2px 8px rgba(37,99,235,0.3) !important;
+        }
+
+        [data-theme="light"] #control-panel .border-slate-200 { border-color: #e2e8f0 !important; }
+        [data-theme="light"] #control-panel .bg-white { background: #ffffff !important; }
+        [data-theme="light"] #control-panel .border { border-color: #e2e8f0 !important; }
+        [data-theme="light"] #control-panel .bg-blue-50,
+        [data-theme="light"] #control-panel .bg-slate-100 { background: #eff6ff !important; }
+        [data-theme="light"] #control-panel .border-blue-200 { border-color: rgba(37,99,235,0.25) !important; }
+        [data-theme="light"] #control-panel .shadow-sm,
+        [data-theme="light"] #control-panel .shadow-md { box-shadow: 0 2px 8px rgba(15,23,42,0.08) !important; }
+
+        [data-theme="light"] *:focus-visible { outline: 2px solid rgba(37,99,235,0.5); }
+
+        [data-theme="light"] #cmd-palette-overlay { background: rgba(15,23,42,0.25) !important; }
+        [data-theme="light"] #session-timeout-overlay { background: rgba(15,23,42,0.2) !important; }
+
+        /* Boton de tema en el header del editor */
+        #theme-toggle i { transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        #theme-toggle:hover i { transform: rotate(25deg) scale(1.15); }
+        @media (prefers-reduced-motion: reduce) { #theme-toggle:hover i { transform: none !important; } }

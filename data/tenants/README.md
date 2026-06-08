@@ -1,6 +1,6 @@
 # /data/tenants — Datos por establecimiento educacional
 
-Cada subcarpeta corresponde a un establecimiento que usa el sistema PACI.
+Cada subcarpeta corresponde a un establecimiento que usa el sistema PIE MASTER.
 
 ## Estructura del tenant
 
