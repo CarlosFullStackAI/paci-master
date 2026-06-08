@@ -96,6 +96,32 @@
         <tbody id="tbody"><tr><td colspan="6" class="p-6 text-center text-slate-500">Cargando...</td></tr></tbody>
       </table>
     </div>
+
+    <!-- Usuarios y su colegio -->
+    <div class="mt-8">
+      <h2 class="text-sm font-black uppercase text-sky-300 mb-3"><i class="fa-solid fa-users"></i> Usuarios y su colegio</h2>
+      <div class="card rounded-xl p-4 mb-4 flex flex-wrap items-end gap-3">
+        <div>
+          <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">Colegio a asignar a usuarios SIN colegio</label>
+          <select id="bulk-tenant" class="p-2.5 rounded-lg text-sm"></select>
+        </div>
+        <button onclick="assignMissing()" class="bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-lg text-sm font-bold"><i class="fa-solid fa-users-gear"></i> Asignar a todos los sin colegio</button>
+        <p class="text-[10px] text-slate-500 basis-full">Útil al sumar un 2º colegio: deja a los usuarios actuales en el colegio correcto para que sigan viendo sus datos.</p>
+      </div>
+      <div class="card rounded-xl overflow-hidden">
+        <table class="w-full text-sm">
+          <thead class="bg-[#111a30] text-slate-400 text-[11px] uppercase">
+            <tr>
+              <th class="text-left p-3">Usuario</th>
+              <th class="text-left p-3">Rol</th>
+              <th class="text-left p-3">Colegio</th>
+              <th class="text-right p-3"></th>
+            </tr>
+          </thead>
+          <tbody id="users-tbody"><tr><td colspan="4" class="p-6 text-center text-slate-500">Cargando...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -125,9 +151,74 @@
         const data = await res.json();
         TENANTS = (data && data.tenants) || [];
         renderTable();
+        loadUsers();
       } catch (e) {
         showMsg('Error de conexión al cargar los colegios.', false);
       }
+    }
+
+    let USERS = [];
+
+    function tenantOptions(selected) {
+      return ['<option value="">— sin colegio —</option>'].concat(
+        TENANTS.map(t => '<option value="' + esc(t.slug) + '"' + (t.slug === selected ? ' selected' : '') + '>' + esc(t.nombre) + '</option>')
+      ).join('');
+    }
+
+    async function loadUsers() {
+      try {
+        const res = await fetch('/api/admin/users', { method: 'GET', headers: { 'Content-Type': 'application/json' } });
+        if (!res.ok) { document.getElementById('users-tbody').innerHTML = '<tr><td colspan="4" class="p-6 text-center text-amber-400">No disponible.</td></tr>'; return; }
+        const data = await res.json();
+        USERS = (data && data.users) || [];
+        renderUsers();
+      } catch (e) { /* silencioso */ }
+    }
+
+    function renderUsers() {
+      const bulk = document.getElementById('bulk-tenant');
+      if (bulk) bulk.innerHTML = TENANTS.map(t => '<option value="' + esc(t.slug) + '">' + esc(t.nombre) + '</option>').join('');
+      const tb = document.getElementById('users-tbody');
+      if (!USERS.length) { tb.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-slate-500">Sin usuarios.</td></tr>'; return; }
+      tb.innerHTML = USERS.map((u, i) =>
+        '<tr class="border-t border-slate-800">' +
+          '<td class="p-3"><div class="font-semibold">' + esc(u.name || '(sin nombre)') + '</div><div class="text-[11px] text-slate-500">' + esc(u.email) + '</div></td>' +
+          '<td class="p-3 text-slate-400">' + esc(u.role) + '</td>' +
+          '<td class="p-3"><select id="u-tenant-' + i + '" class="p-2 rounded-lg text-sm">' + tenantOptions(u.tenantSlug) + '</select></td>' +
+          '<td class="p-3 text-right"><button onclick="saveUserTenant(' + i + ')" class="text-sky-400 hover:text-sky-300 text-xs font-bold"><i class="fa-solid fa-floppy-disk"></i> Guardar</button></td>' +
+        '</tr>'
+      ).join('');
+    }
+
+    async function saveUserTenant(i) {
+      const u = USERS[i];
+      if (!u) return;
+      const slug = document.getElementById('u-tenant-' + i).value;
+      try {
+        const res = await fetch('/api/admin/users', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ _token: token(), action: 'set-tenant', email: u.email, tenantSlug: slug })
+        });
+        const data = await res.json();
+        if (data.ok) { u.tenantSlug = slug; showMsg(data.message || 'Guardado.', true); }
+        else showMsg(data.error || 'No se pudo guardar.', false);
+      } catch (e) { showMsg('Error de conexión.', false); }
+    }
+
+    async function assignMissing() {
+      const slug = document.getElementById('bulk-tenant').value;
+      if (!slug) { showMsg('Selecciona un colegio.', false); return; }
+      const sinColegio = USERS.filter(u => !u.tenantSlug).length;
+      if (!confirm('Se asignará el colegio seleccionado a ' + sinColegio + ' usuario(s) que no tienen colegio. ¿Continuar?')) return;
+      try {
+        const res = await fetch('/api/admin/users', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ _token: token(), action: 'assign-missing', tenantSlug: slug })
+        });
+        const data = await res.json();
+        if (data.ok) { showMsg(data.message || 'Listo.', true); loadUsers(); }
+        else showMsg(data.error || 'No se pudo.', false);
+      } catch (e) { showMsg('Error de conexión.', false); }
     }
 
     function renderTable() {
