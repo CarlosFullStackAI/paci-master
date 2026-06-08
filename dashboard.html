@@ -2335,6 +2335,10 @@
         <span class="nav-icon"><i class="fa-solid fa-key"></i></span>
         Cambiar contraseña
       </button>
+      <button class="dash-nav-item" id="nav-admin" style="display:none;" onclick="window.location.href='/admin.html'">
+        <span class="nav-icon"><i class="fa-solid fa-school"></i></span>
+        Colegios (admin)
+      </button>
 
       <h4 id="nav-pendientes-h4" style="display:none;">Atención</h4>
       <button class="dash-nav-item" id="nav-fur-alert" style="display:none;" onclick="switchSection('resumen');setTimeout(()=>document.getElementById('fur-alert-section').scrollIntoView({behavior:'smooth',block:'start'}),100);">
@@ -2495,6 +2499,12 @@
     const CAN_DELETE = CAN_CREATE;
     const CAN_APPROVE = ['admin', 'utp'].includes(USER_ROLE);
     const CAN_MANAGE_STUDENTS = ['admin', 'teacher', 'educador_diferencial'].includes(USER_ROLE);
+    // Acceso al panel admin de colegios: rol admin o la cuenta maestra.
+    const MASTER_ADMIN_EMAIL = 'carlos45335@gmail.com';
+    if (USER_ROLE === 'admin' || (USER.email && USER.email === MASTER_ADMIN_EMAIL)) {
+      const navAdmin = document.getElementById('nav-admin');
+      if (navAdmin) navAdmin.style.display = '';
+    }
 
     document.getElementById('user-name').textContent = (USER.name || USER.email || '') + ' (' + USER_ROLE + ')';
 
@@ -5060,9 +5070,9 @@
       e.preventDefault();
       const sample =
         'nombre,rut,curso,diagnostico,nivel_real,nivel_trabajo,fecha_nacimiento,apoderado,establecimiento\n' +
-        'Juan Pérez González,12.345.678-9,3° Básico A,TEL Mixto,3b,2b,2017-03-15,María González,Escuela Luis Cruz Martínez\n' +
-        'Ana Soto López,23.456.789-K,3° Básico A,DEA Lectura,3b,3b,2017-05-20,Pedro Soto,Escuela Luis Cruz Martínez\n' +
-        'Diego Ramírez,34.567.890-1,5° Básico B,TDA,5b,4b,2015-09-10,Carmen Ramírez,Escuela Luis Cruz Martínez\n';
+        'Juan Pérez González,12.345.678-9,3° Básico A,TEL Mixto,3b,2b,2017-03-15,María González,Mi Establecimiento\n' +
+        'Ana Soto López,23.456.789-K,3° Básico A,DEA Lectura,3b,3b,2017-05-20,Pedro Soto,Mi Establecimiento\n' +
+        'Diego Ramírez,34.567.890-1,5° Básico B,TDA,5b,4b,2015-09-10,Carmen Ramírez,Mi Establecimiento\n';
       const blob = new Blob(["﻿" + sample], { type: 'text/csv;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');

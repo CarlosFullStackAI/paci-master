@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Administración de Colegios — PIE MASTER</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    body { background: #0a0f1f; color: #e2e8f0; font-family: system-ui, sans-serif; }
+    input, select { background: #111a30; border: 1px solid #2a3a5e; color: #e2e8f0; }
+    input:focus, select:focus { outline: none; border-color: #38bdf8; }
+    .card { background: #0e1730; border: 1px solid rgba(56,189,248,0.15); }
+  </style>
+</head>
+<body class="min-h-screen p-4 md:p-8">
+  <div class="max-w-5xl mx-auto">
+    <header class="flex items-center justify-between mb-6">
+      <div>
+        <h1 class="text-2xl font-black"><i class="fa-solid fa-school text-sky-400"></i> Administración de Colegios</h1>
+        <p class="text-xs text-slate-400 mt-1">Crear y editar los establecimientos (multi-colegio). Solo administradores.</p>
+      </div>
+      <a href="/dashboard.html" class="text-xs font-bold text-sky-400 hover:text-sky-300"><i class="fa-solid fa-arrow-left"></i> Volver al panel</a>
+    </header>
+
+    <div id="msg" class="hidden mb-4 p-3 rounded-lg text-sm"></div>
+
+    <!-- Formulario crear/editar -->
+    <div class="card rounded-xl p-5 mb-8">
+      <h2 id="form-title" class="text-sm font-black uppercase text-sky-300 mb-4"><i class="fa-solid fa-plus"></i> Nuevo establecimiento</h2>
+      <input type="hidden" id="f-id">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div>
+          <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">Identificador / subdominio</label>
+          <input type="text" id="f-slug" placeholder="ej. lcm-pulebu" class="w-full p-2.5 rounded-lg text-sm">
+          <p class="text-[10px] text-slate-500 mt-1">Solo minúsculas, números y guiones. No se puede cambiar después.</p>
+        </div>
+        <div>
+          <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">Nombre del establecimiento</label>
+          <input type="text" id="f-nombre" placeholder="Escuela ..." class="w-full p-2.5 rounded-lg text-sm">
+        </div>
+        <div>
+          <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">Nombre corto</label>
+          <input type="text" id="f-nombre-corto" placeholder="ej. LCM Pulebu" class="w-full p-2.5 rounded-lg text-sm">
+        </div>
+        <div>
+          <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">RBD</label>
+          <input type="text" id="f-rbd" placeholder="ej. 12345-6" class="w-full p-2.5 rounded-lg text-sm">
+        </div>
+        <div>
+          <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">Comuna</label>
+          <input type="text" id="f-comuna" class="w-full p-2.5 rounded-lg text-sm">
+        </div>
+        <div>
+          <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">Localidad</label>
+          <input type="text" id="f-localidad" class="w-full p-2.5 rounded-lg text-sm">
+        </div>
+        <div>
+          <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">Región</label>
+          <input type="text" id="f-region" class="w-full p-2.5 rounded-lg text-sm">
+        </div>
+        <div class="flex gap-3">
+          <div>
+            <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">Color primario</label>
+            <input type="color" id="f-color1" value="#091845" class="h-10 w-16 rounded-lg p-1">
+          </div>
+          <div>
+            <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">Color secundario</label>
+            <input type="color" id="f-color2" value="#1240c4" class="h-10 w-16 rounded-lg p-1">
+          </div>
+          <div id="activo-wrap" class="hidden">
+            <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">Activo</label>
+            <select id="f-activo" class="h-10 p-2 rounded-lg text-sm"><option value="1">Sí</option><option value="0">No</option></select>
+          </div>
+        </div>
+      </div>
+      <div class="flex gap-2 mt-4">
+        <button id="btn-save" onclick="saveTenant()" class="bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 rounded-lg text-sm font-bold"><i class="fa-solid fa-floppy-disk"></i> Guardar</button>
+        <button id="btn-cancel" onclick="resetForm()" class="hidden bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm font-bold">Cancelar edición</button>
+      </div>
+    </div>
+
+    <!-- Listado -->
+    <div class="card rounded-xl overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="bg-[#111a30] text-slate-400 text-[11px] uppercase">
+          <tr>
+            <th class="text-left p-3">Nombre</th>
+            <th class="text-left p-3">Subdominio</th>
+            <th class="text-left p-3">RBD</th>
+            <th class="text-left p-3">Comuna</th>
+            <th class="text-left p-3">Activo</th>
+            <th class="text-right p-3"></th>
+          </tr>
+        </thead>
+        <tbody id="tbody"><tr><td colspan="6" class="p-6 text-center text-slate-500">Cargando...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    let TENANTS = [];
+
+    function token() { return localStorage.getItem('paci_token') || ''; }
+
+    function showMsg(text, ok) {
+      const el = document.getElementById('msg');
+      el.textContent = text;
+      el.className = 'mb-4 p-3 rounded-lg text-sm ' + (ok ? 'bg-emerald-900/40 text-emerald-300' : 'bg-red-900/40 text-red-300');
+      el.classList.remove('hidden');
+      setTimeout(() => el.classList.add('hidden'), 4000);
+    }
+
+    function esc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+    async function loadTenants() {
+      try {
+        const res = await fetch('/api/admin/tenants', { method: 'GET', headers: { 'Content-Type': 'application/json' } });
+        if (res.status === 401) { window.location.href = '/login.html'; return; }
+        if (res.status === 403) {
+          document.getElementById('tbody').innerHTML = '<tr><td colspan="6" class="p-6 text-center text-amber-400">Solo los administradores pueden gestionar colegios.</td></tr>';
+          document.querySelector('.card').style.opacity = '0.4';
+          return;
+        }
+        const data = await res.json();
+        TENANTS = (data && data.tenants) || [];
+        renderTable();
+      } catch (e) {
+        showMsg('Error de conexión al cargar los colegios.', false);
+      }
+    }
+
+    function renderTable() {
+      const tb = document.getElementById('tbody');
+      if (!TENANTS.length) {
+        tb.innerHTML = '<tr><td colspan="6" class="p-6 text-center text-slate-500">Aún no hay colegios. Crea el primero arriba.</td></tr>';
+        return;
+      }
+      tb.innerHTML = TENANTS.map(t =>
+        '<tr class="border-t border-slate-800">' +
+          '<td class="p-3 font-semibold">' + esc(t.nombre) + '</td>' +
+          '<td class="p-3 text-sky-400">' + esc(t.slug) + '</td>' +
+          '<td class="p-3 text-slate-400">' + esc(t.rbd || '—') + '</td>' +
+          '<td class="p-3 text-slate-400">' + esc(t.comuna || '—') + '</td>' +
+          '<td class="p-3">' + (t.activo ? '<span class="text-emerald-400">Sí</span>' : '<span class="text-slate-500">No</span>') + '</td>' +
+          '<td class="p-3 text-right"><button onclick="editTenant(' + t.id + ')" class="text-sky-400 hover:text-sky-300 text-xs font-bold"><i class="fa-solid fa-pen"></i> Editar</button></td>' +
+        '</tr>'
+      ).join('');
+    }
+
+    function editTenant(id) {
+      const t = TENANTS.find(x => x.id === id);
+      if (!t) return;
+      let branding = {};
+      try { branding = t.branding_json ? JSON.parse(t.branding_json) : {}; } catch (e) {}
+      document.getElementById('f-id').value = t.id;
+      document.getElementById('f-slug').value = t.slug;
+      document.getElementById('f-slug').disabled = true;
+      document.getElementById('f-nombre').value = t.nombre || '';
+      document.getElementById('f-nombre-corto').value = t.nombre_corto || '';
+      document.getElementById('f-rbd').value = t.rbd || '';
+      document.getElementById('f-comuna').value = t.comuna || '';
+      document.getElementById('f-localidad').value = t.localidad || '';
+      document.getElementById('f-region').value = t.region || '';
+      document.getElementById('f-color1').value = branding.color_primario || '#091845';
+      document.getElementById('f-color2').value = branding.color_secundario || '#1240c4';
+      document.getElementById('f-activo').value = t.activo ? '1' : '0';
+      document.getElementById('activo-wrap').classList.remove('hidden');
+      document.getElementById('btn-cancel').classList.remove('hidden');
+      document.getElementById('form-title').innerHTML = '<i class="fa-solid fa-pen"></i> Editar: ' + esc(t.nombre);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function resetForm() {
+      ['f-id','f-slug','f-nombre','f-nombre-corto','f-rbd','f-comuna','f-localidad','f-region'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('f-slug').disabled = false;
+      document.getElementById('f-color1').value = '#091845';
+      document.getElementById('f-color2').value = '#1240c4';
+      document.getElementById('activo-wrap').classList.add('hidden');
+      document.getElementById('btn-cancel').classList.add('hidden');
+      document.getElementById('form-title').innerHTML = '<i class="fa-solid fa-plus"></i> Nuevo establecimiento';
+    }
+
+    async function saveTenant() {
+      const id = document.getElementById('f-id').value;
+      const payload = {
+        _token: token(),
+        action: id ? 'update' : 'create',
+        id: id || undefined,
+        slug: document.getElementById('f-slug').value,
+        nombre: document.getElementById('f-nombre').value,
+        nombre_corto: document.getElementById('f-nombre-corto').value,
+        rbd: document.getElementById('f-rbd').value,
+        comuna: document.getElementById('f-comuna').value,
+        localidad: document.getElementById('f-localidad').value,
+        region: document.getElementById('f-region').value,
+        color_primario: document.getElementById('f-color1').value,
+        color_secundario: document.getElementById('f-color2').value,
+        activo: document.getElementById('f-activo').value === '1'
+      };
+      const btn = document.getElementById('btn-save');
+      btn.disabled = true;
+      try {
+        const res = await fetch('/api/admin/tenants', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.ok) {
+          showMsg(data.message || 'Guardado.', true);
+          resetForm();
+          loadTenants();
+        } else {
+          showMsg(data.error || 'No se pudo guardar.', false);
+        }
+      } catch (e) {
+        showMsg('Error de conexión.', false);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    if (!token()) { window.location.href = '/login.html'; } else { loadTenants(); }
+  </script>
+</body>
+</html>

@@ -34,11 +34,11 @@
     })();
     </script>
     <script>
-    window.TENANT_SLUG = 'lcm-pulebu';
+    window.TENANT_SLUG = '';
     window.TENANT_CONFIG = null;
     window.TENANT_CONFIG_READY = fetch('/api/tenant-config')
       .then(function(r) { return r.json(); })
-      .then(function(cfg) { window.TENANT_CONFIG = cfg; return cfg; })
+      .then(function(cfg) { window.TENANT_CONFIG = cfg; window.TENANT_SLUG = (cfg && cfg.id) || ''; return cfg; })
       .catch(function(err) {
         console.error('No se pudo cargar config del tenant:', err);
         return { nombre: 'Establecimiento' };
@@ -212,7 +212,7 @@
                     <p class="text-[10px] text-slate-500 leading-tight">Carga aquí los logos para incluirlos de manera segura en el PDF nativo.</p>
                     <div class="space-y-3">
                         <div class="border p-2 rounded-lg bg-slate-50">
-                            <label class="text-[10px] font-black text-slate-600 uppercase mb-1 block">Logo Escuela L.C.M.</label>
+                            <label class="text-[10px] font-black text-slate-600 uppercase mb-1 block">Logo del Establecimiento</label>
                             <input type="file" accept="image/*" class="w-full text-xs outline-none" onchange="loadLogo(event, 'logo-escuela')">
                         </div>
                         <div class="border p-2 rounded-lg bg-slate-50">

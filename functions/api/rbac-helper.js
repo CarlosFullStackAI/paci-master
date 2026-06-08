@@ -25,7 +25,8 @@ const PERMISSIONS = new Map([
   ['student:delete', MANAGE_STUDENTS_ROLES],
   ['student:read', VALID_ROLES], // todos pueden leer estudiantes
   ['admin:set-role', ['admin']],
-  ['admin:audit-logs', ['admin']]
+  ['admin:audit-logs', ['admin']],
+  ['admin:tenants', ['admin']]
 ]);
 
 // Verificar si un rol tiene permiso para una accion
