@@ -1,11 +1,11 @@
-import { getSubdomainSlug, getTenantBySlug } from './tenant-helper.js';
+import { getSubdomainSlug } from './tenant-helper.js';
 
 export async function onRequestPost(context) {
   const { request, env } = context;
   const headers = { 'Content-Type': 'application/json' };
 
   try {
-    const { name, email, password, tenantSlug } = await request.json();
+    const { name, email, password, tenantSlug, joinCode } = await request.json();
 
     if (!name || !email || !password) {
       return new Response(JSON.stringify({ ok: false, error: 'Todos los campos son obligatorios.' }), { status: 400, headers });
@@ -39,9 +39,16 @@ export async function onRequestPost(context) {
     if (!chosenSlug) {
       return new Response(JSON.stringify({ ok: false, error: 'Selecciona tu establecimiento.' }), { status: 400, headers });
     }
-    const tenant = await getTenantBySlug(env, chosenSlug);
+    const tenant = await env.DB.prepare(
+      'SELECT slug, join_code FROM tenants WHERE slug = ? AND activo = 1'
+    ).bind(chosenSlug).first();
     if (!tenant) {
       return new Response(JSON.stringify({ ok: false, error: 'El establecimiento seleccionado no es valido.' }), { status: 400, headers });
+    }
+    // Codigo de union: cierra el registro abierto. Debe coincidir con el del colegio.
+    const code = String(joinCode || '').trim();
+    if (!tenant.join_code || code !== tenant.join_code) {
+      return new Response(JSON.stringify({ ok: false, error: 'Codigo de colegio invalido. Pidelo al administrador de tu establecimiento.' }), { status: 400, headers });
     }
 
     // Verificar si el usuario ya existe

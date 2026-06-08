@@ -21,7 +21,7 @@ export async function onRequest(context) {
 
     if (request.method === 'GET') {
       const res = await env.DB.prepare(
-        `SELECT id, slug, nombre, nombre_corto, rbd, comuna, localidad, region, branding_json, activo, created_at, updated_at
+        `SELECT id, slug, nombre, nombre_corto, rbd, comuna, localidad, region, branding_json, join_code, activo, created_at, updated_at
          FROM tenants ORDER BY nombre`
       ).all();
       return new Response(JSON.stringify({ ok: true, tenants: res.results || [] }), { headers });
@@ -41,15 +41,16 @@ export async function onRequest(context) {
         if (exists) return bad('Ya existe un establecimiento con ese identificador.', 409);
 
         const branding = buildBranding(body);
+        const joinCode = genCode();
         await env.DB.prepare(
-          `INSERT INTO tenants (slug, nombre, nombre_corto, rbd, comuna, localidad, region, branding_json, activo)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)`
+          `INSERT INTO tenants (slug, nombre, nombre_corto, rbd, comuna, localidad, region, branding_json, join_code, activo)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`
         ).bind(
           slug, nombre, clip(body.nombre_corto, 80), clip(body.rbd, 20),
-          clip(body.comuna, 80), clip(body.localidad, 80), clip(body.region, 80), branding
+          clip(body.comuna, 80), clip(body.localidad, 80), clip(body.region, 80), branding, joinCode
         ).run();
 
-        return new Response(JSON.stringify({ ok: true, message: `Establecimiento "${nombre}" creado.` }), { status: 201, headers });
+        return new Response(JSON.stringify({ ok: true, message: `Establecimiento "${nombre}" creado. Codigo de union: ${joinCode}`, joinCode }), { status: 201, headers });
       }
 
       if (action === 'update') {
@@ -77,7 +78,17 @@ export async function onRequest(context) {
         return new Response(JSON.stringify({ ok: true, message: `Establecimiento "${nombre}" actualizado.` }), { headers });
       }
 
-      return bad('Accion invalida. Usa "create" o "update".');
+      if (action === 'regenerate-code') {
+        const id = parseInt(body.id, 10);
+        if (!id) return bad('id requerido.');
+        const existing = await env.DB.prepare('SELECT id FROM tenants WHERE id = ?').bind(id).first();
+        if (!existing) return bad('Establecimiento no encontrado.', 404);
+        const joinCode = genCode();
+        await env.DB.prepare(`UPDATE tenants SET join_code = ?, updated_at = datetime('now') WHERE id = ?`).bind(joinCode, id).run();
+        return new Response(JSON.stringify({ ok: true, message: `Nuevo codigo de union: ${joinCode}`, joinCode }), { headers });
+      }
+
+      return bad('Accion invalida. Usa "create", "update" o "regenerate-code".');
     }
 
     return new Response(JSON.stringify({ ok: false, error: 'Metodo no permitido.' }), { status: 405, headers });
@@ -88,6 +99,16 @@ export async function onRequest(context) {
   } catch (e) {
     return new Response(JSON.stringify({ ok: false, error: 'Error interno.' }), { status: 500, headers });
   }
+}
+
+// Genera un codigo de union aleatorio (8 chars, alfabeto sin caracteres ambiguos O/0/I/1).
+function genCode() {
+  const alpha = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const bytes = new Uint8Array(8);
+  crypto.getRandomValues(bytes);
+  let out = '';
+  for (const b of bytes) out += alpha.charAt(b % alpha.length);
+  return out;
 }
 
 // slug = subdominio: solo minusculas, numeros y guiones; 2-40 chars. '' si invalido.

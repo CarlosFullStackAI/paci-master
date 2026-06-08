@@ -47,12 +47,13 @@ export async function resolveTenant(request, env, user) {
     const t = await getTenantBySlug(env, subSlug);
     if (t) return t;
   }
+  // Si el usuario YA tiene colegio asignado, ese es el unico valido. Si no resuelve
+  // (colegio borrado/inactivo), NO caemos a otro colegio: devolvemos null (sin acceso).
+  // Evita fuga: un tenantSlug invalido no debe heredar el unico colegio activo.
   if (user && user.tenantSlug) {
-    const t = await getTenantBySlug(env, user.tenantSlug);
-    if (t) return t;
+    return await getTenantBySlug(env, user.tenantSlug);
   }
-  // Fallback (fase mono-establecimiento): si solo hay UN colegio activo, usarlo.
-  // Asi un usuario aun sin tenant asignado funciona mientras exista un solo colegio.
+  // Solo usuarios SIN colegio asignado: fallback al unico colegio activo (fase mono-establecimiento).
   // Con varios colegios este fallback no aplica (LIMIT 2 detecta "exactamente uno").
   try {
     const all = await env.DB.prepare(

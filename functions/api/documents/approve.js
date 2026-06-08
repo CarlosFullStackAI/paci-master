@@ -1,4 +1,5 @@
 import { getUser } from '../auth-helper.js';
+import { resolveTenant } from '../tenant-helper.js';
 import { checkPermission } from '../rbac-helper.js';
 import { logAudit } from '../audit-helper.js';
 
@@ -28,10 +29,15 @@ export async function onRequestPost(context) {
       return new Response(JSON.stringify({ ok: false, error: 'Accion invalida. Usa "approve" o "reject".' }), { status: 400, headers });
     }
 
-    // Verificar que el documento existe
+    // Aislamiento por establecimiento: solo se aprueban documentos del propio colegio.
+    const tenant = await resolveTenant(request, env, user);
+    if (!tenant) return new Response(JSON.stringify({ ok: false, error: 'No tienes un establecimiento asignado.' }), { status: 400, headers });
+    const tenantId = tenant.id;
+
+    // Verificar que el documento existe y es del mismo colegio
     const doc = await env.DB.prepare(
-      'SELECT id, approval_status FROM documents WHERE id = ?'
-    ).bind(documentId).first();
+      'SELECT id, approval_status FROM documents WHERE id = ? AND tenant_id = ?'
+    ).bind(documentId, tenantId).first();
 
     if (!doc) {
       return new Response(JSON.stringify({ ok: false, error: 'Documento no encontrado.' }), { status: 404, headers });
@@ -42,8 +48,8 @@ export async function onRequestPost(context) {
 
     await env.DB.prepare(
       `UPDATE documents SET approval_status = ?, approved_by = ?, approved_at = ?, updated_at = datetime('now')
-       WHERE id = ?`
-    ).bind(newStatus, user.email, now, documentId).run();
+       WHERE id = ? AND tenant_id = ?`
+    ).bind(newStatus, user.email, now, documentId, tenantId).run();
 
     await logAudit(env, request, user, `document_${action}`, 'document', documentId, `Estado: ${newStatus}`);
 

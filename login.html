@@ -247,6 +247,10 @@
             <option value="">Cargando establecimientos...</option>
           </select>
         </div>
+        <div class="field">
+          <label>Código de colegio</label>
+          <input type="text" id="reg-joincode" required placeholder="Te lo da el administrador de tu colegio">
+        </div>
         <button type="submit" class="btn-submit" id="btn-register">Crear Cuenta</button>
       </form>
     </div>
@@ -309,10 +313,15 @@
       const email = document.getElementById('reg-email').value;
       const password = document.getElementById('reg-password').value;
       const tenantSlug = document.getElementById('reg-tenant').value;
+      const joinCode = document.getElementById('reg-joincode').value.trim();
       const btn = document.getElementById('btn-register');
 
       if (!tenantSlug) {
         showError('Selecciona tu establecimiento.');
+        return;
+      }
+      if (!joinCode) {
+        showError('Ingresa el código de tu colegio.');
         return;
       }
 
@@ -324,7 +333,7 @@
         const res = await fetch('/api/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, email, password, tenantSlug })
+          body: JSON.stringify({ name, email, password, tenantSlug, joinCode })
         });
         const data = await res.json();
         if (data.ok) {

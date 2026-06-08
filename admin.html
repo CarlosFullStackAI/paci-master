@@ -7,20 +7,31 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <style>
-    body { background: #0a0f1f; color: #e2e8f0; font-family: system-ui, sans-serif; }
-    input, select { background: #111a30; border: 1px solid #2a3a5e; color: #e2e8f0; }
-    input:focus, select:focus { outline: none; border-color: #38bdf8; }
-    .card { background: #0e1730; border: 1px solid rgba(56,189,248,0.15); }
+    body { background: radial-gradient(1100px 600px at 85% -10%, #13234a 0%, #0a0f1f 55%); color: #e2e8f0; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+    input, select { background: #111a30; border: 1px solid #2a3a5e; color: #e2e8f0; border-radius: 0.6rem; transition: border-color .15s, box-shadow .15s; }
+    input:focus, select:focus { outline: none; border-color: #38bdf8; box-shadow: 0 0 0 3px rgba(56,189,248,0.18); }
+    input[type="color"] { padding: 2px; cursor: pointer; }
+    .card { background: #0e1730; border: 1px solid rgba(56,189,248,0.15); box-shadow: 0 10px 30px rgba(2,6,23,0.35); }
+    .hero { background: linear-gradient(135deg, #091845 0%, #1240c4 100%); box-shadow: 0 14px 40px rgba(18,64,196,0.28); }
+    .code-pill { font-family: ui-monospace, 'Courier New', monospace; background: rgba(16,185,129,0.12); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.32); padding: 2px 9px; border-radius: 6px; letter-spacing: 1.5px; font-size: 0.8rem; }
+    table tbody tr { transition: background .12s; }
+    table tbody tr:hover { background: rgba(56,189,248,0.05); }
+    .btn-primary { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
+    .btn-primary:hover { filter: brightness(1.08); }
   </style>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body class="min-h-screen p-4 md:p-8">
   <div class="max-w-5xl mx-auto">
-    <header class="flex items-center justify-between mb-6">
-      <div>
-        <h1 class="text-2xl font-black"><i class="fa-solid fa-school text-sky-400"></i> Administración de Colegios</h1>
-        <p class="text-xs text-slate-400 mt-1">Crear y editar los establecimientos (multi-colegio). Solo administradores.</p>
+    <header class="hero rounded-2xl p-6 mb-7 flex items-center justify-between flex-wrap gap-3">
+      <div class="flex items-center gap-4">
+        <div class="w-12 h-12 rounded-xl bg-white/15 flex items-center justify-center text-2xl text-white"><i class="fa-solid fa-school"></i></div>
+        <div>
+          <h1 class="text-2xl font-extrabold text-white leading-tight">Administración de Colegios</h1>
+          <p class="text-xs text-blue-100/80 mt-0.5">Crea y edita los establecimientos del sistema (multi-colegio). Solo administradores.</p>
+        </div>
       </div>
-      <a href="/dashboard.html" class="text-xs font-bold text-sky-400 hover:text-sky-300"><i class="fa-solid fa-arrow-left"></i> Volver al panel</a>
+      <a href="/dashboard.html" class="bg-white/15 hover:bg-white/25 transition text-white text-xs font-bold px-3.5 py-2 rounded-lg"><i class="fa-solid fa-arrow-left"></i> Volver al panel</a>
     </header>
 
     <div id="msg" class="hidden mb-4 p-3 rounded-lg text-sm"></div>
@@ -89,11 +100,12 @@
             <th class="text-left p-3">Subdominio</th>
             <th class="text-left p-3">RBD</th>
             <th class="text-left p-3">Comuna</th>
+            <th class="text-left p-3">Código</th>
             <th class="text-left p-3">Activo</th>
             <th class="text-right p-3"></th>
           </tr>
         </thead>
-        <tbody id="tbody"><tr><td colspan="6" class="p-6 text-center text-slate-500">Cargando...</td></tr></tbody>
+        <tbody id="tbody"><tr><td colspan="7" class="p-6 text-center text-slate-500">Cargando...</td></tr></tbody>
       </table>
     </div>
 
@@ -138,6 +150,14 @@
     }
 
     function esc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+    function copyText(t) {
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(t).then(() => showMsg('Código copiado: ' + t, true)).catch(() => showMsg('No se pudo copiar.', false));
+      } else {
+        showMsg('Código: ' + t, true);
+      }
+    }
 
     async function loadTenants() {
       try {
@@ -224,7 +244,7 @@
     function renderTable() {
       const tb = document.getElementById('tbody');
       if (!TENANTS.length) {
-        tb.innerHTML = '<tr><td colspan="6" class="p-6 text-center text-slate-500">Aún no hay colegios. Crea el primero arriba.</td></tr>';
+        tb.innerHTML = '<tr><td colspan="7" class="p-6 text-center text-slate-500">Aún no hay colegios. Crea el primero arriba.</td></tr>';
         return;
       }
       tb.innerHTML = TENANTS.map(t =>
@@ -233,10 +253,24 @@
           '<td class="p-3 text-sky-400">' + esc(t.slug) + '</td>' +
           '<td class="p-3 text-slate-400">' + esc(t.rbd || '—') + '</td>' +
           '<td class="p-3 text-slate-400">' + esc(t.comuna || '—') + '</td>' +
+          '<td class="p-3"><span class="code-pill">' + esc(t.join_code || '—') + '</span>' + (t.join_code ? ' <button onclick="copyText(\'' + esc(t.join_code) + '\')" class="text-slate-400 hover:text-sky-300 ml-1" title="Copiar código"><i class="fa-regular fa-copy"></i></button>' : '') + '</td>' +
           '<td class="p-3">' + (t.activo ? '<span class="text-emerald-400">Sí</span>' : '<span class="text-slate-500">No</span>') + '</td>' +
-          '<td class="p-3 text-right"><button onclick="editTenant(' + t.id + ')" class="text-sky-400 hover:text-sky-300 text-xs font-bold"><i class="fa-solid fa-pen"></i> Editar</button></td>' +
+          '<td class="p-3 text-right whitespace-nowrap"><button onclick="regenerateCode(' + t.id + ')" class="text-amber-400 hover:text-amber-300 text-xs font-bold mr-3" title="Generar nuevo código de unión"><i class="fa-solid fa-rotate"></i> Código</button><button onclick="editTenant(' + t.id + ')" class="text-sky-400 hover:text-sky-300 text-xs font-bold"><i class="fa-solid fa-pen"></i> Editar</button></td>' +
         '</tr>'
       ).join('');
+    }
+
+    async function regenerateCode(id) {
+      if (!confirm('¿Generar un NUEVO código de unión para este colegio? El código anterior dejará de funcionar para nuevos registros.')) return;
+      try {
+        const res = await fetch('/api/admin/tenants', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ _token: token(), action: 'regenerate-code', id })
+        });
+        const data = await res.json();
+        if (data.ok) { showMsg(data.message || 'Código regenerado.', true); loadTenants(); }
+        else showMsg(data.error || 'No se pudo regenerar.', false);
+      } catch (e) { showMsg('Error de conexión.', false); }
     }
 
     function editTenant(id) {
