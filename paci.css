@@ -108,7 +108,7 @@
         #control-panel textarea:focus {
             border-color: rgba(56,189,248,0.4) !important;
             box-shadow: 0 0 0 3px rgba(56,189,248,0.08), 0 0 20px rgba(56,189,248,0.06) !important;
-            background: rgba(15,23,42,0.7) !important;
+            background-color: rgba(15,23,42,0.7) !important;
         }
 
         /* === Select arrow === */
@@ -1049,7 +1049,7 @@
         [data-theme="light"] #control-panel select,
         [data-theme="light"] #control-panel textarea {
           border: 1px solid #cbd5e1 !important;
-          background: #ffffff !important;
+          background-color: #ffffff !important;
           color: #0f172a !important;
         }
         [data-theme="light"] #control-panel input::placeholder,
@@ -1059,7 +1059,7 @@
         [data-theme="light"] #control-panel textarea:focus {
           border-color: rgba(37,99,235,0.5) !important;
           box-shadow: 0 0 0 3px rgba(37,99,235,0.12) !important;
-          background: #ffffff !important;
+          background-color: #ffffff !important;
         }
         [data-theme="light"] #control-panel select {
           background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
