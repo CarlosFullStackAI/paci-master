@@ -160,16 +160,16 @@
 
     <!-- PANEL DE CONTROL -->
     <aside id="control-panel" style="width:40%;min-width:340px;height:100%;flex-shrink:0;display:flex;flex-direction:column; background: rgba(13, 19, 36, 0.95); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);" class="border-r border-slate-800 z-20">
-        <div class="p-5 bg-slate-900/80 text-white flex justify-between items-center border-b border-slate-800">
-            <div class="flex items-center gap-3">
+        <div class="p-4 bg-slate-900/80 text-white flex justify-between items-center border-b border-slate-800" style="gap:0.6rem;">
+            <div class="flex items-center gap-3" style="min-width:0;">
                 <img class="brand-logo-app" src="/assets/canva/logo.png" alt="PIE MASTER">
-                <div>
+                <div style="min-width:0;">
                     <p class="text-sm font-black tracking-tighter uppercase leading-none text-slate-100">Editor de Planificación</p>
-                    <p class="text-[10px] text-blue-400 font-bold uppercase tracking-widest mt-1">OAs Reales Mineduc NT1-8B &middot; v2</p>
+                    <p class="text-[10px] text-blue-400 font-bold uppercase tracking-widest mt-1" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">OAs Reales Mineduc NT1-8B &middot; v2</p>
                 </div>
             </div>
             <!-- Controles de Impresión, PDF, Guardar y Sesión -->
-            <div class="flex gap-2">
+            <div class="flex gap-2" style="flex-wrap:wrap;justify-content:flex-end;">
                 <a href="/dashboard.html" class="bg-slate-700 hover:bg-slate-600 text-white p-2.5 rounded-lg transition active:scale-95 shadow-lg text-xs font-bold flex items-center" title="Mis Documentos" style="text-decoration:none;">
                     <i class="fa-solid fa-folder-open"></i>
                 </a>
