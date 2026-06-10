@@ -59,6 +59,7 @@ npm run deploy
 │   │   ├── oas/                      # OAs raw text + JS compilado
 │   │   ├── bases-curriculares/       # PDFs Bases Curriculares MINEDUC
 │   │   ├── normativa/                # Decretos, Leyes
+│   │   ├── formatos/                 # Formatos oficiales MINEDUC de referencia (doc/docx/pdf)
 │   │   ├── calendario-escolar/       # Calendarios oficiales por ano/region
 │   │   ├── formato-paci.docx         # Formato oficial Decreto 83/2015
 │   │   └── asignaturas.docx

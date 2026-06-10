@@ -39,406 +39,368 @@
     .catch(function () { return { nombre: 'Establecimiento' }; });
   </script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Merriweather:wght@300;400;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/paci.css">
   <link href="/assets/theme/paci-theme-v2.css?v=1" rel="stylesheet">
   <link rel="stylesheet" href="/tailwind-utils.css">
   <style>
+    /* El editor PAI usa layout horizontal con scroll interno (igual que el editor PACI). */
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { height: 100vh; overflow: hidden; }
     body {
       font-family: 'Plus Jakarta Sans', sans-serif;
-      background: var(--bg-deep);
+      background: #020617;
       color: #e2e8f0;
       -webkit-font-smoothing: antialiased;
-      position: relative;
+      display: flex;
+      flex-direction: row;
+      height: 100vh;
+      overflow: hidden;
+      margin: 0;
     }
-    /* Fondo animado: 5 blobs de gradiente radial que flotan en loop */
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background:
-        radial-gradient(circle at 18% 25%, rgba(56, 189, 248, 0.32)  0%, transparent 38%),
-        radial-gradient(circle at 78% 22%, rgba(168, 139, 250, 0.28) 0%, transparent 42%),
-        radial-gradient(circle at 52% 78%, rgba(244, 114, 182, 0.24) 0%, transparent 40%),
-        radial-gradient(circle at 88% 88%, rgba(52, 211, 153, 0.22)  0%, transparent 38%),
-        radial-gradient(circle at 8% 92%,  rgba(251, 146, 60, 0.22)  0%, transparent 38%);
-      background-size: 220% 220%;
-      background-attachment: fixed;
-      z-index: -2;
-      pointer-events: none;
-      animation: bg-flow 28s ease-in-out infinite alternate;
-    }
-    body::after {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background-image: url('/assets/canva/bg-pattern.png');
-      background-size: cover;
-      background-position: center;
-      opacity: 0.08;
-      pointer-events: none;
-      z-index: -1;
-      mix-blend-mode: overlay;
-    }
-    @keyframes bg-flow {
-      0%   { background-position: 0% 0%,   100% 0%,   50% 100%, 100% 100%, 0% 100%; }
-      25%  { background-position: 20% 15%, 80% 20%,   45% 90%,  90% 95%,   5% 95%; }
-      50%  { background-position: 100% 50%, 0% 50%,   100% 50%, 50% 0%,    50% 100%; }
-      75%  { background-position: 80% 85%, 15% 80%,   25% 10%,  10% 5%,    95% 5%; }
-      100% { background-position: 100% 100%, 0% 100%, 50% 0%,   0% 0%,     100% 0%; }
-    }
-    [data-theme="light"] body::before {
-      background:
-        radial-gradient(circle at 18% 25%, rgba(125, 211, 252, 0.55) 0%, transparent 38%),
-        radial-gradient(circle at 78% 22%, rgba(196, 181, 253, 0.5)  0%, transparent 42%),
-        radial-gradient(circle at 52% 78%, rgba(251, 207, 232, 0.5)  0%, transparent 40%),
-        radial-gradient(circle at 88% 88%, rgba(167, 243, 208, 0.45) 0%, transparent 38%),
-        radial-gradient(circle at 8% 92%,  rgba(254, 215, 170, 0.5)  0%, transparent 38%);
-      background-size: 220% 220%;
-      background-attachment: fixed;
-    }
-    [data-theme="light"] body::after { opacity: 0.05; mix-blend-mode: multiply; filter: invert(1) hue-rotate(180deg); }
+    [data-theme="light"] body { background: #f1f5f9; color: #0f172a; }
 
-    /* ===== Refuerzo de contraste en modo claro ===== */
-    [data-theme="light"] body { color: #0f172a; }
-    [data-theme="light"] .topbar { background: #ffffff; color: #0f172a; border-bottom: 1px solid #e2e8f0; box-shadow: 0 2px 12px rgba(15,23,42,0.05); }
-    [data-theme="light"] .topbar h1 { color: #0f172a; background: none; -webkit-text-fill-color: #0f172a; }
-    [data-theme="light"] .topbar .sub { color: #475569; }
-    [data-theme="light"] .card { background: #ffffff; color: #0f172a; border: 1px solid #e2e8f0; }
-    [data-theme="light"] label { color: #334155; }
-    [data-theme="light"] input, [data-theme="light"] select, [data-theme="light"] textarea {
-      background: #ffffff !important;
-      color: #0f172a !important;
-      border-color: #cbd5e1 !important;
-    }
-    [data-theme="light"] input::placeholder, [data-theme="light"] textarea::placeholder { color: #94a3b8 !important; }
-    [data-theme="light"] .titulo { color: #0f172a; }
-    [data-theme="light"] .empty { color: #475569; }
-    [data-theme="light"] .toast { color: #ffffff; }
-
-    .brand-logo {
-      height: 60px;
+    .brand-logo-app {
+      height: 52px;
       width: auto;
       border-radius: 0.75rem;
-      margin-right: 0.85rem;
       box-shadow: 0 6px 18px rgba(18, 64, 196, 0.45);
-      transition: transform 0.3s var(--ease-out-expo);
-      vertical-align: middle;
+      transition: transform 0.3s cubic-bezier(0.16, 0.84, 0.44, 1);
+      flex-shrink: 0;
     }
-    .brand-logo:hover { transform: scale(1.05) rotate(-2deg); }
-    .topbar > div { display: flex; align-items: center; gap: 0; }
-    .topbar {
-      background: rgba(2, 6, 23, 0.8);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      color: #fff;
-      padding: 1rem 1.5rem;
+    .brand-logo-app:hover { transform: scale(1.05) rotate(-2deg); }
+
+    /* ===== Botones / grillas / toast (no provistos por las hojas compartidas) ===== */
+    .btn {
+      padding: 0.6rem 1.1rem; border-radius: 0.75rem; font-weight: 700; font-size: 0.8rem;
+      cursor: pointer; transition: all 0.2s ease; display: inline-flex; align-items: center;
+      justify-content: center; gap: 0.45rem; border: 1px solid transparent; text-decoration: none; line-height: 1;
+    }
+    .btn-sm { padding: 0.45rem 0.75rem; font-size: 0.72rem; border-radius: 0.6rem; }
+    .btn-primary { background: linear-gradient(135deg, #38bdf8, #818cf8); color: #020617; }
+    .btn-ghost { background: rgba(255, 255, 255, 0.07); color: #e2e8f0; }
+    .btn-danger { background: #ef4444; color: #ffffff; }
+    [data-theme="light"] .btn-ghost { background: rgba(15, 23, 42, 0.06); color: #0f172a; }
+
+    .grid { display: grid; gap: 0.7rem; }
+    .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    @media (max-width: 640px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+    .toast {
+      position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%) translateY(150%);
+      background: #1e293b; color: #ffffff; padding: 0.8rem 1.4rem; border-radius: 0.75rem;
+      font-size: 0.85rem; font-weight: 600; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+      z-index: 9999; opacity: 0; transition: transform 0.3s ease, opacity 0.3s ease; pointer-events: none;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+    .toast.error { background: #dc2626; }
+
+    /* ===== Acordeones del panel de control ===== */
+    .acc-card {
+      background: rgba(15, 23, 42, 0.55);
+      border: 1px solid rgba(56, 189, 248, 0.12);
+      border-radius: 1rem;
+      margin-bottom: 0.85rem;
+      overflow: hidden;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+    }
+    [data-theme="light"] .acc-card { background: #ffffff; border-color: #e2e8f0; box-shadow: 0 6px 20px rgba(15, 23, 42, 0.06); }
+    .acc-btn {
+      width: 100%;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      border-bottom: 1px solid rgba(56, 189, 248, 0.1);
+      gap: 0.5rem;
+      padding: 1rem 1.1rem;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-weight: 800;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #e2e8f0;
     }
-    .topbar h1 { 
-        font-size: 1.1rem; 
-        font-weight: 800; 
-        background: linear-gradient(to right, #38bdf8, #818cf8);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-    .container { max-width: 1000px; margin: 0 auto; padding: 2.5rem 1.5rem; }
-    .form-card {
-        background: var(--glass-bg);
-        backdrop-filter: var(--glass-blur);
-        -webkit-backdrop-filter: var(--glass-blur);
-        border-radius: 1.5rem;
-        border: 1px solid var(--glass-border);
-        padding: 2.5rem;
-        margin-bottom: 2rem;
-        animation: fadeInUp 0.6s var(--ease-out-expo);
-        box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-    }
-    .section-title {
-        font-size: 0.8rem;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 0.15em;
-        color: var(--glow-primary);
-        margin-bottom: 1.5rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-    .btn {
-        padding: 0.6rem 1.2rem;
-        border-radius: 0.75rem;
-        font-weight: 700;
-        font-size: 0.8rem;
-        cursor: pointer;
-        transition: all 0.3s var(--ease-out-expo);
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        border: 1px solid transparent;
-        text-decoration: none;
-    }
-    .btn-primary { background: linear-gradient(135deg, var(--glow-primary), var(--glow-secondary)); color: #020617; }
-    .btn-ghost { background: rgba(255,255,255,0.05); color: #fff; }
+    [data-theme="light"] .acc-btn { color: #0f172a; }
+    .acc-btn .acc-ico { color: #38bdf8; margin-right: 0.45rem; }
+    .acc-chev { opacity: 0.5; font-size: 0.7rem; transition: transform 0.3s ease; }
+    .acc-card:has(> .accordion-content.open) .acc-chev { transform: rotate(180deg); }
+    .accordion-content { max-height: 0; overflow: hidden; transition: max-height 0.4s ease-in-out; }
+    .accordion-content.open { max-height: 8000px; }
+    .acc-body { padding: 0 1.1rem 1.2rem; }
+
+    .section-actions { display: flex; justify-content: flex-end; margin-bottom: 0.8rem; }
+    .hint { font-size: 0.78rem; color: #94a3b8; margin: 0 0 0.9rem; line-height: 1.45; }
+    [data-theme="light"] .hint { color: #64748b; }
+
+    .grid-1 { display: grid; grid-template-columns: 1fr; }
     .apoyo {
       background: rgba(15, 23, 42, 0.4);
       border: 1px solid rgba(56, 189, 248, 0.1);
-      border-left: 4px solid var(--glow-primary);
+      border-left: 4px solid #38bdf8;
       border-radius: 1rem;
-      padding: 1.5rem;
+      padding: 1.2rem;
       margin-bottom: 1rem;
     }
-    input, select, textarea {
-        background: rgba(15, 23, 42, 0.5) !important;
-        border: 1px solid rgba(56, 189, 248, 0.1) !important;
-        border-radius: 0.75rem !important;
-        padding: 0.75rem 1rem !important;
-        color: #fff !important;
-        width: 100%;
-    }
-    label { font-size: 0.65rem; font-weight: 800; text-transform: uppercase; color: #64748b; margin-bottom: 0.5rem; display: block; }
-    .hint { font-size: 0.78rem; color: #94a3b8; margin: -0.2rem 0 0.9rem; line-height: 1.45; }
-    [data-theme="light"] .hint { color: #64748b; }
-    .grid-1 { display: grid; grid-template-columns: 1fr; }
-    .meta-card, .dua-card, .seg-row, .firma-row { background: rgba(15,23,42,0.4); border: 1px solid rgba(56,189,248,0.08); border-radius: 0.85rem; padding: 0.9rem 1rem; margin-bottom: 0.7rem; }
-
-    /* TOC sticky: navegación rápida entre las 8 secciones MINEDUC */
-    .toc-sticky {
-      position: sticky;
-      top: 1rem;
-      max-height: calc(100vh - 5rem);
-      overflow-y: auto;
-      padding: 1rem;
-      background: rgba(15,23,42,0.75);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(56,189,248,0.15);
-      border-radius: 1rem;
-      box-shadow: 0 12px 32px rgba(2,6,23,0.35);
-      font-size: 0.8rem;
-    }
-    .toc-sticky h3 {
-      font-size: 0.7rem;
-      font-weight: 800;
-      color: #94a3b8;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      margin-bottom: 0.6rem;
-    }
-    .toc-sticky ol { list-style: none; padding: 0; margin: 0; }
-    .toc-sticky li { margin-bottom: 0.35rem; }
-    .toc-sticky a {
-      display: flex;
-      align-items: center;
-      gap: 0.55rem;
-      padding: 0.5rem 0.65rem;
-      border-radius: 0.55rem;
-      color: #cbd5e1;
-      text-decoration: none;
-      font-size: 0.78rem;
-      font-weight: 600;
-      transition: background 0.15s ease, color 0.15s ease;
-    }
-    .toc-sticky a:hover { background: rgba(56,189,248,0.12); color: #f1f5f9; }
-    .toc-sticky a.active { background: rgba(56,189,248,0.2); color: #38bdf8; }
-    .toc-sticky a i { width: 16px; font-size: 0.78rem; opacity: 0.7; }
-    [data-theme="light"] .toc-sticky { background: #ffffff; border-color: #e2e8f0; box-shadow: 0 12px 32px rgba(15,23,42,0.08); }
-    [data-theme="light"] .toc-sticky h3 { color: #64748b; }
-    [data-theme="light"] .toc-sticky a { color: #475569; }
-    [data-theme="light"] .toc-sticky a:hover { background: #f1f5f9; color: #0f172a; }
-    [data-theme="light"] .toc-sticky a.active { background: #dbeafe; color: #1d4ed8; }
-
-    /* Layout: TOC al lado del contenido en pantallas anchas */
-    .pai-layout { display: grid; grid-template-columns: 1fr; gap: 1.2rem; }
-    @media (min-width: 1024px) {
-      .pai-layout { grid-template-columns: 220px 1fr; align-items: start; }
-    }
-    @media (max-width: 1023px) {
-      .toc-sticky { display: none; }
+    .apoyo-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.7rem; }
+    .apoyo-head .titulo { font-weight: 800; font-size: 0.8rem; color: #e2e8f0; }
+    [data-theme="light"] .apoyo-head .titulo { color: #0f172a; }
+    .meta-card, .dua-card, .seg-row, .firma-row {
+      background: rgba(15, 23, 42, 0.4);
+      border: 1px solid rgba(56, 189, 248, 0.08);
+      border-radius: 0.85rem;
+      padding: 0.9rem 1rem;
+      margin-bottom: 0.7rem;
     }
     .meta-card .meta-head, .dua-card .dua-head { display: flex; align-items: center; gap: 0.55rem; margin-bottom: 0.55rem; font-weight: 700; color: #e2e8f0; }
     .meta-card .meta-head i, .dua-card .dua-head i { color: #38bdf8; font-size: 1rem; }
     .dua-card .dua-hint { font-size: 0.72rem; color: #94a3b8; margin-bottom: 0.5rem; }
-    [data-theme="light"] .meta-card, [data-theme="light"] .dua-card, [data-theme="light"] .seg-row, [data-theme="light"] .firma-row {
-      background: #ffffff; border-color: #e2e8f0;
+    [data-theme="light"] .apoyo, [data-theme="light"] .meta-card, [data-theme="light"] .dua-card, [data-theme="light"] .seg-row, [data-theme="light"] .firma-row {
+      background: #f8fafc; border-color: #e2e8f0;
     }
     [data-theme="light"] .meta-card .meta-head, [data-theme="light"] .dua-card .dua-head { color: #0f172a; }
     [data-theme="light"] .meta-card .meta-head i, [data-theme="light"] .dua-card .dua-head i { color: #1e40af; }
     [data-theme="light"] .dua-card .dua-hint { color: #475569; }
+    .empty { font-size: 0.8rem; color: #94a3b8; padding: 0.6rem 0; }
+    [data-theme="light"] .empty { color: #64748b; }
+    .req { color: #f472b6; }
+
+    /* ===== Responsive: en pantallas chicas, apilar vertical ===== */
+    @media (max-width: 1023px) {
+      html, body { height: auto; overflow: auto; }
+      body { flex-direction: column; }
+      #control-panel { width: 100% !important; height: auto !important; max-height: 70vh; }
+      #preview-panel { height: auto !important; }
+    }
   </style>
 </head>
 <body>
-  <header class="topbar">
-    <div>
-      <img class="brand-logo" src="/assets/canva/logo.png" alt="PIE MASTER">
-      <div>
-        <h1><i class="fa-solid fa-hands-holding-child" aria-hidden="true"></i> Plan de Apoyo Individual (PAI)</h1>
-        <div class="sub" id="tenant-name">Cargando establecimiento…</div>
+
+  <!-- ====================== PANEL DE CONTROL (IZQUIERDA) ====================== -->
+  <aside id="control-panel" style="width:40%;min-width:360px;height:100%;flex-shrink:0;display:flex;flex-direction:column; background: rgba(13, 19, 36, 0.95); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);" class="border-r border-slate-700 z-20">
+
+    <!-- Encabezado del panel -->
+    <div class="p-4 bg-slate-900 text-white flex justify-between items-center border-b border-slate-700" style="gap:0.6rem;">
+      <div class="flex items-center gap-3" style="min-width:0;">
+        <img class="brand-logo-app" src="/assets/canva/logo.png" alt="PIE MASTER">
+        <div style="min-width:0;">
+          <p class="text-sm font-black tracking-tighter uppercase leading-none text-slate-100">Editor de PAI</p>
+          <p class="text-[10px] text-blue-400 font-bold uppercase tracking-widest mt-1" id="tenant-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Cargando…</p>
+        </div>
       </div>
-    </div>
-    <nav class="topbar-actions" aria-label="Acciones del documento">
-      <a href="/dashboard.html" class="btn btn-ghost btn-sm"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Volver</a>
-      <button type="button" id="theme-toggle" class="btn btn-ghost btn-sm" onclick="toggleTheme()" title="Cambiar entre modo claro y oscuro" aria-label="Cambiar entre modo claro y oscuro"><i class="fa-solid fa-moon" aria-hidden="true"></i></button>
-      <button type="button" class="btn btn-green btn-sm" onclick="descargarPDF()"><i class="fa-solid fa-download" aria-hidden="true"></i> PDF</button>
-      <button type="button" class="btn btn-amber btn-sm" onclick="imprimir()"><i class="fa-solid fa-print" aria-hidden="true"></i> Imprimir</button>
-      <button type="button" id="btn-guardar" class="btn btn-primary btn-sm" onclick="guardar()"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Guardar</button>
-    </nav>
-  </header>
-
-  <div class="wrap">
-    <div class="pai-layout">
-
-    <!-- Tabla de contenidos sticky: navegación rápida MINEDUC -->
-    <nav class="toc-sticky" aria-label="Tabla de contenidos del PAI">
-      <h3><i class="fa-solid fa-list-ul"></i> Secciones</h3>
-      <ol>
-        <li><a href="#sec-1" class="active"><i class="fa-solid fa-user-graduate"></i> 1. Datos</a></li>
-        <li><a href="#sec-2"><i class="fa-solid fa-stethoscope"></i> 2. Evaluación</a></li>
-        <li><a href="#sec-3"><i class="fa-solid fa-people-arrows"></i> 3. Apoyos</a></li>
-        <li><a href="#sec-4"><i class="fa-solid fa-bullseye"></i> 4. Metas</a></li>
-        <li><a href="#sec-5"><i class="fa-solid fa-lightbulb"></i> 5. DUA</a></li>
-        <li><a href="#sec-6"><i class="fa-solid fa-calendar-check"></i> 6. Seguimiento</a></li>
-        <li><a href="#sec-7"><i class="fa-solid fa-user-group"></i> 7. Equipo PIE</a></li>
-        <li><a href="#sec-8"><i class="fa-solid fa-signature"></i> 8. Firmas</a></li>
-      </ol>
-    </nav>
-
-    <div class="pai-content">
-    <!-- 1. Datos del estudiante -->
-    <div class="card" id="sec-1">
-      <h2><i class="fa-solid fa-user-graduate" aria-hidden="true"></i> 1. Datos del estudiante</h2>
-      <div class="grid grid-2">
-        <div>
-          <label for="in-nombre">Nombre completo <span class="req" aria-hidden="true">*</span></label>
-          <input id="in-nombre" type="text" placeholder="Nombre del estudiante" autocomplete="off" required aria-required="true">
-        </div>
-        <div>
-          <label for="in-rut">RUT</label>
-          <input id="in-rut" type="text" placeholder="12.345.678-9" autocomplete="off" inputmode="text">
-        </div>
-        <div>
-          <label for="in-fnac">Fecha de nacimiento</label>
-          <input id="in-fnac" type="date">
-        </div>
-        <div>
-          <label for="in-curso">Curso / Nivel</label>
-          <input id="in-curso" type="text" placeholder="Ej: 3° Básico" autocomplete="off">
-        </div>
-        <div>
-          <label for="in-diagnostico">Diagnóstico / NEE</label>
-          <input id="in-diagnostico" type="text" placeholder="Ej: TEL Mixto" autocomplete="off">
-        </div>
-        <div>
-          <label for="in-ano">Año escolar</label>
-          <input id="in-ano" type="number" value="2026" inputmode="numeric" min="2020" max="2100">
-        </div>
-        <div>
-          <label for="in-periodo">Período del plan</label>
-          <select id="in-periodo">
-            <option value="Anual" selected>Anual</option>
-            <option value="1er Trimestre">1er Trimestre</option>
-            <option value="2do Trimestre">2do Trimestre</option>
-            <option value="3er Trimestre">3er Trimestre</option>
-          </select>
-        </div>
-        <div style="grid-column: 1 / -1;">
-          <label for="in-antecedentes">Antecedentes de salud relevantes</label>
-          <textarea id="in-antecedentes" rows="2" placeholder="Medicación, tratamientos, alergias, atenciones externas, etc."></textarea>
-        </div>
+      <div class="flex gap-2" style="flex-wrap:wrap;justify-content:flex-end;">
+        <a href="/dashboard.html" class="bg-slate-700 hover:bg-slate-600 text-white p-2.5 rounded-lg transition active:scale-95 shadow-lg text-xs font-bold flex items-center" title="Volver al panel" style="text-decoration:none;">
+          <i class="fa-solid fa-arrow-left"></i>
+        </a>
+        <button type="button" id="theme-toggle" onclick="toggleTheme()" class="bg-slate-700 hover:bg-slate-600 text-white p-2.5 rounded-lg transition active:scale-95 shadow-lg text-xs font-bold" title="Cambiar entre modo claro y oscuro" aria-label="Cambiar entre modo claro y oscuro">
+          <i class="fa-solid fa-moon"></i>
+        </button>
+        <button type="button" onclick="imprimir()" class="bg-slate-700 hover:bg-slate-600 text-white p-2.5 rounded-lg transition active:scale-95 shadow-lg text-xs font-bold" title="Imprimir">
+          <i class="fa-solid fa-print"></i>
+        </button>
+        <button type="button" onclick="descargarPDF()" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-2.5 rounded-lg transition active:scale-95 shadow-lg text-xs font-bold flex items-center gap-1" title="Descargar como PDF">
+          <i class="fa-solid fa-download"></i> PDF
+        </button>
+        <button type="button" id="btn-guardar" onclick="guardar()" class="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-2.5 rounded-lg transition active:scale-95 shadow-lg text-xs font-bold flex items-center gap-1" title="Guardar en la nube">
+          <i class="fa-solid fa-cloud-arrow-up"></i> Guardar
+        </button>
       </div>
     </div>
 
-    <!-- 2. Evaluación diagnóstica integral -->
-    <div class="card" id="sec-2">
-      <h2><i class="fa-solid fa-stethoscope" aria-hidden="true"></i> 2. Evaluación diagnóstica integral</h2>
-      <p class="hint">Resumen de la evaluación inicial multidisciplinaria (educación diferencial, fonoaudiología, psicología, etc.).</p>
-      <div class="grid grid-1" style="gap:0.9rem;">
-        <div>
-          <label for="in-fortalezas"><i class="fa-solid fa-star" aria-hidden="true"></i> Fortalezas detectadas</label>
-          <textarea id="in-fortalezas" rows="3" placeholder="Habilidades, intereses y aspectos positivos del estudiante."></textarea>
-        </div>
-        <div>
-          <label for="in-dificultades"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Dificultades detectadas</label>
-          <textarea id="in-dificultades" rows="3" placeholder="Áreas de descenso o desafíos significativos."></textarea>
-        </div>
-        <div>
-          <label for="in-barreras"><i class="fa-solid fa-road-barrier" aria-hidden="true"></i> Barreras del entorno</label>
-          <textarea id="in-barreras" rows="3" placeholder="Barreras del aula, familia, accesibilidad, recursos, etc."></textarea>
+    <!-- Contenido scrolleable: 8 secciones en acordeones -->
+    <div style="flex:1 1 auto;overflow-y:scroll;padding:1rem;">
+
+      <!-- 1. Datos del estudiante -->
+      <div class="acc-card">
+        <button type="button" class="acc-btn" onclick="toggleAcc('acc-1')">
+          <span><i class="fa-solid fa-user-graduate acc-ico"></i> 1. Datos del estudiante</span>
+          <i class="fa-solid fa-chevron-down acc-chev"></i>
+        </button>
+        <div id="acc-1" class="accordion-content open">
+          <div class="acc-body">
+            <div class="grid grid-2">
+              <div>
+                <label for="in-nombre">Nombre completo <span class="req" aria-hidden="true">*</span></label>
+                <input id="in-nombre" type="text" placeholder="Nombre del estudiante" autocomplete="off" required aria-required="true" oninput="updatePreviewPAI()">
+              </div>
+              <div>
+                <label for="in-rut">RUT</label>
+                <input id="in-rut" type="text" placeholder="12.345.678-9" autocomplete="off" inputmode="text" oninput="updatePreviewPAI()">
+              </div>
+              <div>
+                <label for="in-fnac">Fecha de nacimiento</label>
+                <input id="in-fnac" type="date" onchange="updatePreviewPAI()">
+              </div>
+              <div>
+                <label for="in-curso">Curso / Nivel</label>
+                <input id="in-curso" type="text" placeholder="Ej: 3° Básico" autocomplete="off" oninput="updatePreviewPAI()">
+              </div>
+              <div>
+                <label for="in-diagnostico">Diagnóstico / NEE</label>
+                <input id="in-diagnostico" type="text" placeholder="Ej: TEL Mixto" autocomplete="off" oninput="updatePreviewPAI()">
+              </div>
+              <div>
+                <label for="in-ano">Año escolar</label>
+                <input id="in-ano" type="number" value="2026" inputmode="numeric" min="2020" max="2100" oninput="updatePreviewPAI()">
+              </div>
+              <div>
+                <label for="in-periodo">Período del plan</label>
+                <select id="in-periodo" onchange="updatePreviewPAI()">
+                  <option value="Anual" selected>Anual</option>
+                  <option value="1er Trimestre">1er Trimestre</option>
+                  <option value="2do Trimestre">2do Trimestre</option>
+                  <option value="3er Trimestre">3er Trimestre</option>
+                </select>
+              </div>
+              <div style="grid-column: 1 / -1;">
+                <label for="in-antecedentes">Antecedentes de salud relevantes</label>
+                <textarea id="in-antecedentes" rows="2" placeholder="Medicación, tratamientos, alergias, atenciones externas, etc." oninput="updatePreviewPAI()"></textarea>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- 3. Organización de los apoyos -->
-    <div class="card" id="sec-3">
-      <h2>
-        <i class="fa-solid fa-people-arrows" aria-hidden="true"></i> 3. Organización de los apoyos
-        <button type="button" class="btn btn-primary btn-sm" style="margin-left:auto;" onclick="agregarApoyo()">
-          <i class="fa-solid fa-plus" aria-hidden="true"></i> Agregar apoyo
+      <!-- 2. Evaluación diagnóstica integral -->
+      <div class="acc-card">
+        <button type="button" class="acc-btn" onclick="toggleAcc('acc-2')">
+          <span><i class="fa-solid fa-stethoscope acc-ico"></i> 2. Evaluación diagnóstica</span>
+          <i class="fa-solid fa-chevron-down acc-chev"></i>
         </button>
-      </h2>
-      <p class="hint">Profesionales que intervienen, frecuencia y modalidad (aula común vs aula de recursos).</p>
-      <div id="apoyos-list"></div>
-    </div>
+        <div id="acc-2" class="accordion-content">
+          <div class="acc-body">
+            <p class="hint">Resumen de la evaluación inicial multidisciplinaria (educación diferencial, fonoaudiología, psicología, etc.).</p>
+            <div class="grid grid-1" style="gap:0.9rem;">
+              <div>
+                <label for="in-fortalezas"><i class="fa-solid fa-star" aria-hidden="true"></i> Fortalezas detectadas</label>
+                <textarea id="in-fortalezas" rows="3" placeholder="Habilidades, intereses y aspectos positivos del estudiante." oninput="updatePreviewPAI()"></textarea>
+              </div>
+              <div>
+                <label for="in-dificultades"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Dificultades detectadas</label>
+                <textarea id="in-dificultades" rows="3" placeholder="Áreas de descenso o desafíos significativos." oninput="updatePreviewPAI()"></textarea>
+              </div>
+              <div>
+                <label for="in-barreras"><i class="fa-solid fa-road-barrier" aria-hidden="true"></i> Barreras del entorno</label>
+                <textarea id="in-barreras" rows="3" placeholder="Barreras del aula, familia, accesibilidad, recursos, etc." oninput="updatePreviewPAI()"></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-    <!-- 4. Metas de apoyo por área -->
-    <div class="card" id="sec-4">
-      <h2><i class="fa-solid fa-bullseye" aria-hidden="true"></i> 4. Metas de apoyo generales</h2>
-      <p class="hint">Objetivos por área de desarrollo (norma MINEDUC).</p>
-      <div id="metas-list"></div>
-    </div>
-
-    <!-- 5. Estrategias diversificadas DUA -->
-    <div class="card" id="sec-5">
-      <h2><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> 5. Estrategias diversificadas (DUA)</h2>
-      <p class="hint">Adaptaciones universales basadas en el Diseño Universal para el Aprendizaje.</p>
-      <div id="dua-list"></div>
-    </div>
-
-    <!-- 6. Seguimiento y evaluación -->
-    <div class="card" id="sec-6">
-      <h2>
-        <i class="fa-solid fa-calendar-check" aria-hidden="true"></i> 6. Seguimiento y evaluación
-        <button type="button" class="btn btn-primary btn-sm" style="margin-left:auto;" onclick="agregarSeguimiento()">
-          <i class="fa-solid fa-plus" aria-hidden="true"></i> Agregar revisión
+      <!-- 3. Organización de los apoyos -->
+      <div class="acc-card">
+        <button type="button" class="acc-btn" onclick="toggleAcc('acc-3')">
+          <span><i class="fa-solid fa-people-arrows acc-ico"></i> 3. Organización de los apoyos</span>
+          <i class="fa-solid fa-chevron-down acc-chev"></i>
         </button>
-      </h2>
-      <p class="hint">Fechas de revisión, estado de avance y observaciones.</p>
-      <div id="seguimiento-list"></div>
-    </div>
+        <div id="acc-3" class="accordion-content">
+          <div class="acc-body">
+            <p class="hint">Profesionales que intervienen, frecuencia y modalidad (aula común vs aula de recursos).</p>
+            <div class="section-actions">
+              <button type="button" class="btn btn-primary btn-sm" onclick="agregarApoyo()">
+                <i class="fa-solid fa-plus" aria-hidden="true"></i> Agregar apoyo
+              </button>
+            </div>
+            <div id="apoyos-list"></div>
+          </div>
+        </div>
+      </div>
 
-    <!-- 7. Equipo de apoyo (PIE) -->
-    <div class="card" id="sec-7">
-      <h2>
-        <i class="fa-solid fa-user-group" aria-hidden="true"></i> 7. Equipo de apoyo (PIE)
-        <button type="button" class="btn btn-primary btn-sm" style="margin-left:auto;" onclick="agregarMiembro()">
-          <i class="fa-solid fa-plus" aria-hidden="true"></i> Agregar profesional
+      <!-- 4. Metas de apoyo por área -->
+      <div class="acc-card">
+        <button type="button" class="acc-btn" onclick="toggleAcc('acc-4')">
+          <span><i class="fa-solid fa-bullseye acc-ico"></i> 4. Metas de apoyo por área</span>
+          <i class="fa-solid fa-chevron-down acc-chev"></i>
         </button>
-      </h2>
-      <div id="equipo-list"></div>
-    </div>
+        <div id="acc-4" class="accordion-content">
+          <div class="acc-body">
+            <p class="hint">Objetivos por área de desarrollo (norma MINEDUC).</p>
+            <div id="metas-list"></div>
+          </div>
+        </div>
+      </div>
 
-    <!-- 8. Firmas y compromisos -->
-    <div class="card" id="sec-8">
-      <h2>
-        <i class="fa-solid fa-signature" aria-hidden="true"></i> 8. Firmas y compromisos
-        <button type="button" class="btn btn-primary btn-sm" style="margin-left:auto;" onclick="agregarFirma()">
-          <i class="fa-solid fa-plus" aria-hidden="true"></i> Agregar firma
+      <!-- 5. Estrategias diversificadas DUA -->
+      <div class="acc-card">
+        <button type="button" class="acc-btn" onclick="toggleAcc('acc-5')">
+          <span><i class="fa-solid fa-lightbulb acc-ico"></i> 5. Estrategias diversificadas (DUA)</span>
+          <i class="fa-solid fa-chevron-down acc-chev"></i>
         </button>
-      </h2>
-      <p class="hint">Registro formal de aceptación del plan: familia, dirección, docentes, equipo PIE.</p>
-      <div id="firmas-list"></div>
-    </div>
+        <div id="acc-5" class="accordion-content">
+          <div class="acc-body">
+            <p class="hint">Adaptaciones universales basadas en el Diseño Universal para el Aprendizaje.</p>
+            <div id="dua-list"></div>
+          </div>
+        </div>
+      </div>
 
-    </div><!-- /.pai-content -->
-    </div><!-- /.pai-layout -->
-  </div>
+      <!-- 6. Seguimiento y evaluación -->
+      <div class="acc-card">
+        <button type="button" class="acc-btn" onclick="toggleAcc('acc-6')">
+          <span><i class="fa-solid fa-calendar-check acc-ico"></i> 6. Seguimiento y evaluación</span>
+          <i class="fa-solid fa-chevron-down acc-chev"></i>
+        </button>
+        <div id="acc-6" class="accordion-content">
+          <div class="acc-body">
+            <p class="hint">Fechas de revisión, estado de avance y observaciones.</p>
+            <div class="section-actions">
+              <button type="button" class="btn btn-primary btn-sm" onclick="agregarSeguimiento()">
+                <i class="fa-solid fa-plus" aria-hidden="true"></i> Agregar revisión
+              </button>
+            </div>
+            <div id="seguimiento-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 7. Equipo de apoyo (PIE) -->
+      <div class="acc-card">
+        <button type="button" class="acc-btn" onclick="toggleAcc('acc-7')">
+          <span><i class="fa-solid fa-user-group acc-ico"></i> 7. Equipo de apoyo (PIE)</span>
+          <i class="fa-solid fa-chevron-down acc-chev"></i>
+        </button>
+        <div id="acc-7" class="accordion-content">
+          <div class="acc-body">
+            <div class="section-actions">
+              <button type="button" class="btn btn-primary btn-sm" onclick="agregarMiembro()">
+                <i class="fa-solid fa-plus" aria-hidden="true"></i> Agregar profesional
+              </button>
+            </div>
+            <div id="equipo-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 8. Firmas y compromisos -->
+      <div class="acc-card">
+        <button type="button" class="acc-btn" onclick="toggleAcc('acc-8')">
+          <span><i class="fa-solid fa-signature acc-ico"></i> 8. Firmas y compromisos</span>
+          <i class="fa-solid fa-chevron-down acc-chev"></i>
+        </button>
+        <div id="acc-8" class="accordion-content">
+          <div class="acc-body">
+            <p class="hint">Registro formal de aceptación del plan: familia, dirección, docentes, equipo PIE.</p>
+            <div class="section-actions">
+              <button type="button" class="btn btn-primary btn-sm" onclick="agregarFirma()">
+                <i class="fa-solid fa-plus" aria-hidden="true"></i> Agregar firma
+              </button>
+            </div>
+            <div id="firmas-list"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </aside>
+
+  <!-- ====================== VISTA PREVIA DEL DOCUMENTO (DERECHA) ====================== -->
+  <main id="preview-panel" style="flex:1 1 auto;height:100%;overflow-y:scroll;padding:2rem" class="bg-slate-200">
+    <div id="documento" class="max-w-4xl mx-auto p-14 shadow-2xl min-h-full border border-slate-300" style="font-family:'Merriweather','Georgia','Charter',serif;font-size:12pt;line-height:1.5;color:#1a1a2e;background-color:#FAFAF8;">
+      <!-- Generado por updatePreviewPAI() -->
+    </div>
+  </main>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -517,12 +479,35 @@
       if (ic) ic.className = (document.documentElement.getAttribute('data-theme') === 'dark') ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
     }
 
-    // Escapar texto para insertarlo de forma segura en HTML (PDF/impresion).
+    // ===== Acordeones (igual que el editor PACI) =====
+    function toggleAcc(id) {
+      const el = $(id);
+      if (el) el.classList.toggle('open');
+    }
+
+    // Escapar texto para insertarlo de forma segura en HTML (previa/PDF/impresion).
     const escapeHtml = (s) => String(s == null ? '' : s)
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;');
+
+    // Texto con saltos de linea -> <br>; vacio -> guion.
+    const txt = (s) => (s && String(s).trim()) ? escapeHtml(s).replace(/\n/g, '<br>') : '—';
+
+    // Fecha ISO (YYYY-MM-DD) -> DD/MM/YYYY. Si no calza, devuelve tal cual.
+    function fmtFecha(s) {
+      if (!s) return '';
+      const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s);
+      return m ? (m[3] + '/' + m[2] + '/' + m[1]) : s;
+    }
+    function fmtFechaHora(iso) {
+      try {
+        const dt = new Date(iso);
+        if (isNaN(dt.getTime())) return '';
+        return dt.toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' });
+      } catch (e) { return ''; }
+    }
 
     function toast(msg, isError) {
       const t = $('toast');
@@ -556,6 +541,7 @@
       const cont = $('apoyos-list');
       if (!state.apoyos.length) {
         cont.innerHTML = '<div class="empty">Aún no hay apoyos. Presiona "Agregar apoyo" para comenzar.</div>';
+        updatePreviewPAI();
         return;
       }
       cont.innerHTML = state.apoyos.map((a, i) => {
@@ -582,11 +568,13 @@
             '<div style="margin-top:0.75rem;"><label>Objetivo del apoyo</label><textarea oninput="setApoyo(' + a._id + ',\'objetivo\',this.value)" placeholder="¿Qué se busca lograr con este apoyo?">' + escapeHtml(a.objetivo) + '</textarea></div>' +
           '</div>';
       }).join('');
+      updatePreviewPAI();
     }
 
     function setApoyo(id, campo, valor) {
       const a = state.apoyos.find((x) => x._id === id);
       if (a) a[campo] = valor;
+      updatePreviewPAI();
     }
 
     // ====== Equipo ======
@@ -605,6 +593,7 @@
       const cont = $('equipo-list');
       if (!state.equipo.length) {
         cont.innerHTML = '<div class="empty">Opcional: agrega los profesionales del equipo PIE.</div>';
+        updatePreviewPAI();
         return;
       }
       cont.innerHTML = state.equipo.map((m) =>
@@ -616,11 +605,13 @@
           '</div>' +
         '</div>'
       ).join('');
+      updatePreviewPAI();
     }
 
     function setMiembro(id, campo, valor) {
       const m = state.equipo.find((x) => x._id === id);
       if (m) m[campo] = valor;
+      updatePreviewPAI();
     }
 
     // ====== Metas de apoyo por área ======
@@ -637,11 +628,13 @@
             '</div>' +
           '</div>';
       }).join('');
+      updatePreviewPAI();
     }
     function setMeta(areaKey, campo, valor) {
       let m = state.metas.find((x) => x.area === areaKey);
       if (!m) { m = { area: areaKey, meta: '', indicador: '' }; state.metas.push(m); }
       m[campo] = valor;
+      updatePreviewPAI();
     }
 
     // ====== Estrategias DUA ======
@@ -656,11 +649,13 @@
             '<textarea rows="2" placeholder="Estrategias diversificadas a aplicar..." oninput="setDua(\'' + p.key + '\',this.value)">' + escapeHtml(e.estrategia) + '</textarea>' +
           '</div>';
       }).join('');
+      updatePreviewPAI();
     }
     function setDua(principioKey, valor) {
       let e = state.estrategiasDua.find((x) => x.principio === principioKey);
       if (!e) { e = { principio: principioKey, estrategia: '' }; state.estrategiasDua.push(e); }
       e.estrategia = valor;
+      updatePreviewPAI();
     }
 
     // ====== Seguimiento ======
@@ -681,11 +676,13 @@
     function setSeguimiento(id, campo, valor) {
       const s = state.seguimiento.find((x) => x._id === id);
       if (s) s[campo] = valor;
+      updatePreviewPAI();
     }
     function renderSeguimiento() {
       const cont = $('seguimiento-list');
       if (!state.seguimiento.length) {
         cont.innerHTML = '<div class="empty">Sin revisiones programadas. Agrega fechas tentativas de seguimiento.</div>';
+        updatePreviewPAI();
         return;
       }
       cont.innerHTML = state.seguimiento.map((s) => {
@@ -702,6 +699,7 @@
             '</div>' +
           '</div>';
       }).join('');
+      updatePreviewPAI();
     }
 
     // ====== Firmas y compromisos ======
@@ -723,6 +721,7 @@
     function setFirma(id, campo, valor) {
       const f = state.firmas.find((x) => x._id === id);
       if (f) f[campo] = valor;
+      updatePreviewPAI();
     }
     function marcarFirma(id) {
       const f = state.firmas.find((x) => x._id === id);
@@ -734,6 +733,7 @@
       const cont = $('firmas-list');
       if (!state.firmas.length) {
         cont.innerHTML = '<div class="empty">Sin firmas registradas. Agrega los roles que aceptan el plan.</div>';
+        updatePreviewPAI();
         return;
       }
       cont.innerHTML = state.firmas.map((f) => {
@@ -753,7 +753,7 @@
               '<div><label>Rol</label><select onchange="setFirma(' + f._id + ',\'rol\',this.value)">' + roles + '</select></div>' +
               '<div><label>Nombre</label><input type="text" placeholder="Nombre del firmante" value="' + escapeHtml(f.nombre) + '" oninput="setFirma(' + f._id + ',\'nombre\',this.value)"></div>' +
               '<div style="display:flex;gap:0.5rem;align-items:end;">' +
-                '<div style="flex:1;"><label>Email / Contacto</label><input type="email" placeholder="email@correo.cl" value="' + escapeHtml(f.email) + '" oninput="setFirma(' + f._id + ',\'email\',this.value)"></div>' +
+                '<div style="flex:1;"><label>Email / Contacto</label><input type="text" inputmode="email" placeholder="email@correo.cl" value="' + escapeHtml(f.email) + '" oninput="setFirma(' + f._id + ',\'email\',this.value)"></div>' +
               '</div>' +
             '</div>' +
             '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.6rem;">' +
@@ -765,6 +765,7 @@
             '</div>' +
           '</div>';
       }).join('');
+      updatePreviewPAI();
     }
 
     // ====== Recolectar datos del formulario ======
@@ -837,67 +838,152 @@
       }
     }
 
-    // ====== Construir HTML imprimible del PAI ======
+    // ======================================================================
+    // CUERPO DEL DOCUMENTO PAI
+    // Builder único: lo usan la vista previa en vivo (#documento) y la
+    // version imprimible/PDF (construirHtmlImpresion). Estilos inline para
+    // que se vea igual con o sin las hojas de estilo de la app.
+    // ======================================================================
+    const DOC = {
+      table: 'width:100%;border-collapse:collapse;border:2px solid #a3c2f5;margin:0 0 12px;',
+      th: 'background-color:#a3c2f5;color:#091845;font-weight:800;text-transform:uppercase;font-size:9px;letter-spacing:0.04em;padding:8px 10px;text-align:left;border:1px solid #cbd5e1;',
+      td: 'padding:8px 10px;border:1px solid #cbd5e1;color:#1a1a2e;font-size:11px;vertical-align:top;',
+      lbl: 'background-color:#a3c2f5;color:#091845;font-weight:800;text-transform:uppercase;font-size:9px;letter-spacing:0.03em;padding:8px 10px;border:1px solid #cbd5e1;width:140px;white-space:nowrap;vertical-align:top;',
+      val: 'padding:8px 10px;border:1px solid #cbd5e1;color:#1a1a2e;font-size:11.5px;font-weight:600;vertical-align:top;',
+      box: 'border:1px solid #cbd5e1;border-left:4px solid #1240c4;border-radius:0 6px 6px 0;padding:10px 12px;margin-bottom:8px;background:#f4f7fd;',
+      boxLbl: 'font-weight:800;font-size:9.5px;text-transform:uppercase;color:#091845;letter-spacing:0.05em;display:block;margin-bottom:3px;'
+    };
+    const secHeader = (num, title) =>
+      '<h3 class="paci-header" style="background-color:#091845;background-image:linear-gradient(135deg,#091845 0%,#1240c4 100%);' +
+      'padding:11px 16px;font-size:13px;letter-spacing:0.12em;color:#ffffff;font-weight:800;text-transform:uppercase;' +
+      'border-radius:6px;margin:18px 0 12px;-webkit-print-color-adjust:exact;print-color-adjust:exact;">' + num + '. ' + escapeHtml(title) + '</h3>';
+    const th = (t) => '<th style="' + DOC.th + '">' + escapeHtml(t) + '</th>';
+    const td = (v) => '<td style="' + DOC.td + '">' + txt(v) + '</td>';
+    const datosRow = (l1, v1, l2, v2) =>
+      '<tr><td style="' + DOC.lbl + '">' + escapeHtml(l1) + '</td><td style="' + DOC.val + '">' + txt(v1) + '</td>' +
+      '<td style="' + DOC.lbl + '">' + escapeHtml(l2) + '</td><td style="' + DOC.val + '">' + txt(v2) + '</td></tr>';
+    const evalBox = (lbl, val) =>
+      '<div style="' + DOC.box + '"><span style="' + DOC.boxLbl + '">' + escapeHtml(lbl) + '</span>' + txt(val) + '</div>';
+
+    function construirCuerpoDocumento(d, cfg) {
+      cfg = cfg || { nombre: 'Establecimiento' };
+
+      // --- Encabezado del documento ---
+      let html = '' +
+        '<div style="text-align:center;border-bottom:3px solid #091845;padding-bottom:14px;margin-bottom:6px;">' +
+          '<div style="font-size:34px;font-weight:900;letter-spacing:-1px;color:#091845;line-height:1;">PAI</div>' +
+          '<div style="width:64px;height:4px;background:#1240c4;margin:6px auto 8px;border-radius:9999px;"></div>' +
+          '<div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:0.16em;color:#475569;">Plan de Apoyo Individual</div>' +
+          '<div style="font-size:11px;font-weight:800;text-transform:uppercase;color:#1a1a2e;margin-top:6px;">' + escapeHtml(cfg.nombre || 'Establecimiento') + '</div>' +
+          '<div style="font-size:9.5px;font-weight:700;text-transform:uppercase;color:#64748b;margin-top:2px;">Programa de Integración Escolar · Decreto N° 170 / N° 83</div>' +
+          '<div style="font-size:9.5px;color:#64748b;margin-top:2px;">Año escolar: ' + escapeHtml(d.student.anoEscolar || '—') + ' · Período: ' + escapeHtml(d.trimester || '—') + '</div>' +
+        '</div>' +
+        '<div style="height:3px;background:linear-gradient(to right,#1240c4,#091845,#1240c4);border-radius:9999px;margin:10px 0 4px;"></div>';
+
+      // --- I. Datos del estudiante ---
+      html += secHeader('I', 'Datos del estudiante') +
+        '<table style="' + DOC.table + '">' +
+          datosRow('Nombre', d.student.name, 'RUT', d.student.rut) +
+          datosRow('Fecha de nacimiento', fmtFecha(d.student.birthDate), 'Curso / Nivel', d.student.curso) +
+          datosRow('Diagnóstico / NEE', d.student.diagnosis, 'Año escolar', d.student.anoEscolar) +
+        '</table>' +
+        '<div style="' + DOC.box + '"><span style="' + DOC.boxLbl + '">Antecedentes de salud relevantes</span>' + txt(d.antecedentesSalud) + '</div>';
+
+      // --- II. Evaluación diagnóstica integral ---
+      html += secHeader('II', 'Evaluación diagnóstica integral') +
+        evalBox('Fortalezas detectadas', d.evaluacion.fortalezas) +
+        evalBox('Dificultades detectadas', d.evaluacion.dificultades) +
+        evalBox('Barreras del entorno', d.evaluacion.barreras);
+
+      // --- III. Organización de los apoyos ---
+      const filasApoyos = d.apoyos.length
+        ? d.apoyos.map((a, i) =>
+            '<tr><td style="' + DOC.td + '">' + (i + 1) + '</td>' + td(a.profesional) + td(a.tipoApoyo) +
+            td(a.modalidad) + td(a.frecuencia) + td(a.horas) + td(a.periodo) + td(a.objetivo) + '</tr>'
+          ).join('')
+        : '<tr><td style="' + DOC.td + '" colspan="8">Sin apoyos registrados.</td></tr>';
+      html += secHeader('III', 'Organización de los apoyos') +
+        '<table style="' + DOC.table + '"><thead><tr>' +
+          th('#') + th('Profesional') + th('Tipo') + th('Modalidad') + th('Frecuencia') + th('Horas') + th('Período') + th('Objetivo') +
+        '</tr></thead><tbody>' + filasApoyos + '</tbody></table>';
+
+      // --- IV. Metas de apoyo por área ---
+      html += secHeader('IV', 'Metas de apoyo por área') +
+        AREAS_PAI.map((a) => {
+          const m = (d.metas || []).find((x) => x.area === a.key) || {};
+          return '<div style="' + DOC.box + 'border-left-color:#091845;">' +
+            '<span style="' + DOC.boxLbl + '">' + escapeHtml(a.label) + '</span>' +
+            '<div style="font-size:11px;"><b>Meta:</b> ' + txt(m.meta) + '</div>' +
+            '<div style="font-size:11px;margin-top:3px;"><b>Indicador de logro:</b> ' + txt(m.indicador) + '</div>' +
+          '</div>';
+        }).join('');
+
+      // --- V. Estrategias diversificadas (DUA) ---
+      html += secHeader('V', 'Estrategias diversificadas (DUA)') +
+        PRINCIPIOS_DUA.map((p) => {
+          const e = (d.estrategiasDua || []).find((x) => x.principio === p.key) || {};
+          return evalBox(p.label, e.estrategia);
+        }).join('');
+
+      // --- VI. Seguimiento y evaluación ---
+      const filasSeg = d.seguimiento.length
+        ? d.seguimiento.map((s) => '<tr>' + td(fmtFecha(s.fecha)) + td(s.estado) + td(s.observacion) + '</tr>').join('')
+        : '<tr><td style="' + DOC.td + '" colspan="3">Sin revisiones programadas.</td></tr>';
+      html += secHeader('VI', 'Seguimiento y evaluación') +
+        '<table style="' + DOC.table + '"><thead><tr>' +
+          th('Fecha de revisión') + th('Estado') + th('Observación') +
+        '</tr></thead><tbody>' + filasSeg + '</tbody></table>';
+
+      // --- VII. Equipo de apoyo (PIE) ---
+      const filasEquipo = d.team.length
+        ? d.team.map((m) => '<tr>' + td(m.nombre) + td(m.cargo) + '</tr>').join('')
+        : '<tr><td style="' + DOC.td + '" colspan="2">Sin profesionales registrados.</td></tr>';
+      html += secHeader('VII', 'Equipo de apoyo (PIE)') +
+        '<table style="' + DOC.table + '"><thead><tr>' + th('Nombre') + th('Cargo') +
+        '</tr></thead><tbody>' + filasEquipo + '</tbody></table>';
+
+      // --- VIII. Firmas y compromisos ---
+      const filasFirmas = d.firmas.length
+        ? d.firmas.map((f) => {
+            const estado = f.firmadoEn ? ('Firmado · ' + fmtFechaHora(f.firmadoEn)) : 'Pendiente';
+            return '<tr>' + td(f.rol) + td(f.nombre) + td(f.email) + td(estado) + '</tr>';
+          }).join('')
+        : '<tr><td style="' + DOC.td + '" colspan="4">Sin firmas registradas.</td></tr>';
+      html += secHeader('VIII', 'Firmas y compromisos') +
+        '<table style="' + DOC.table + '"><thead><tr>' +
+          th('Rol') + th('Nombre') + th('Email / Contacto') + th('Estado') +
+        '</tr></thead><tbody>' + filasFirmas + '</tbody></table>' +
+        '<div style="margin-top:40px;display:flex;justify-content:space-around;text-align:center;font-size:10px;color:#334155;">' +
+          '<div style="border-top:1px solid #475569;padding-top:6px;width:38%;">Profesional Educación Diferencial</div>' +
+          '<div style="border-top:1px solid #475569;padding-top:6px;width:38%;">Coordinación PIE</div>' +
+        '</div>';
+
+      return html;
+    }
+
+    // ====== Vista previa en vivo ======
+    function updatePreviewPAI() {
+      const doc = $('documento');
+      if (!doc) return;
+      const cfg = window.TENANT_CONFIG || { nombre: 'Establecimiento' };
+      doc.innerHTML = construirCuerpoDocumento(recolectar(), cfg);
+    }
+
+    // ====== Construir HTML imprimible del PAI (mismo cuerpo que la previa) ======
     function construirHtmlImpresion() {
       const d = recolectar();
       const cfg = window.TENANT_CONFIG || { nombre: 'Establecimiento' };
-      const filas = d.apoyos.map((a, i) =>
-        '<tr>' +
-          '<td>' + (i + 1) + '</td>' +
-          '<td>' + escapeHtml(a.profesional || '-') + '</td>' +
-          '<td>' + escapeHtml(a.tipoApoyo || '-') + '</td>' +
-          '<td>' + escapeHtml(a.modalidad || '-') + '</td>' +
-          '<td>' + escapeHtml(a.frecuencia || '-') + '</td>' +
-          '<td>' + escapeHtml(a.horas || '-') + '</td>' +
-          '<td>' + escapeHtml(a.periodo || '-') + '</td>' +
-          '<td>' + escapeHtml(a.objetivo || '-') + '</td>' +
-        '</tr>'
-      ).join('');
-
-      const equipoFilas = d.team.length
-        ? d.team.map((m) => '<li>' + escapeHtml(m.nombre || '-') + ' — ' + escapeHtml(m.cargo || '-') + '</li>').join('')
-        : '<li>—</li>';
-
       const css =
-        'body{font-family:Arial,Helvetica,sans-serif;color:#1e293b;font-size:12px;margin:0;}' +
-        '.head{border-bottom:3px solid #091845;padding-bottom:10px;margin-bottom:16px;}' +
-        '.head h1{color:#091845;font-size:18px;margin:0 0 4px;}' +
-        '.head .sub{color:#1240c4;font-size:13px;font-weight:bold;}' +
-        '.meta{font-size:11px;color:#475569;margin-top:4px;}' +
-        'table{width:100%;border-collapse:collapse;margin-top:8px;}' +
-        'th,td{border:1px solid #cbd5e1;padding:6px 8px;text-align:left;vertical-align:top;font-size:11px;}' +
-        'th{background:#091845;color:#fff;font-size:10px;text-transform:uppercase;letter-spacing:0.04em;}' +
-        'h3{color:#091845;font-size:13px;margin:18px 0 6px;border-bottom:1px solid #cbd5e1;padding-bottom:3px;}' +
-        '.datos td{border:none;padding:3px 4px;}' +
-        '.datos .lbl{color:#64748b;font-weight:bold;width:140px;font-size:10px;text-transform:uppercase;}' +
-        'ul{margin:6px 0;padding-left:18px;}' +
-        '.firmas{margin-top:40px;display:flex;justify-content:space-around;text-align:center;font-size:11px;}' +
-        '.firmas div{border-top:1px solid #475569;padding-top:6px;width:40%;}' +
-        '@page{size:letter;margin:1.6cm;}';
-
+        "body{font-family:'Merriweather','Georgia','Times New Roman',serif;color:#1a1a2e;font-size:12px;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}" +
+        'h3{-webkit-print-color-adjust:exact;print-color-adjust:exact;}' +
+        'table{page-break-inside:auto;}' +
+        'tr{page-break-inside:avoid;}' +
+        '@page{size:letter;margin:1.5cm;}';
       return '<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">' +
-        '<title>PAI_' + escapeHtml(d.student.name || 'Estudiante') + '</title>' +
+        '<title>' + escapeHtml(nombreArchivo()) + '</title>' +
+        '<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700;900&display=swap" rel="stylesheet">' +
         '<style>' + css + '</style></head><body>' +
-        '<div class="head">' +
-          '<h1>' + escapeHtml(cfg.nombre || 'Establecimiento') + '</h1>' +
-          '<div class="sub">Plan de Apoyo Individual (PAI) — Programa de Integración Escolar</div>' +
-          '<div class="meta">Año escolar: ' + escapeHtml(d.student.anoEscolar || '') + ' &nbsp;·&nbsp; Período: ' + escapeHtml(d.trimester) + ' &nbsp;·&nbsp; Decreto 170/2009</div>' +
-        '</div>' +
-        '<h3>Datos del estudiante</h3>' +
-        '<table class="datos">' +
-          '<tr><td class="lbl">Nombre</td><td>' + escapeHtml(d.student.name || '-') + '</td>' +
-              '<td class="lbl">RUT</td><td>' + escapeHtml(d.student.rut || '-') + '</td></tr>' +
-          '<tr><td class="lbl">Curso / Nivel</td><td>' + escapeHtml(d.student.curso || '-') + '</td>' +
-              '<td class="lbl">Diagnóstico / NEE</td><td>' + escapeHtml(d.student.diagnosis || '-') + '</td></tr>' +
-        '</table>' +
-        '<h3>Apoyos</h3>' +
-        '<table>' +
-          '<thead><tr><th>#</th><th>Profesional</th><th>Tipo</th><th>Modalidad</th><th>Frecuencia</th><th>Horas</th><th>Período</th><th>Objetivo</th></tr></thead>' +
-          '<tbody>' + (filas || '<tr><td colspan="8">Sin apoyos registrados.</td></tr>') + '</tbody>' +
-        '</table>' +
-        '<h3>Equipo de apoyo (PIE)</h3>' +
-        '<ul>' + equipoFilas + '</ul>' +
-        '<div class="firmas"><div>Profesional Educación Diferencial</div><div>Coordinación PIE</div></div>' +
+        construirCuerpoDocumento(d, cfg) +
         '</body></html>';
     }
 
@@ -1034,6 +1120,7 @@
         renderDua();
         renderSeguimiento();
         renderFirmas();
+        updatePreviewPAI();
       } catch (e) {
         toast('Error de red al cargar.', true);
       }
@@ -1066,6 +1153,7 @@
       renderDua();
       renderSeguimiento();
       renderFirmas();
+      updatePreviewPAI();
 
       // Hook inputs de evaluacion/antecedentes -> state (para compat con autosave futuro)
       ['in-antecedentes', 'in-fortalezas', 'in-dificultades', 'in-barreras'].forEach((id) => {
@@ -1078,20 +1166,6 @@
           else if (id === 'in-barreras')     state.evaluacion.barreras = el.value;
         });
       });
-
-      // TOC: marcar la sección activa según el scroll
-      const tocLinks = document.querySelectorAll('.toc-sticky a');
-      if (tocLinks.length && 'IntersectionObserver' in window) {
-        const secs = document.querySelectorAll('[id^="sec-"]');
-        const obs = new IntersectionObserver((entries) => {
-          entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-              tocLinks.forEach((a) => a.classList.toggle('active', a.getAttribute('href') === '#' + entry.target.id));
-            }
-          });
-        }, { rootMargin: '-30% 0px -65% 0px' });
-        secs.forEach((s) => obs.observe(s));
-      }
 
       // Acciones automaticas desde el dashboard (?action=pdf|print)
       const action = params.get('action');

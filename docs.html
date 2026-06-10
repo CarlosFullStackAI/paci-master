@@ -23,16 +23,20 @@
   </script>
   <script src="/docs-registry.js"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Merriweather:wght@300;400;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/paci.css">
   <link rel="stylesheet" href="/tailwind-utils.css">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { height: 100vh; overflow: hidden; }
     body {
       font-family: 'Plus Jakarta Sans', sans-serif;
       background: var(--bg-deep);
       color: #e2e8f0;
-      min-height: 100vh;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
       -webkit-font-smoothing: antialiased;
       position: relative;
     }
@@ -575,6 +579,66 @@
     }
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(-6px); }
     .toast.error { background: #b91c1c; }
+
+    /* ===================== Vista dividida (form izq + documento der) ===================== */
+    .split { display: flex; flex: 1; min-height: 0; overflow: hidden; }
+    #form-pane {
+      width: 44%; min-width: 380px; flex-shrink: 0;
+      overflow-y: auto; padding: 1.5rem 1.5rem 4rem;
+    }
+    #preview-pane {
+      flex: 1 1 auto; min-width: 0; overflow-y: auto;
+      background: #0f172a; padding: 2rem;
+    }
+    [data-theme="light"] #preview-pane { background: #1e293b; }
+    #documento {
+      max-width: 820px; margin: 0 auto;
+      background: #ffffff; color: #1a1a2e;
+      padding: 3rem 3.2rem;
+      box-shadow: 0 18px 50px rgba(0,0,0,0.45);
+      border-radius: 4px;
+      min-height: 100%;
+      font-family: 'Merriweather', 'Georgia', serif;
+    }
+
+    /* ===================== Acordeones (igual que PAI/PACI) ===================== */
+    .acc-card {
+      background: rgba(15,23,42,0.5);
+      border: 1px solid rgba(56,189,248,0.1);
+      border-radius: 1rem;
+      margin-bottom: 0.85rem;
+      overflow: hidden;
+      backdrop-filter: blur(12px);
+    }
+    [data-theme="light"] .acc-card { background: #ffffff; border-color: #e2e8f0; }
+    .acc-btn {
+      width: 100%; display: flex; align-items: center; justify-content: space-between;
+      gap: 0.5rem; padding: 1rem 1.1rem; background: transparent; border: none;
+      cursor: pointer; font-weight: 800; font-size: 0.82rem; color: #f1f5f9; text-align: left;
+    }
+    [data-theme="light"] .acc-btn { color: #0f172a; }
+    .acc-btn .acc-ico { color: #38bdf8; margin-right: 0.45rem; }
+    [data-theme="light"] .acc-btn .acc-ico { color: #1d4ed8; }
+    .acc-chev { opacity: 0.5; font-size: 0.72rem; transition: transform 0.3s ease; }
+    .acc-card:has(> .accordion-content.open) .acc-chev { transform: rotate(180deg); }
+    .accordion-content { max-height: 0; overflow: hidden; transition: max-height 0.4s ease-in-out; }
+    .accordion-content.open { max-height: 9000px; }
+    .acc-body { padding: 0 1.1rem 1.2rem; }
+
+    /* En la vista dividida, la barra de selector/banners va dentro del panel izquierdo */
+    #form-pane .student-picker-bar,
+    #form-pane .derived-banner,
+    #form-pane .mineduc-block,
+    #form-pane .doc-hero { margin-bottom: 1rem; }
+
+    /* ===================== Responsive: apilar vertical ===================== */
+    @media (max-width: 1023px) {
+      html, body { height: auto; overflow: auto; }
+      .split { flex-direction: column; overflow: visible; }
+      #form-pane { width: 100%; min-width: 0; }
+      #preview-pane { padding: 1rem; }
+      #documento { padding: 1.5rem; }
+    }
   </style>
 </head>
 <body>
@@ -597,7 +661,8 @@
     </nav>
   </header>
 
-  <main class="container">
+  <div class="split">
+    <section id="form-pane">
     <div id="hero" class="doc-hero"></div>
 
     <div class="student-picker-bar">
@@ -631,7 +696,12 @@
       </div>
     </div>
     <div id="sections-container"></div>
-  </main>
+    </section>
+
+    <main id="preview-pane">
+      <div id="documento"><!-- Vista previa generada por updatePreview() --></div>
+    </main>
+  </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -648,7 +718,7 @@
     const phase = docType ? (window.DOC_PHASES || []).find(p => p.key === docType.phase) : null;
 
     function esc(s) {
-      return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
 
     function toast(msg, isError) {
@@ -781,12 +851,24 @@
         const gridCls = allTextarea ? '' : chooseGridClass(sec.fields.length);
         const fieldsHtml = sec.fields.map(f => renderField(f, data[f.id])).join('');
         const wrapper = gridCls ? '<div class="' + gridCls + '">' + fieldsHtml + '</div>' : fieldsHtml;
-        return '<div class="card">' +
-          '<h3><i class="fa-solid ' + esc(sec.icon || 'fa-folder') + '"></i> ' + esc(sec.label) + '</h3>' +
-          wrapper +
-          '</div>';
+        const accId = 'acc-' + i;
+        const openCls = i === 0 ? ' open' : '';
+        return '<div class="acc-card">' +
+          '<button type="button" class="acc-btn" onclick="toggleAcc(\'' + accId + '\')">' +
+            '<span><i class="fa-solid ' + esc(sec.icon || 'fa-folder') + ' acc-ico"></i>' + esc(sec.label) + '</span>' +
+            '<i class="fa-solid fa-chevron-down acc-chev"></i>' +
+          '</button>' +
+          '<div id="' + accId + '" class="accordion-content' + openCls + '"><div class="acc-body">' + wrapper + '</div></div>' +
+        '</div>';
       }).join('');
       cont.innerHTML = html;
+      updatePreview();
+    }
+
+    // Acordeones: abrir/cerrar (igual que el editor PACI/PAI)
+    function toggleAcc(id) {
+      const el = $(id);
+      if (el) el.classList.toggle('open');
     }
 
     // Mapeo extendido student -> campos del schema. Por id del campo aplicamos
@@ -855,6 +937,8 @@
           renderHero(null, 'Tu estudiante tiene diagnostico "' + (student.diagnosis_id || '') + '" sin formato oficial unico. Usa el indice MINEDUC para descargar el correspondiente.');
         }
       }
+      // Reflejar los datos recién autocompletados en la vista previa.
+      if (typeof updatePreview === 'function') updatePreview();
     }
 
     async function prefillEstudiante(sid) {
@@ -883,6 +967,77 @@
       } catch (e) {}
     }
 
+    // ===== Migracion de documentos guardados con schemas antiguos =====
+    // Los formatos MINEDUC 2025 renombraron campos en 4 tipos de documento.
+    // Estos mapas copian el contenido guardado con ids antiguos a los ids
+    // nuevos al cargar, para que no se pierda al reabrir y re-guardar.
+    const LEGACY_MIGRATIONS = {
+      informe_psicopedagogico: {
+        renames: {
+          antec_escolares: 'antec_escolar',
+          area_cognitiva: 'anal_cognitivas',
+          sintesis: 'conclusion',
+          sugerencias: 'sug_otros'
+        },
+        merges: [
+          { from: 'antec_familiares', to: 'antec_escolar', label: 'Antecedentes familiares' },
+          { from: 'antec_salud', to: 'antec_escolar', label: 'Antecedentes de salud' },
+          { from: 'area_comunicat', to: 'anal_cognitivas', label: 'Área comunicativa / lenguaje' },
+          { from: 'area_adaptativa', to: 'anal_cognitivas', label: 'Área adaptativa' },
+          { from: 'area_curricular', to: 'anal_cognitivas', label: 'Área curricular' }
+        ]
+      },
+      autorizacion_familia: {
+        renames: {
+          apoderado_rel: 'relacion',
+          firma_fecha: 'fecha_autorizacion',
+          firma_lugar: 'ciudad'
+        },
+        apply: (data) => {
+          if (data.autoriza_eval === true && !data.consentimiento) {
+            data.consentimiento = 'Doy mi consentimiento';
+          }
+        }
+      },
+      poder_simple: {
+        renames: { vigencia_desde: 'fecha_poder' }
+      },
+      informe_familia: {
+        renames: {
+          avances: 'avances_pedag',
+          a_fortalecer: 'necesidades_pedag',
+          compromisos: 'acuerdos'
+        },
+        merges: [
+          { from: 'periodo', to: 'avances_pedag', label: 'Período informado' },
+          { from: 'apoyos_resumen', to: 'avances_pedag', label: 'Resumen de apoyos entregados' },
+          { from: 'logros', to: 'avances_pedag', label: 'Áreas de logro' },
+          { from: 'sugerencias_hogar', to: 'acuerdos', label: 'Sugerencias para apoyo en el hogar' }
+        ]
+      }
+    };
+
+    function migrarDatosLegados(data) {
+      const mig = LEGACY_MIGRATIONS[typeKey];
+      if (!mig || !data) return data;
+      const renames = mig.renames || {};
+      Object.keys(renames).forEach(oldId => {
+        const newId = renames[oldId];
+        const oldVal = data[oldId];
+        if (oldVal != null && oldVal !== '' && (data[newId] == null || data[newId] === '')) {
+          data[newId] = oldVal;
+        }
+      });
+      (mig.merges || []).forEach(m => {
+        const val = data[m.from];
+        if (val == null || val === '' || val === false || val === true) return;
+        const extra = m.label + ': ' + val;
+        data[m.to] = data[m.to] ? data[m.to] + '\n\n' + extra : extra;
+      });
+      if (typeof mig.apply === 'function') mig.apply(data);
+      return data;
+    }
+
     async function cargarDocumentoGuardado(id) {
       try {
         const res = await fetch('/api/documents/get', {
@@ -900,7 +1055,7 @@
           try { notas = JSON.parse(notas); } catch (e) { notas = {}; }
         }
         const data = (notas && notas.docData) || {};
-        renderSections(data);
+        renderSections(migrarDatosLegados(data));
       } catch (e) {}
     }
 
@@ -1220,7 +1375,7 @@
 
       // PAI: evaluacion integral
       if (parsed.evaluacion) {
-        if (parsed.evaluacion.fortalezas)   { out.area_cognitiva = out.area_cognitiva || parsed.evaluacion.fortalezas; }
+        if (parsed.evaluacion.fortalezas)   { out.anal_cognitivas = out.anal_cognitivas || parsed.evaluacion.fortalezas; }
         if (parsed.evaluacion.dificultades) { out.motivo_eval = out.motivo_eval || parsed.evaluacion.dificultades; }
         if (parsed.evaluacion.barreras)     { out.observaciones = out.observaciones || parsed.evaluacion.barreras; }
       }
@@ -1233,7 +1388,7 @@
       // PACI: contextual
       if (parsed.contextual) {
         if (parsed.contextual.escuela) {
-          out.antec_escolares = out.antec_escolares || parsed.contextual.escuela;
+          out.antec_escolar = out.antec_escolar || parsed.contextual.escuela;
           out.escuelas_previas = out.escuelas_previas || parsed.contextual.escuela;
         }
         if (parsed.contextual.hogar) {
@@ -1280,86 +1435,163 @@
     // schema con sus valores actuales, y bloque de firma con RUT + Registro MINEDUC
     // del profesional. Envia al endpoint /api/generate-pdf (Browser Rendering) y
     // descarga el archivo.
-    function construirHtmlImpresion() {
-      const data = collectSchemaData();
-      const tenant = window.TENANT_CONFIG || { nombre: 'Establecimiento' };
+    // ============================================================
+    // BUILDER DEL DOCUMENTO (compartido: vista previa en vivo + Word + PDF + impresion)
+    // Estilos inline para que se vea identico con o sin las hojas de estilo de la app.
+    // ============================================================
+    const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    function fmtFechaLarga(iso) {
+      const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || '');
+      if (!m) return iso || '';
+      return parseInt(m[3], 10) + ' de ' + MESES[parseInt(m[2], 10) - 1] + ' de ' + m[1];
+    }
+    // Espacio en blanco subrayado para las plantillas legales (rellena con el valor o linea).
+    const _blank = (v) => '<u>&nbsp;' + esc((v == null ? '' : String(v)).trim() || '________________') + '&nbsp;</u>';
+
+    const DOCX = {
+      h2: 'color:#091845;font-size:12pt;font-weight:800;border-bottom:2px solid #091845;padding-bottom:4px;margin:18px 0 8px;text-transform:uppercase;letter-spacing:0.03em;',
+      row: 'display:flex;gap:8px;padding:5px 0;border-bottom:1px dotted #e2e8f0;',
+      rowL: 'flex:0 0 38%;color:#475569;font-weight:bold;font-size:9.5pt;text-transform:uppercase;letter-spacing:0.02em;',
+      rowV: 'flex:1;color:#0f172a;font-size:10.5pt;white-space:pre-wrap;',
+      fullL: 'display:block;color:#475569;font-weight:bold;font-size:9.5pt;text-transform:uppercase;margin-bottom:3px;',
+      fullV: 'display:block;background:#f4f7fd;padding:7px 9px;border-radius:4px;border-left:3px solid #1240c4;color:#0f172a;font-size:10.5pt;white-space:pre-wrap;'
+    };
+
+    function _docField(label, valor, forceLong) {
+      const v = (valor == null ? '' : String(valor)).trim() || '—';
+      const isLong = forceLong || v.length > 80 || v.indexOf('\n') >= 0;
+      if (isLong) {
+        return '<div style="padding:5px 0;page-break-inside:avoid;"><span style="' + DOCX.fullL + '">' + esc(label) + '</span><span style="' + DOCX.fullV + '">' + esc(v) + '</span></div>';
+      }
+      return '<div style="' + DOCX.row + '"><span style="' + DOCX.rowL + '">' + esc(label) + '</span><span style="' + DOCX.rowV + '">' + esc(v) + '</span></div>';
+    }
+
+    // Bloque de firmas: roles propios del tipo (docType.firmantes) o ficha del profesional MINEDUC.
+    function _docFirmas(data, fecha) {
+      const roles = docType.firmantes;
+      if (Array.isArray(roles) && roles.length) {
+        const cols = roles.map(r =>
+          '<div style="flex:1;min-width:130px;text-align:center;padding:0 6px;">' +
+            '<div style="border-top:1px solid #475569;margin-top:46px;padding-top:5px;font-size:8.5pt;font-weight:bold;color:#1a1a2e;">' + esc(r) + '</div>' +
+          '</div>'
+        ).join('');
+        return '<div style="margin-top:30px;page-break-inside:avoid;">' +
+          '<div style="color:#091845;font-size:10pt;font-weight:800;text-transform:uppercase;margin-bottom:6px;letter-spacing:0.04em;">Firman</div>' +
+          '<div style="display:flex;flex-wrap:wrap;gap:10px;">' + cols + '</div></div>';
+      }
+      if (docType.requiresMineduc) {
+        const k = 'color:#475569;font-weight:bold;font-size:9pt;';
+        const val = 'border-bottom:1px solid #94a3b8;min-height:14pt;font-size:9pt;color:#0f172a;';
+        return '<div style="margin-top:28px;border-top:1px solid #cbd5e1;padding-top:12px;page-break-inside:avoid;">' +
+          '<div style="color:#091845;font-size:10pt;font-weight:800;text-transform:uppercase;margin-bottom:8px;letter-spacing:0.04em;">Identificación del profesional (MINEDUC)</div>' +
+          '<div style="display:flex;gap:10px;">' +
+            '<div style="flex:1;"><div style="' + k + '">Nombre completo</div><div style="' + val + '">' + esc(USER.name || '') + '</div></div>' +
+            '<div style="flex:1;"><div style="' + k + '">RUT</div><div style="' + val + '">' + esc(USER.rut || '') + '</div></div>' +
+            '<div style="flex:1;"><div style="' + k + '">Registro MINEDUC</div><div style="' + val + '">' + esc(USER.registroMineduc || '') + '</div></div>' +
+            '<div style="flex:1;"><div style="' + k + '">Fecha emisión</div><div style="' + val + '">' + esc(fecha) + '</div></div>' +
+          '</div>' +
+          '<div style="display:flex;justify-content:space-around;text-align:center;font-size:9pt;margin-top:30px;">' +
+            '<div style="border-top:1px solid #475569;padding-top:4px;width:40%;font-weight:bold;">Firma profesional</div>' +
+            '<div style="border-top:1px solid #475569;padding-top:4px;width:40%;font-weight:bold;">Firma apoderado / recibido</div>' +
+          '</div>' +
+        '</div>';
+      }
+      return '';
+    }
+
+    // Plantillas legales (texto fijo con campos): se renderizan con prosa oficial + firmas propias.
+    const PARR = 'margin:0 0 10px;font-size:10.5pt;line-height:1.65;text-align:justify;color:#1a1a2e;';
+    const CUSTOM_BODIES = {
+      autorizacion_familia: function (d, tenant, fecha) {
+        const fechaAut = d.fecha_autorizacion ? fmtFechaLarga(d.fecha_autorizacion) : '____________________';
+        const curEst = (d.student_curso || '') + (tenant.nombre ? ' — ' + tenant.nombre : '');
+        return '' +
+          '<p style="' + PARR + '">Para que un/a estudiante reciba apoyos educativos especializados, primeramente debe ser evaluado de manera integral, por profesionales de la salud y de la educación, con el fin de determinar los apoyos que requiere para aprender y participar en el contexto escolar. Este proceso debe ser previamente consentido por el padre/madre o tutor responsable, una vez entregada de manera clara y comprensible la información sobre el objetivo de la evaluación, los procedimientos, el lugar y profesionales que participarán, los beneficios esperados, las posibles consecuencias y las alternativas educativas disponibles.</p>' +
+          '<p style="' + PARR + 'font-weight:bold;">(COMPLETE CON LETRA CLARA Y LEGIBLE)</p>' +
+          '<p style="' + PARR + '">Yo, ' + _blank(d.apoderado_nombre) + ', RUT ' + _blank(d.apoderado_rut) + ', conozco en qué consiste este proceso de evaluación en el que participará mi hijo/a o pupilo/a. Estoy informado/a del procedimiento, lugar y profesionales que lo realizarán, de los objetivos y de los beneficios que ofrece esta evaluación.</p>' +
+          '<p style="' + PARR + '">Por lo tanto, en ' + _blank(d.ciudad) + ', con fecha ' + _blank(fechaAut) + ', <strong>' + esc(d.consentimiento || 'Doy mi consentimiento') + '</strong> para que se realice una evaluación diagnóstica integral que determine si existen Necesidades Educativas Especiales (NEE) asociadas a una condición de salud, sensorial, funcional u otra, que requieran de los apoyos de la Educación Especial, en mi calidad de ' + _blank(d.relacion) + ' de ' + _blank(d.student_name) + ', estudiante de ' + _blank(curEst) + '.</p>' +
+          '<p style="' + PARR + '">Autorizo también las reevaluaciones posteriores para comprobar los progresos obtenidos con la implementación de dichos apoyos, y me comprometo a apoyar las acciones necesarias para que estos procesos se lleven a cabo adecuadamente.</p>' +
+          '<div style="display:flex;justify-content:space-around;text-align:center;font-size:9pt;margin-top:54px;gap:12px;">' +
+            '<div style="border-top:1px solid #475569;padding-top:5px;width:44%;font-weight:bold;">Nombre, RUT y firma de quien informa del procedimiento y recibe la autorización</div>' +
+            '<div style="border-top:1px solid #475569;padding-top:5px;width:44%;font-weight:bold;">Firma de la persona que autoriza</div>' +
+          '</div>';
+      },
+      poder_simple: function (d, tenant, fecha) {
+        const fechaPoder = d.fecha_poder ? fmtFechaLarga(d.fecha_poder) : fecha;
+        return '' +
+          '<p style="text-align:center;font-weight:bold;font-size:9.5pt;color:#475569;margin-bottom:12px;">Ley 20.201 – Decreto 170/2009 · Autorización para representación en procesos educativos</p>' +
+          '<p style="' + PARR + '">Este poder simple debe ser informado por el apoderado o representante del estudiante.</p>' +
+          '<p style="' + PARR + '">Yo, ' + _blank(d.apoderado_nombre) + ', RUT ' + _blank(d.apoderado_rut) + ', domiciliado/a en ' + _blank(d.apoderado_domicilio) + ', en mi calidad de apoderado/a titular del/la estudiante ' + _blank(d.student_name) + ', RUT ' + _blank(d.student_rut) + ', quien cursa ' + _blank(d.student_curso) + ' en ' + _blank(tenant.nombre) + ', otorgo el presente <strong>PODER SIMPLE</strong> a ' + _blank(d.rep_nombre) + ', RUT ' + _blank(d.rep_rut) + ', domiciliado/a en ' + _blank(d.rep_domicilio) + ', para que en mi nombre y representación pueda recibir información y/o firmar documentos oficiales relacionados con el proceso educativo del/la estudiante, en el marco del Programa de Integración Escolar (PIE), de acuerdo con lo establecido en el Decreto Supremo N° 170 y la normativa interna del establecimiento.</p>' +
+          '<p style="' + PARR + '">Este poder se otorga en conocimiento de que la persona autorizada no podrá tomar decisiones académicas ni administrativas, sino únicamente recibir y firmar documentación pertinente a la educación del/la estudiante en mi representación.</p>' +
+          '<p style="' + PARR + '">Firmado en ' + _blank(d.ciudad) + ', a ' + _blank(fechaPoder) + '.</p>' +
+          '<div style="display:flex;justify-content:space-around;text-align:center;font-size:8.5pt;margin-top:54px;gap:10px;">' +
+            '<div style="border-top:1px solid #475569;padding-top:5px;flex:1;">Nombre, RUT y firma<br>Apoderado/a Titular</div>' +
+            '<div style="border-top:1px solid #475569;padding-top:5px;flex:1;">Nombre, RUT y firma<br>Apoderado/a Suplente</div>' +
+            '<div style="border-top:1px solid #475569;padding-top:5px;flex:1;">Nombre, RUT y firma<br>Responsable Equipo de Gestión (PIE / UTP / Dirección)</div>' +
+          '</div>';
+      }
+    };
+
+    // Cuerpo del documento (sin <html>/<head>): cabecera + cuerpo + firmas + pie.
+    function construirCuerpoDocumento(data, tenant) {
+      tenant = tenant || { nombre: 'Establecimiento' };
       const fecha = new Date().toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' });
       const nombreEst = data.student_name || '—';
+      const titulo = docType.docTitle || docType.label;
 
-      const css =
-        '*{box-sizing:border-box;margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;color:#1e293b;}' +
-        'body{font-size:11pt;line-height:1.45;padding:0;}' +
-        '@page{size:letter;margin:1.8cm;}' +
-        '.head{border-bottom:3px solid #091845;padding-bottom:12px;margin-bottom:18px;}' +
-        '.head h1{color:#091845;font-size:18pt;font-weight:800;letter-spacing:0.02em;}' +
-        '.head .sub{color:#1240c4;font-size:13pt;font-weight:bold;margin-top:4px;}' +
-        '.head .meta{color:#475569;font-size:9pt;margin-top:6px;}' +
-        '.head .decree{color:#7c3aed;font-size:9pt;margin-top:2px;font-style:italic;}' +
-        '.section{margin-top:14px;page-break-inside:avoid;}' +
-        '.section h2{color:#091845;font-size:11.5pt;font-weight:800;border-bottom:1px solid #cbd5e1;padding-bottom:4px;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.04em;}' +
-        '.field{display:flex;gap:8px;padding:4px 0;border-bottom:1px dotted #e2e8f0;}' +
-        '.field .l{flex:0 0 38%;color:#64748b;font-weight:bold;font-size:9.5pt;text-transform:uppercase;letter-spacing:0.03em;}' +
-        '.field .v{flex:1;color:#0f172a;font-size:10.5pt;white-space:pre-wrap;}' +
-        '.field.full{display:block;}' +
-        '.field.full .l{margin-bottom:3px;display:block;flex:none;}' +
-        '.field.full .v{display:block;background:#f8fafc;padding:6px 8px;border-radius:4px;border-left:3px solid #38bdf8;}' +
-        '.firma{margin-top:36px;page-break-inside:avoid;border-top:1px solid #cbd5e1;padding-top:12px;}' +
-        '.firma h3{color:#091845;font-size:10pt;font-weight:800;text-transform:uppercase;margin-bottom:10px;letter-spacing:0.05em;}' +
-        '.firma .row{display:flex;gap:10px;}' +
-        '.firma .col{flex:1;font-size:9pt;}' +
-        '.firma .col .k{color:#64748b;font-weight:bold;}' +
-        '.firma .col .v{color:#0f172a;border-bottom:1px solid #94a3b8;padding-bottom:1px;min-height:14pt;}' +
-        '.firma .signbox{margin-top:18px;display:flex;justify-content:space-around;text-align:center;font-size:9pt;}' +
-        '.firma .signbox div{border-top:1px solid #475569;padding-top:4px;width:40%;font-weight:bold;}' +
-        '.footer-page{position:fixed;bottom:0.5cm;left:0;right:0;text-align:center;font-size:7.5pt;color:#94a3b8;border-top:1px dashed #cbd5e1;padding-top:4px;}';
-
-      const seccionesHtml = (docType.schema && docType.schema.sections || []).map(sec => {
-        const camposHtml = sec.fields.map(f => {
-          const v = data[f.id];
-          const valor = (v === true ? 'Sí' : v === false ? 'No' : String(v || '')).trim() || '—';
-          // textareas (textos largos) van en formato "full" (etiqueta arriba, valor abajo)
-          const isLong = f.type === 'textarea' || valor.length > 80;
-          if (isLong) {
-            return '<div class="field full"><span class="l">' + esc(f.label) + '</span><span class="v">' + esc(valor) + '</span></div>';
-          }
-          return '<div class="field"><span class="l">' + esc(f.label) + '</span><span class="v">' + esc(valor) + '</span></div>';
-        }).join('');
-        return '<div class="section"><h2>' + esc(sec.label) + '</h2>' + camposHtml + '</div>';
-      }).join('');
-
-      const profMineduc = docType.requiresMineduc ? (
-        '<div class="firma">' +
-          '<h3><i></i> Identificación del profesional (MINEDUC)</h3>' +
-          '<div class="row">' +
-            '<div class="col"><div class="k">Nombre completo</div><div class="v">' + esc(USER.name || '') + '</div></div>' +
-            '<div class="col"><div class="k">RUT</div><div class="v">' + esc(USER.rut || '') + '</div></div>' +
-            '<div class="col"><div class="k">Registro MINEDUC</div><div class="v">' + esc(USER.registroMineduc || '') + '</div></div>' +
-            '<div class="col"><div class="k">Fecha emisión</div><div class="v">' + esc(fecha) + '</div></div>' +
-          '</div>' +
-          '<div class="signbox">' +
-            '<div>Firma profesional</div>' +
-            '<div>Firma apoderado / recibido</div>' +
-          '</div>' +
-        '</div>'
-      ) : '';
-
-      return '<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">' +
-        '<title>' + esc(docType.label) + '_' + esc(nombreEst) + '</title>' +
-        '<style>' + css + '</style></head><body>' +
-        '<div class="head">' +
-          '<h1>' + esc(tenant.nombre || 'Establecimiento') + '</h1>' +
-          '<div class="sub">' + esc(docType.label) + ' — ' + esc(docType.sublabel || '') + '</div>' +
-          '<div class="meta">Estudiante: <strong>' + esc(nombreEst) + '</strong>' +
+      let html = '' +
+        '<div style="border-bottom:3px solid #091845;padding-bottom:12px;margin-bottom:6px;">' +
+          '<div style="color:#091845;font-size:17pt;font-weight:900;letter-spacing:0.01em;">' + esc(tenant.nombre || 'Establecimiento') + '</div>' +
+          '<div style="color:#1240c4;font-size:12.5pt;font-weight:bold;margin-top:3px;text-transform:uppercase;">' + esc(titulo) + '</div>' +
+          (docType.sublabel ? '<div style="color:#64748b;font-size:9.5pt;font-weight:600;margin-top:1px;">' + esc(docType.sublabel) + '</div>' : '') +
+          '<div style="color:#475569;font-size:9pt;margin-top:7px;">Estudiante: <strong>' + esc(nombreEst) + '</strong>' +
             (data.student_rut ? ' &nbsp;·&nbsp; RUT: ' + esc(data.student_rut) : '') +
             (data.student_curso ? ' &nbsp;·&nbsp; Curso: ' + esc(data.student_curso) : '') +
             ' &nbsp;·&nbsp; Fecha: ' + esc(fecha) +
           '</div>' +
-          (docType.decree ? '<div class="decree">' + esc(docType.decree) + '</div>' : '') +
-        '</div>' +
-        seccionesHtml +
-        profMineduc +
-        '<div class="footer-page">Documento generado por PIE MASTER — ' + esc(fecha) + '</div>' +
+          (docType.decree ? '<div style="color:#7c3aed;font-size:9pt;margin-top:2px;font-style:italic;">' + esc(docType.decree) + '</div>' : '') +
+        '</div>';
+
+      const custom = CUSTOM_BODIES[typeKey];
+      if (custom) {
+        html += '<div style="margin-top:14px;">' + custom(data, tenant, fecha) + '</div>';
+      } else {
+        html += (docType.schema && docType.schema.sections || []).map(sec => {
+          const campos = sec.fields.map(f => {
+            const v = data[f.id];
+            const valor = (v === true ? 'Sí' : v === false ? 'No' : v);
+            return _docField(f.label, valor, f.type === 'textarea');
+          }).join('');
+          return '<div style="margin-top:10px;page-break-inside:avoid;"><div style="' + DOCX.h2 + '">' + esc(sec.label) + '</div>' + campos + '</div>';
+        }).join('');
+      }
+
+      html += _docFirmas(data, fecha);
+      html += '<div style="margin-top:22px;text-align:center;font-size:7.5pt;color:#94a3b8;border-top:1px dashed #cbd5e1;padding-top:5px;">Documento generado por PIE MASTER — ' + esc(fecha) + '</div>';
+      return html;
+    }
+
+    // HTML imprimible completo (Word/PDF/impresion): envuelve el cuerpo con CSS de pagina.
+    function construirHtmlImpresion() {
+      const data = collectSchemaData();
+      const tenant = window.TENANT_CONFIG || { nombre: 'Establecimiento' };
+      const css =
+        "*{box-sizing:border-box;margin:0;padding:0;font-family:'Merriweather','Georgia','Times New Roman',serif;}" +
+        'body{font-size:11pt;line-height:1.45;color:#1a1a2e;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}' +
+        '@page{size:letter;margin:1.8cm;}';
+      return '<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">' +
+        '<title>' + esc(docType.label) + '_' + esc(data.student_name || 'Estudiante') + '</title>' +
+        '<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700;900&display=swap" rel="stylesheet">' +
+        '<style>' + css + '</style></head><body>' +
+        construirCuerpoDocumento(data, tenant) +
         '</body></html>';
+    }
+
+    // Vista previa en vivo: reconstruye #documento en cada cambio del formulario.
+    function updatePreview() {
+      const doc = $('documento');
+      if (!doc || !docType) return;
+      doc.innerHTML = construirCuerpoDocumento(collectSchemaData(), window.TENANT_CONFIG || { nombre: 'Establecimiento' });
     }
 
     // ====== Resumen MINEDUC: panel lateral con datos listos para copiar ======
@@ -1614,9 +1846,9 @@
       }
     }
 
-    // Cargar config del tenant para la cabecera del PDF
+    // Cargar config del tenant para la cabecera del PDF y la vista previa
     window.TENANT_CONFIG = null;
-    fetch('/api/tenant-config').then(r => r.json()).then(c => { window.TENANT_CONFIG = c; }).catch(() => {});
+    fetch('/api/tenant-config').then(r => r.json()).then(c => { window.TENANT_CONFIG = c; updatePreview(); }).catch(() => {});
 
     (async function init() {
       renderHero();
@@ -1629,6 +1861,13 @@
           // Heredar campos comunes desde documentos previos de este estudiante
           await derivarDeDocumentosPrevios(studentId);
         }
+        // Vista previa en vivo: actualizar al editar cualquier campo del formulario.
+        const fp = $('form-pane');
+        if (fp) {
+          fp.addEventListener('input', updatePreview);
+          fp.addEventListener('change', updatePreview);
+        }
+        updatePreview();
       }
     })();
   </script>

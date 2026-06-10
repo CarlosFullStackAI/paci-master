@@ -969,6 +969,34 @@
     .reeval-alert.danger { background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; }
     .reeval-alert.info { background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8; }
 
+    /* Panel desplegable: periodicidad de reevaluación por diagnóstico */
+    .reeval-panel { margin-top: 0.75rem; border: 1px solid #bfdbfe; border-radius: 0.5rem; background: #f8fbff; overflow: hidden; }
+    .reeval-panel > summary { cursor: pointer; padding: 0.7rem 0.9rem; font-size: 0.78rem; font-weight: 800; color: #1d4ed8; list-style: none; display: flex; align-items: center; gap: 0.5rem; }
+    .reeval-panel > summary::-webkit-details-marker { display: none; }
+    .reeval-panel > summary .chev { margin-left: auto; transition: transform 0.2s; font-size: 0.7rem; opacity: 0.7; }
+    .reeval-panel[open] > summary .chev { transform: rotate(180deg); }
+    .reeval-panel .rp-body { padding: 0 0.9rem 0.9rem; }
+    .reeval-table { width: 100%; border-collapse: collapse; font-size: 0.74rem; }
+    .reeval-table th, .reeval-table td { text-align: left; padding: 0.4rem 0.55rem; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+    .reeval-table th { font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.04em; color: #64748b; }
+    .reeval-table .per { font-weight: 800; white-space: nowrap; color: #1d4ed8; }
+    .reeval-table .grp td { font-weight: 800; color: #0f172a; background: #eef4ff; text-transform: uppercase; font-size: 0.66rem; letter-spacing: 0.03em; }
+    .reeval-foot { margin-top: 0.6rem; font-size: 0.72rem; color: #475569; }
+    [data-theme="dark"] .reeval-panel { background: rgba(37,99,235,0.06); border-color: rgba(59,130,246,0.25); }
+    [data-theme="dark"] .reeval-panel > summary { color: #93c5fd; }
+    [data-theme="dark"] .reeval-table th, [data-theme="dark"] .reeval-table td { border-bottom-color: rgba(148,163,184,0.18); }
+    [data-theme="dark"] .reeval-table th { color: #94a3b8; }
+    [data-theme="dark"] .reeval-table .per { color: #93c5fd; }
+    [data-theme="dark"] .reeval-table .grp td { color: #e2e8f0; background: rgba(148,163,184,0.12); }
+    [data-theme="dark"] .reeval-foot { color: #94a3b8; }
+    .reeval-table tr.hi td { background: #dbeafe; }
+    [data-theme="dark"] .reeval-table tr.hi td { background: rgba(59,130,246,0.22); }
+    .reeval-modal-card { background: #ffffff; color: #0f172a; }
+    [data-theme="dark"] .reeval-modal-card { background: #0f172a; color: #e2e8f0; }
+    [data-theme="dark"] .reeval-modal-card strong { color: #e2e8f0; }
+    .reeval-help-ico { color: #38bdf8; cursor: pointer; font-size: 0.72rem; margin-left: 0.35rem; }
+    .reeval-help-ico:hover { color: #0ea5e9; }
+
     /* OA table */
     .oa-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
     .oa-table th { background: #f1f5f9; padding: 0.5rem; text-align: left; font-size: 0.6rem; font-weight: 800; text-transform: uppercase; color: #475569; border-bottom: 2px solid #e2e8f0; }
@@ -2418,6 +2446,39 @@
           </div>
         </div>
 
+        <!-- Nota informativa: distingue las DOS reevaluaciones del Decreto 170 (siempre visible) -->
+        <div class="reeval-alert info" style="margin-top:1rem;align-items:flex-start;">
+          <i class="fa-solid fa-circle-info" style="margin-top:2px;"></i>
+          <div style="line-height:1.55;">
+            <strong>Dos reevaluaciones distintas (Decreto 170/2009):</strong>
+            <div style="margin-top:4px;"><strong>FUR — Reevaluación anual:</strong> cada año, al cierre del año escolar, para <u>todos</u> los estudiantes PIE.</div>
+            <div style="margin-top:3px;"><strong>FUDEI — Evaluación diagnóstica integral:</strong> cada <u>2 años</u> (NEE transitorias) o <u>3 a 5 años</u> (NEE permanentes; Discapacidad Intelectual leve/moderada cada 2 años).</div>
+            <div style="margin-top:5px;font-size:0.7rem;opacity:0.85;">Las fechas "cada X año(s)" que ves más abajo corresponden al ciclo <strong>FUDEI</strong>; el <strong>FUR es siempre anual</strong>.</div>
+          </div>
+        </div>
+
+        <!-- Panel desplegable: periodicidad de reevaluación (FUDEI) por diagnóstico -->
+        <details class="reeval-panel">
+          <summary>
+            <i class="fa-solid fa-calendar-days"></i> Periodicidad de reevaluación por diagnóstico (FUDEI)
+            <i class="fa-solid fa-chevron-down chev"></i>
+          </summary>
+          <div class="rp-body">
+            <table class="reeval-table">
+              <thead>
+                <tr><th>Diagnóstico</th><th>Tipo NEE</th><th>Reevaluación integral (FUDEI)</th></tr>
+              </thead>
+              <tbody id="reeval-tbody-home"><!-- generado por populateReevalHome() --></tbody>
+            </table>
+            <div class="reeval-foot">
+              * Excepción: la Discapacidad Intelectual leve y moderada se reevalúa cada 2 años, aunque sea permanente.<br>
+              El ciclo cuenta desde el año de ingreso al PIE. Las transitorias que siguen un 3er año se tratan como "Nuevo Ingreso" (FUDEI completo). Un cambio de diagnóstico siempre exige crear un FUDEI nuevo.<br>
+              <strong>Además, el FUR (reevaluación anual) se realiza cada año para todos los estudiantes PIE.</strong><br>
+              Fuente: Decreto 170/2009 y orientaciones MINEDUC (FUDEI-PIE 2026).
+            </div>
+          </div>
+        </details>
+
         <!-- Alerta FUR: estudiantes con reevaluación vencida o próxima -->
         <section class="fur-alert-section" id="fur-alert-section" style="display:none;">
           <div class="fur-alert-head">
@@ -2536,13 +2597,80 @@
       'di_l': { type: 'NEEP', period: 2, note: 'Aunque es NEEP, se rige por plazo de 2 anos para monitorear funcionamiento adaptativo.' },
       'di_m': { type: 'NEEP', period: 2, note: 'Aunque es NEEP, se rige por plazo de 2 anos para monitorear funcionamiento adaptativo.' },
       'di_s': { type: 'NEEP', period: 5, note: 'Reevaluacion cada 3 a 5 anos segun evolucion del estudiante.' },
-      'tea': { type: 'NEEP', period: 2, note: 'Requiere confirmacion diagnostica en este periodo segun cartillas 2025-2026.' },
+      'tea': { type: 'NEEP', period: 5, note: 'Reevaluacion cada 3 a 5 anos segun evolucion del estudiante.' },
       'dv': { type: 'NEEP', period: 5, note: 'Reevaluacion cada 3 a 5 anos segun evolucion.' },
       'da': { type: 'NEEP', period: 5, note: 'Reevaluacion cada 3 a 5 anos segun evolucion.' },
       'disc_mot': { type: 'NEEP', period: 5, note: 'Reevaluacion cada 3 a 5 anos segun evolucion.' },
       'rgd': { type: 'NEEP', period: 2, note: 'Requiere confirmacion diagnostica cada 2 anos.' },
-      'sordoceg': { type: 'NEEP', period: 2, note: 'Requiere confirmacion diagnostica cada 2 anos.' }
+      'sordoceg': { type: 'NEEP', period: 5, note: 'Reevaluacion cada 3 a 5 anos segun evolucion del estudiante.' }
     };
+
+    // ===== Periodicidad de reevaluación (FUDEI) por diagnóstico =====
+    // Fuente única usada por el panel del inicio y por el modal del ícono de ayuda (ℹ️).
+    const REEVAL_PERIODICIDAD = [
+      { grupo: 'NEE Transitorias — cada 2 años' },
+      { label: 'TEL (específico y mixto)', tipo: 'Transitoria', periodo: 'Cada 2 años', ids: ['tel_e', 'tel_m'] },
+      { label: 'DEA (dificultad específica del aprendizaje)', tipo: 'Transitoria', periodo: 'Cada 2 años', ids: ['dea'] },
+      { label: 'TDA / TDAH', tipo: 'Transitoria', periodo: 'Cada 2 años', ids: ['tda'] },
+      { label: 'FIL (funcionamiento intelectual limítrofe)', tipo: 'Transitoria', periodo: 'Cada 2 años', ids: ['fil'] },
+      { grupo: 'NEE Permanentes' },
+      { label: 'Discapacidad Intelectual leve', tipo: 'Permanente', periodo: 'Cada 2 años*', ids: ['di_l'] },
+      { label: 'Discapacidad Intelectual moderada', tipo: 'Permanente', periodo: 'Cada 2 años*', ids: ['di_m'] },
+      { label: 'Discapacidad Intelectual severa', tipo: 'Permanente', periodo: 'Cada 3 a 5 años', ids: ['di_s'] },
+      { label: 'RGD (retraso global del desarrollo)', tipo: 'Permanente', periodo: 'Cada 2 años*', ids: ['rgd'] },
+      { label: 'TEA (espectro autista)', tipo: 'Permanente', periodo: 'Cada 3 a 5 años', ids: ['tea'] },
+      { label: 'Discapacidad visual', tipo: 'Permanente', periodo: 'Cada 3 a 5 años', ids: ['dv'] },
+      { label: 'Discapacidad auditiva', tipo: 'Permanente', periodo: 'Cada 3 a 5 años', ids: ['da'] },
+      { label: 'Discapacidad motora', tipo: 'Permanente', periodo: 'Cada 3 a 5 años', ids: ['disc_mot'] },
+      { label: 'Sordoceguera / multidéficit', tipo: 'Permanente', periodo: 'Cada 3 a 5 años', ids: ['sordoceg'] }
+    ];
+
+    // Devuelve las filas (<tr>) de la tabla; resalta la del diagnóstico indicado.
+    function reevalTablaHtml(highlightDiagId) {
+      return REEVAL_PERIODICIDAD.map(function (r) {
+        if (r.grupo) return '<tr class="grp"><td colspan="3">' + esc(r.grupo) + '</td></tr>';
+        const hi = (highlightDiagId && r.ids && r.ids.indexOf(highlightDiagId) >= 0) ? ' class="hi"' : '';
+        return '<tr' + hi + '><td>' + esc(r.label) + '</td><td>' + esc(r.tipo) + '</td><td class="per">' + esc(r.periodo) + '</td></tr>';
+      }).join('');
+    }
+
+    // Poblar el panel desplegable del inicio (misma fuente que el modal).
+    function populateReevalHome() {
+      const hb = document.getElementById('reeval-tbody-home');
+      if (hb) hb.innerHTML = reevalTablaHtml();
+    }
+    if (document.readyState !== 'loading') populateReevalHome();
+    else document.addEventListener('DOMContentLoaded', populateReevalHome);
+
+    // Modal del ícono de ayuda por estudiante (se crea una vez y se reutiliza).
+    function abrirReevalModal(diagId) {
+      let m = document.getElementById('reeval-modal');
+      if (!m) {
+        m = document.createElement('div');
+        m.id = 'reeval-modal';
+        m.setAttribute('style', 'display:none;position:fixed;inset:0;z-index:400;background:rgba(2,6,23,0.6);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);align-items:flex-start;justify-content:center;padding:5vh 1rem;overflow:auto;');
+        m.addEventListener('click', cerrarReevalModal);
+        m.innerHTML =
+          '<div class="reeval-modal-card" onclick="event.stopPropagation();" style="max-width:640px;width:100%;border-radius:0.9rem;box-shadow:0 20px 60px rgba(0,0,0,0.45);overflow:hidden;">' +
+            '<div style="display:flex;align-items:center;justify-content:space-between;padding:0.9rem 1.1rem;border-bottom:1px solid rgba(148,163,184,0.25);">' +
+              '<strong style="font-size:0.88rem;"><i class="fa-solid fa-calendar-days" style="color:#1d4ed8;margin-right:0.4rem;"></i>Periodicidad de reevaluación por diagnóstico (FUDEI)</strong>' +
+              '<button onclick="cerrarReevalModal()" aria-label="Cerrar" style="background:none;border:none;cursor:pointer;font-size:1.05rem;color:#94a3b8;"><i class="fa-solid fa-xmark"></i></button>' +
+            '</div>' +
+            '<div style="padding:1rem 1.1rem;max-height:72vh;overflow:auto;">' +
+              '<table class="reeval-table"><thead><tr><th>Diagnóstico</th><th>Tipo NEE</th><th>Reevaluación (FUDEI)</th></tr></thead><tbody id="reeval-tbody-modal"></tbody></table>' +
+              '<div class="reeval-foot">* Excepción: la Discapacidad Intelectual leve y moderada y el RGD se reevalúan cada 2 años, aunque sean permanentes (el RGD requiere confirmación diagnóstica).<br>El ciclo cuenta desde el ingreso al PIE; las transitorias que siguen un 3er año se tratan como "Nuevo Ingreso". Un cambio de diagnóstico exige crear un FUDEI nuevo.<br><strong>Además, el FUR (reevaluación anual) se realiza cada año para todos los estudiantes PIE.</strong><br>Fuente: Decreto 170/2009 y orientaciones MINEDUC (FUDEI-PIE 2026).</div>' +
+            '</div>' +
+          '</div>';
+        document.body.appendChild(m);
+      }
+      const tb = m.querySelector('#reeval-tbody-modal');
+      if (tb) tb.innerHTML = reevalTablaHtml(diagId || '');
+      m.style.display = 'flex';
+    }
+    function cerrarReevalModal() {
+      const m = document.getElementById('reeval-modal');
+      if (m) m.style.display = 'none';
+    }
 
     const ASIG_COLORS = {
       'lenguaje': '#2563eb', 'matematica': '#dc2626', 'ciencias': '#059669',
@@ -2564,7 +2692,7 @@
       window.location.href = '/login.html';
     }
 
-    function esc(str) { return str ? String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') : ''; }
+    function esc(str) { return str ? String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;') : ''; }
     function formatDate(d) { if (!d) return '-'; try { return new Date(d).toLocaleDateString('es-CL'); } catch(e) { return d; } }
 
     // ==========================================
@@ -3647,7 +3775,7 @@
               <div style="display:flex;justify-content:space-between;align-items:center;width:100%;gap:0.5rem;">
                 <div>
                   <h3><i class="fa-solid fa-user-graduate" style="margin-right:0.375rem;opacity:0.7;"></i>${esc(s.name)}</h3>
-                  <span style="font-size:0.65rem;opacity:0.8;">${esc(s.diagnosis || 'Sin diagnostico')} ${neeType ? '(' + neeType + ')' : ''}</span>
+                  <span style="font-size:0.65rem;opacity:0.8;">${esc(s.diagnosis || 'Sin diagnostico')} ${neeType ? '(' + neeType + ')' : ''}<i class="fa-solid fa-circle-info reeval-help-ico" onclick="event.stopPropagation(); abrirReevalModal('${esc(s.diagnosis_id || '')}')" title="Ver periodicidad de reevaluación (FUDEI) según diagnóstico"></i></span>
                 </div>
                 <div style="display:flex;gap:0.5rem;align-items:center;">
                   <span class="badge">${sDocs.length} documento${sDocs.length !== 1 ? 's' : ''}</span>
@@ -3768,14 +3896,14 @@
         const monthsLeft = (nextDate - now) / (1000 * 60 * 60 * 24 * 30);
 
         if (monthsLeft < 0) {
-          reevalAlert = '<div class="reeval-alert danger"><i class="fa-solid fa-triangle-exclamation"></i><div><strong>Reevaluacion vencida.</strong> La reevaluacion debia realizarse antes del ' + formatDate(nextDate.toISOString()) + '. ' + (rule.note || '') + '</div></div>';
+          reevalAlert = '<div class="reeval-alert danger"><i class="fa-solid fa-triangle-exclamation"></i><div><strong>Evaluación diagnóstica integral (FUDEI) vencida.</strong> Debía realizarse antes del ' + formatDate(nextDate.toISOString()) + '. ' + (rule.note || '') + ' (El FUR es anual, aparte de este ciclo.)</div></div>';
         } else if (monthsLeft < 6) {
-          reevalAlert = '<div class="reeval-alert warning"><i class="fa-solid fa-clock"></i><div><strong>Reevaluacion proxima.</strong> Quedan aprox. ' + Math.ceil(monthsLeft) + ' mes(es). Fecha limite: ' + formatDate(nextDate.toISOString()) + '. ' + (rule.note || '') + '</div></div>';
+          reevalAlert = '<div class="reeval-alert warning"><i class="fa-solid fa-clock"></i><div><strong>Evaluación diagnóstica integral (FUDEI) próxima.</strong> Quedan aprox. ' + Math.ceil(monthsLeft) + ' mes(es). Fecha límite: ' + formatDate(nextDate.toISOString()) + '. ' + (rule.note || '') + '</div></div>';
         } else {
-          reevalAlert = '<div class="reeval-alert info"><i class="fa-solid fa-circle-info"></i><div>Proxima reevaluacion: ' + formatDate(nextDate.toISOString()) + ' (cada ' + rule.period + ' anos). ' + (rule.note || '') + '</div></div>';
+          reevalAlert = '<div class="reeval-alert info"><i class="fa-solid fa-circle-info"></i><div>Próxima evaluación diagnóstica integral (FUDEI): ' + formatDate(nextDate.toISOString()) + ' (cada ' + rule.period + ' año(s)). El FUR se hace cada año aparte. ' + (rule.note || '') + '</div></div>';
         }
       } else if (rule.period) {
-        reevalAlert = '<div class="reeval-alert info"><i class="fa-solid fa-circle-info"></i><div>Periodicidad de reevaluacion: <strong>cada ' + rule.period + ' ano(s)</strong>. ' + (rule.note || '') + ' Ingresa la fecha del ultimo diagnostico para activar alertas automaticas.</div></div>';
+        reevalAlert = '<div class="reeval-alert info"><i class="fa-solid fa-circle-info"></i><div>Periodicidad del FUDEI: <strong>cada ' + rule.period + ' año(s)</strong> (el FUR es anual). ' + (rule.note || '') + ' Ingresa la fecha del último diagnóstico para activar alertas automáticas.</div></div>';
       }
 
       const html = `

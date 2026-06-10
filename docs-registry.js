@@ -135,42 +135,61 @@ window.DOC_TYPES = {
     description: 'Documento tecnico que respalda fortalezas, dificultades y diagnostico pedagogico. Formato oficial obligatorio desde 2026 (Cartilla 5 MINEDUC).',
     requiresMineduc: true,
     ministerial: true,
+    docTitle: 'INFORME DE EVALUACIÓN PSICOPEDAGÓGICA',
     info: {
       cuando: 'Al ingreso al PIE, como parte de la evaluación diagnóstica integral del educador diferencial.',
       paraQuien: 'Todo estudiante candidato al PIE. OBLIGATORIO el formato 2025 desde ingresos 2026.',
       renovacion: 'Una vez al ingreso. Se rehace si hay reevaluación significativa o cambio diagnóstico.'
     },
+    // Estructura alineada al "Formato Informe de Evaluación Psicopedagógica 2025" (MINEDUC).
     schema: {
       sections: [
-        { key: 'identificacion', label: '1. Identificacion del estudiante', icon: 'fa-user', fields: STUDENT_BLOCK },
-        { key: 'motivo', label: '2. Motivo de la evaluacion', icon: 'fa-magnifying-glass',
+        { key: 'identificacion', label: '1. Identificación', icon: 'fa-user',
           fields: [
-            { id: 'motivo_eval', label: 'Razon de la derivacion / evaluacion', type: 'textarea', rows: 3 }
+            ...STUDENT_BLOCK,
+            { id: 'nombre_social',    label: 'Nombre social del estudiante (si aplica)', type: 'text' },
+            { id: 'edad',             label: 'Edad', type: 'text', placeholder: 'Ej: 9 años' },
+            { id: 'fecha_evaluacion', label: 'Fecha de evaluación', type: 'date' },
+            { id: 'diagnostico',      label: 'Diagnóstico', type: 'text' },
+            { id: 'fecha_diagnostico', label: 'Fecha de emisión del diagnóstico', type: 'date' }
           ]},
-        { key: 'antecedentes', label: '3. Antecedentes relevantes', icon: 'fa-clipboard-list',
+        { key: 'motivo', label: '2. Motivo de evaluación psicopedagógica', icon: 'fa-magnifying-glass',
           fields: [
-            { id: 'antec_familiares', label: 'Familiares', type: 'textarea', rows: 2 },
-            { id: 'antec_escolares',  label: 'Escolares', type: 'textarea', rows: 2 },
-            { id: 'antec_salud',      label: 'De salud', type: 'textarea', rows: 2 }
+            { id: 'motivo_tipo', label: 'Tipo', type: 'select', options: ['Ingreso', 'Reevaluación', 'Otro'] },
+            { id: 'motivo_eval', label: 'Motivo / razón de la evaluación', type: 'textarea', rows: 3 }
           ]},
-        { key: 'instrumentos', label: '4. Instrumentos aplicados (analisis cualitativo)', icon: 'fa-toolbox',
+        { key: 'instrumentos', label: '3. Instrumentos aplicados', icon: 'fa-toolbox',
           fields: [
-            { id: 'instrumentos', label: 'Lista de pruebas/instrumentos + sintesis cualitativa de resultados', type: 'textarea', rows: 4, placeholder: 'Ej: WISC-V (CI 78), Evalua-5, observacion en aula, entrevista.' }
+            { id: 'instrumentos', label: 'Instrumentos / pruebas aplicadas', type: 'textarea', rows: 3, placeholder: 'Ej: WISC-V, Evalúa-5, observación en aula, entrevista, pauta de observación pedagógica.' }
           ]},
-        { key: 'areas', label: '5. Areas evaluadas', icon: 'fa-layer-group',
+        { key: 'antecedentes', label: '4. Antecedentes relevantes sobre la historia escolar', icon: 'fa-clipboard-list',
           fields: [
-            { id: 'area_cognitiva',  label: 'Area cognitiva', type: 'textarea', rows: 2 },
-            { id: 'area_comunicat',  label: 'Area comunicativa / lenguaje', type: 'textarea', rows: 2 },
-            { id: 'area_adaptativa', label: 'Area adaptativa', type: 'textarea', rows: 2 },
-            { id: 'area_curricular', label: 'Area curricular', type: 'textarea', rows: 2 }
+            { id: 'antec_escolar', label: 'Historia escolar relevante', type: 'textarea', rows: 4 }
           ]},
-        { key: 'sintesis', label: '6. Sintesis diagnostica', icon: 'fa-microscope',
+        { key: 'analisis', label: '5. Análisis cualitativo de instrumentos', icon: 'fa-layer-group',
           fields: [
-            { id: 'sintesis', label: 'Diagnostico psicopedagogico fundamentado', type: 'textarea', rows: 4 }
+            { id: 'anal_cognitivas',       label: 'a) Habilidades cognitivas y comunicativas', type: 'textarea', rows: 4, placeholder: 'Atención, memoria, funciones ejecutivas, razonamiento, lenguaje oral/escrito, comprensión lectora, aprendizajes matemáticos, habilidades adaptativas...' },
+            { id: 'anal_socioemocionales', label: 'b) Habilidades personales, socioemocionales y de aproximación al aprendizaje', type: 'textarea', rows: 4, placeholder: 'Autoestima, motivación, autorregulación emocional, tolerancia a la frustración, trabajo en equipo, persistencia, estrategias para aprender...' },
+            { id: 'anal_motoras',          label: 'c) Habilidades motoras, de autonomía y sensoriales', type: 'textarea', rows: 4, placeholder: 'Motricidad gruesa y fina, autonomía / cuidado de sí mismo, capacidades sensoperceptivas, uso de ayudas técnicas...' }
           ]},
-        { key: 'sugerencias', label: '7. Sugerencias y orientaciones', icon: 'fa-lightbulb',
+        { key: 'sintesis', label: '6. Síntesis', icon: 'fa-microscope',
           fields: [
-            { id: 'sugerencias', label: 'Para el equipo PIE, profesor de aula y familia', type: 'textarea', rows: 4 }
+            { id: 'sint_cognitivas',       label: 'Síntesis — habilidades cognitivas y comunicativas', type: 'textarea', rows: 3 },
+            { id: 'sint_socioemocionales', label: 'Síntesis — habilidades personales y socioemocionales', type: 'textarea', rows: 3 },
+            { id: 'sint_motoras',          label: 'Síntesis — habilidades motoras, autonomía y sensoriales', type: 'textarea', rows: 3 },
+            { id: 'conclusion',            label: 'Conclusión (fortalezas, desafíos, progresos, contexto, proyecciones)', type: 'textarea', rows: 4 }
+          ]},
+        { key: 'sugerencias', label: '7. Sugerencias', icon: 'fa-lightbulb',
+          fields: [
+            { id: 'sug_establecimiento', label: '1. Al establecimiento educacional', type: 'textarea', rows: 2 },
+            { id: 'sug_equipo_aula',     label: '2. Al equipo de aula', type: 'textarea', rows: 2 },
+            { id: 'sug_estudiante',      label: '3. Al estudiante', type: 'textarea', rows: 2 },
+            { id: 'sug_familia',         label: '4. A la familia', type: 'textarea', rows: 2 },
+            { id: 'sug_otros',           label: '5. Otros', type: 'textarea', rows: 2 }
+          ]},
+        { key: 'pauta', label: '8. Pauta de observación pedagógica (opcional)', icon: 'fa-list-check',
+          fields: [
+            { id: 'pauta_observacion', label: 'Observaciones según pauta (escala: en inicio / en desarrollo / logrado / no observado)', type: 'textarea', rows: 4, placeholder: 'Comprensión de instrucciones, disposición para el aprendizaje, atención sostenida, organización de tiempo y materiales, uso de estrategias y apoyos...' }
           ]}
       ]
     }
@@ -292,28 +311,31 @@ window.DOC_TYPES = {
     officialUrl: 'https://especial.mineduc.cl/wp-content/uploads/sites/31/2018/06/AUTORIZACION_EVALUACION_2010.doc',
     officialUrlPdf: 'https://especial.mineduc.cl/wp-content/uploads/sites/31/2018/06/AUTORIZACION_EVALUACION_2010.pdf',
     officialLabel: 'Formato MINEDUC 2010 (referencial)',
-    description: 'Consentimiento informado del apoderado para la evaluacion del estudiante y el manejo de sus datos personales en el contexto del PIE.',
+    description: 'Consentimiento informado del apoderado para la evaluacion diagnostica integral del estudiante en el contexto del PIE.',
     requiresMineduc: false,
+    docTitle: 'AUTORIZACIÓN PARA LA EVALUACIÓN',
+    sublabel: 'Evaluación diagnóstica integral · Ley 20.201 / Decreto 170',
     info: {
       cuando: 'Al inicio del proceso de evaluación PIE, antes de aplicar cualquier instrumento.',
       paraQuien: 'Todo estudiante. La firma debe ser del apoderado titular registrado en el establecimiento.',
       renovacion: 'Anual al inicio del año escolar. Se renueva si cambia el apoderado titular.'
     },
+    // El documento se arma con la prosa oficial (CUSTOM_BODIES.autorizacion_familia en docs.html);
+    // estos campos solo alimentan los espacios a completar.
     schema: {
       sections: [
-        { key: 'identificacion', label: '1. Identificacion del estudiante', icon: 'fa-user', fields: STUDENT_BLOCK },
-        { key: 'apoderado', label: '2. Identificacion del apoderado titular', icon: 'fa-people-roof', fields: APODERADO_BLOCK },
-        { key: 'consentimiento', label: '3. Declaracion de consentimiento', icon: 'fa-file-signature',
+        { key: 'identificacion', label: '1. Identificación del estudiante', icon: 'fa-user', fields: STUDENT_BLOCK },
+        { key: 'autoriza', label: '2. Persona que autoriza', icon: 'fa-people-roof',
           fields: [
-            { id: 'autoriza_eval',   label: 'Autoriza evaluacion diagnostica integral', type: 'checkbox' },
-            { id: 'autoriza_datos',  label: 'Autoriza compartir informacion con equipo PIE', type: 'checkbox' },
-            { id: 'autoriza_pie',    label: 'Autoriza incorporacion del estudiante al PIE', type: 'checkbox' },
-            { id: 'comentarios_apod', label: 'Comentarios u observaciones del apoderado', type: 'textarea', rows: 3 }
+            { id: 'apoderado_nombre', label: 'Nombre completo', type: 'text' },
+            { id: 'apoderado_rut',    label: 'RUT', type: 'text' },
+            { id: 'relacion',         label: 'Relación con el estudiante', type: 'text', placeholder: 'Madre / Padre / Tutor responsable' }
           ]},
-        { key: 'firma', label: '4. Firma del apoderado', icon: 'fa-pen-nib',
+        { key: 'consentimiento', label: '3. Declaración de consentimiento', icon: 'fa-file-signature',
           fields: [
-            { id: 'firma_fecha', label: 'Fecha de la firma', type: 'date' },
-            { id: 'firma_lugar', label: 'Lugar', type: 'text' }
+            { id: 'consentimiento', label: 'Decisión', type: 'select', options: ['Doy mi consentimiento', 'No doy mi consentimiento'] },
+            { id: 'ciudad',         label: 'Ciudad', type: 'text' },
+            { id: 'fecha_autorizacion', label: 'Fecha', type: 'date' }
           ]}
       ]
     }
@@ -331,30 +353,33 @@ window.DOC_TYPES = {
     officialLabel: 'Formato MINEDUC 2025',
     description: 'Documento que autoriza a un representante alterno (no apoderado titular) a firmar documentos PIE en caso de que el apoderado titular no pueda hacerlo.',
     requiresMineduc: false,
+    docTitle: 'PODER SIMPLE PARA APODERADO/A SUPLENTE',
     info: {
       cuando: 'Cuando el apoderado titular no puede asistir/firmar y delega en otra persona (familiar, tutor de hecho).',
       paraQuien: 'Aplica solo si el establecimiento o el apoderado lo solicita explícitamente.',
       renovacion: 'Por evento (cada vez que se requiere representación alterna).'
     },
+    // El documento se arma con la prosa oficial (CUSTOM_BODIES.poder_simple en docs.html);
+    // estos campos solo alimentan los espacios a completar.
     schema: {
       sections: [
         { key: 'identificacion', label: '1. Estudiante', icon: 'fa-user', fields: STUDENT_BLOCK },
-        { key: 'apoderado_titular', label: '2. Apoderado titular', icon: 'fa-people-roof', fields: APODERADO_BLOCK },
-        { key: 'representante', label: '3. Representante alterno', icon: 'fa-user-check',
+        { key: 'apoderado_titular', label: '2. Apoderado/a titular (otorga el poder)', icon: 'fa-people-roof',
           fields: [
-            { id: 'rep_nombre', label: 'Nombre completo', type: 'text', required: true },
-            { id: 'rep_rut',    label: 'RUT', type: 'text', required: true },
-            { id: 'rep_rel',    label: 'Relación con el estudiante', type: 'text' },
-            { id: 'rep_tel',    label: 'Teléfono', type: 'text' }
+            { id: 'apoderado_nombre',    label: 'Nombre completo', type: 'text', required: true },
+            { id: 'apoderado_rut',       label: 'RUT', type: 'text', required: true },
+            { id: 'apoderado_domicilio', label: 'Domicilio', type: 'text' }
           ]},
-        { key: 'alcance', label: '4. Alcance del poder', icon: 'fa-clipboard-check',
+        { key: 'representante', label: '3. Apoderado/a suplente (recibe el poder)', icon: 'fa-user-check',
           fields: [
-            { id: 'autoriza_firma',     label: 'Autoriza firmar documentos PIE', type: 'checkbox' },
-            { id: 'autoriza_reuniones', label: 'Autoriza asistir a reuniones del equipo PIE', type: 'checkbox' },
-            { id: 'autoriza_recibir',   label: 'Autoriza recibir informes y comunicaciones', type: 'checkbox' },
-            { id: 'vigencia_desde',     label: 'Vigente desde', type: 'date' },
-            { id: 'vigencia_hasta',     label: 'Vigente hasta', type: 'date' },
-            { id: 'observaciones',      label: 'Observaciones', type: 'textarea', rows: 3 }
+            { id: 'rep_nombre',    label: 'Nombre completo', type: 'text', required: true },
+            { id: 'rep_rut',       label: 'RUT', type: 'text', required: true },
+            { id: 'rep_domicilio', label: 'Domicilio', type: 'text' }
+          ]},
+        { key: 'otorgamiento', label: '4. Otorgamiento', icon: 'fa-clipboard-check',
+          fields: [
+            { id: 'ciudad',      label: 'Ciudad', type: 'text' },
+            { id: 'fecha_poder', label: 'Fecha', type: 'date' }
           ]}
       ]
     }
@@ -592,39 +617,55 @@ window.DOC_TYPES = {
     description: 'Sintesis de avances pedagogicos escrita en lenguaje accesible para padres/apoderados. Semestral o anual obligatorio.',
     requiresMineduc: true,
     ministerial: true,
+    docTitle: 'INFORME PARA LA FAMILIA',
+    firmantes: ['Fonoaudióloga', 'Psicólogo/a', 'Prof. Educación Diferencial', 'Apoderado/a'],
     info: {
       cuando: 'Al cierre de cada semestre o trimestre según calendario del establecimiento. OBLIGATORIO al menos anual.',
       paraQuien: 'Todo estudiante PIE. Se entrega al apoderado titular firmado.',
       renovacion: 'Semestral o trimestral. Anual es el mínimo obligatorio MINEDUC.'
     },
+    // Estructura alineada al formato oficial "INFORME PARA LA FAMILIA" (MINEDUC 2025).
     schema: {
       sections: [
-        { key: 'identificacion', label: '1. Identificacion del estudiante y periodo', icon: 'fa-user',
+        { key: 'identificacion', label: '1. Identificación del estudiante', icon: 'fa-user',
           fields: [
             ...STUDENT_BLOCK,
-            { id: 'periodo', label: 'Periodo informado', type: 'select',
-              options: ['1er Semestre', '2do Semestre', 'Anual', '1er Trimestre', '2do Trimestre', '3er Trimestre'] }
+            { id: 'student_edad',        label: 'Edad', type: 'text', placeholder: 'Ej: 9 años' },
+            { id: 'student_diagnostico', label: 'Diagnóstico', type: 'text' }
           ]},
-        { key: 'apoyos', label: '2. Resumen de apoyos entregados', icon: 'fa-people-arrows',
+        { key: 'recibe', label: '2. Identificación de quien RECIBE la información', icon: 'fa-person-arrow-down-to-line',
           fields: [
-            { id: 'apoyos_resumen', label: 'Asignaturas, profesionales y horas de apoyo', type: 'textarea', rows: 3 }
+            { id: 'recibe_nombre',   label: 'Nombre', type: 'text' },
+            { id: 'recibe_rut',      label: 'RUT', type: 'text' },
+            { id: 'recibe_relacion', label: 'Relación con el estudiante', type: 'select',
+              options: ['Apoderado/a titular', 'Apoderado/a suplente', 'Otro'] }
           ]},
-        { key: 'avances', label: '3. Avances en los objetivos del PAI/PACI', icon: 'fa-arrow-trend-up',
+        { key: 'entrega', label: '3. Identificación de quien ENTREGA la información', icon: 'fa-person-chalkboard',
           fields: [
-            { id: 'avances', label: 'Avances observados en el periodo', type: 'textarea', rows: 4 }
+            { id: 'entrega_nombre', label: 'Nombre', type: 'text' },
+            { id: 'entrega_rut',    label: 'RUT', type: 'text' },
+            { id: 'entrega_cargo',  label: 'Rol / Cargo', type: 'text', placeholder: 'Ej: Prof. Educación Diferencial' },
+            { id: 'entrega_fecha',  label: 'Fecha de entrega del informe', type: 'date' }
           ]},
-        { key: 'logros', label: '4. Areas de logro y a fortalecer', icon: 'fa-medal',
+        { key: 'avances_pedag', label: '4. Avances pedagógicos en Lenguaje y Matemática', icon: 'fa-arrow-trend-up',
           fields: [
-            { id: 'logros',         label: 'Areas de logro', type: 'textarea', rows: 2 },
-            { id: 'a_fortalecer',   label: 'Areas a fortalecer', type: 'textarea', rows: 2 }
+            { id: 'avances_pedag', label: 'Avances pedagógicos en las áreas de Lenguaje y Matemática', type: 'textarea', rows: 4 }
           ]},
-        { key: 'sugerencias_hogar', label: '5. Sugerencias para apoyo en el hogar', icon: 'fa-house-user',
+        { key: 'necesidades_pedag', label: '5. Necesidades de apoyo en Lenguaje y Matemática', icon: 'fa-circle-exclamation',
           fields: [
-            { id: 'sugerencias_hogar', label: 'Que puede hacer la familia en casa', type: 'textarea', rows: 3 }
+            { id: 'necesidades_pedag', label: 'Necesidades de apoyo en las áreas de Lenguaje y Matemática', type: 'textarea', rows: 4 }
           ]},
-        { key: 'compromisos', label: '6. Acuerdos y compromisos', icon: 'fa-handshake',
+        { key: 'avances_psico', label: '6. Avances área psicológica', icon: 'fa-brain',
           fields: [
-            { id: 'compromisos', label: 'Compromisos del equipo PIE y la familia', type: 'textarea', rows: 3 }
+            { id: 'avances_psico', label: 'Avances en el área psicológica', type: 'textarea', rows: 3 }
+          ]},
+        { key: 'avances_fono', label: '7. Avances área fonoaudiológica', icon: 'fa-comment-medical',
+          fields: [
+            { id: 'avances_fono', label: 'Avances en el área fonoaudiológica', type: 'textarea', rows: 3 }
+          ]},
+        { key: 'acuerdos', label: '8. Acuerdos y compromisos escuela – hogar', icon: 'fa-handshake',
+          fields: [
+            { id: 'acuerdos', label: 'Acuerdos y compromisos entre la escuela y el hogar', type: 'textarea', rows: 4 }
           ]}
       ]
     }
