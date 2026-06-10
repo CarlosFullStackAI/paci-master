@@ -125,6 +125,10 @@
         [data-theme="light"] #control-panel > div:first-child { background: #ffffff !important; border-bottom-color: #e2e8f0 !important; }
         [data-theme="light"] #control-panel > div:first-child .text-slate-100 { color: #0f172a !important; }
         [data-theme="light"] #control-panel > div:first-child .text-blue-400 { color: #1e40af !important; }
+        /* Chips neutros suaves sobre cabecera blanca (carpeta, imprimir, tema, salir) */
+        [data-theme="light"] #control-panel > div:first-child .bg-slate-700 { background: #eef2f7 !important; color: #334155 !important; }
+        [data-theme="light"] #control-panel > div:first-child .bg-slate-700:hover { background: #e2e8f0 !important; }
+        [data-theme="light"] #control-panel > div:first-child .hover\:bg-red-500:hover { background: #ef4444 !important; color: #ffffff !important; }
     </style>
 </head>
 <body style="display:flex;flex-direction:row;height:100vh;overflow:hidden;margin:0">
@@ -176,10 +180,10 @@
                 <button onclick="guardarPACI()" id="btn-guardar" class="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-2.5 rounded-lg transition active:scale-95 shadow-lg text-xs font-bold flex items-center gap-1" title="Guardar en la nube">
                     <i class="fa-solid fa-cloud-arrow-up"></i> Guardar
                 </button>
-                <button onclick="guardarPlanAnualVinculado()" id="btn-guardar-anual" style="display:none;background:#7c3aed;" class="text-white px-3 py-2.5 rounded-lg transition active:scale-95 shadow-lg text-xs font-bold flex items-center gap-1" title="Guardar como plan anual padre + 3 trimestres vinculados">
+                <button onclick="guardarPlanAnualVinculado()" id="btn-guardar-anual" style="display:none;" class="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-2.5 rounded-lg transition active:scale-95 shadow-lg text-xs font-bold flex items-center gap-1" title="Guardar como plan anual padre + 3 trimestres vinculados">
                     <i class="fa-solid fa-sitemap"></i> Anual + 3 trimestres
                 </button>
-                <button onclick="distribuirTrimestresIA()" id="btn-distribuir-ia" style="display:none;background:#0ea5e9;" class="text-white px-3 py-2.5 rounded-lg transition active:scale-95 shadow-lg text-xs font-bold flex items-center gap-1" title="Distribuir modulos en 3 trimestres con progresion ordenada (IA)">
+                <button onclick="distribuirTrimestresIA()" id="btn-distribuir-ia" style="display:none;" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-2.5 rounded-lg transition active:scale-95 shadow-lg text-xs font-bold flex items-center gap-1" title="Distribuir modulos en 3 trimestres con progresion ordenada (IA)">
                     <i class="fa-solid fa-wand-magic-sparkles"></i> Distribuir IA
                 </button>
                 <button onclick="printPDF()" class="bg-slate-700 hover:bg-slate-600 text-white p-2.5 rounded-lg transition active:scale-95 shadow-lg text-xs font-bold" title="Imprimir directamente">
@@ -188,13 +192,13 @@
                 <button onclick="downloadPDF()" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-2.5 rounded-lg transition active:scale-95 shadow-lg text-xs font-bold flex items-center gap-1" title="Descargar como archivo PDF">
                     <i class="fa-solid fa-download"></i> PDF
                 </button>
-                <button onclick="downloadWord()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2.5 rounded-lg transition active:scale-95 shadow-lg text-xs font-bold flex items-center gap-1" title="Descargar como archivo Word (.docx)">
+                <button onclick="downloadWord()" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-2.5 rounded-lg transition active:scale-95 shadow-lg text-xs font-bold flex items-center gap-1" title="Descargar como archivo Word (.docx)">
                     <i class="fa-solid fa-file-word"></i> Word
                 </button>
                 <button type="button" id="theme-toggle" onclick="toggleTheme()" class="bg-slate-700 hover:bg-slate-600 text-white p-2.5 rounded-lg transition active:scale-95 shadow-lg text-xs font-bold" title="Cambiar entre modo claro y oscuro" aria-label="Cambiar entre modo claro y oscuro">
                     <i class="fa-solid fa-moon"></i>
                 </button>
-                <button onclick="cerrarSesion()" class="bg-red-400 hover:bg-red-500 text-white p-2.5 rounded-lg transition active:scale-95 shadow-lg text-xs font-bold" title="Cerrar sesion">
+                <button onclick="cerrarSesion()" class="bg-slate-700 hover:bg-red-500 text-white p-2.5 rounded-lg transition active:scale-95 shadow-lg text-xs font-bold" title="Cerrar sesion">
                     <i class="fa-solid fa-right-from-bracket"></i>
                 </button>
             </div>
