@@ -373,7 +373,7 @@
             <!-- 1.8. Metas por asignatura -->
             <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
                 <button class="w-full text-left p-4 bg-slate-50 font-bold text-xs uppercase flex justify-between items-center" onclick="toggleAcc('acc-metas'); renderMetasPACI();">
-                    <span>1.8. Metas por asignatura</span>
+                    <span>1.8. Metas por asignatura <span id="metas-counter" class="hidden text-white px-1.5 py-0.5 rounded-full text-[9px]" style="background:#f59e0b;"></span></span>
                     <i class="fa-solid fa-bullseye text-blue-600"></i>
                 </button>
                 <div id="acc-metas" class="accordion-content px-4 space-y-3">
@@ -907,6 +907,17 @@
                 verificacion: (state.metas[asig]?.verificacion || '').trim()
             })).filter(x => x.meta || x.verificacion);
 
+            // El PACI debe llevar una meta alcanzable por CADA asignatura del plan
+            // (Decreto 83/2015). No se bloquea el guardado, pero se advierte.
+            const sinMeta = asignaturasDePlan().filter(asig => !(state.metas[asig]?.meta || '').trim());
+            if (sinMeta.length) {
+                const seguir = confirm(
+                    'Las siguientes asignaturas del plan NO tienen meta definida:\n\n• ' + sinMeta.join('\n• ') +
+                    '\n\nEl PACI debe llevar una meta alcanzable por asignatura (sección 1.8 — puedes generarlas con el botón IA).\n\n¿Guardar de todos modos?'
+                );
+                if (!seguir) return null;
+            }
+
             return { student, trimester, team, modules, contextual, adecuaciones, criteriosEvaluacion, metas, parentPaiId, firmas };
         }
 
@@ -993,7 +1004,20 @@
         // Renderiza las tarjetas de meta (una por asignatura) en el editor.
         // Conserva lo ya escrito en state.metas. NO se llama en cada tecla (eso lo hace
         // setMetaPACI), sino al abrir la seccion, al cargar un PACI o al cambiar los modulos.
+        // Badge del acordeon: "n/m" asignaturas con meta (ambar si faltan, verde si todas).
+        function refreshMetasCounter() {
+            const badge = document.getElementById('metas-counter');
+            if (!badge) return;
+            const asigs = asignaturasDePlan();
+            if (!asigs.length) { badge.classList.add('hidden'); return; }
+            const conMeta = asigs.filter(a => (state.metas[a]?.meta || '').trim()).length;
+            badge.textContent = conMeta + '/' + asigs.length + ' con meta';
+            badge.style.background = conMeta === asigs.length ? '#10b981' : '#f59e0b';
+            badge.classList.remove('hidden');
+        }
+
         function renderMetasPACI() {
+            refreshMetasCounter();
             const cont = document.getElementById('metas-por-asig-list');
             if (!cont) return;
             const asigs = asignaturasDePlan();
@@ -1015,7 +1039,7 @@
                         '</div>' +
                         '<div>' +
                             '<label class="text-[10px] font-black text-slate-600 uppercase mb-1 block">Meta</label>' +
-                            '<textarea id="meta-' + idx + '-meta" rows="2" class="w-full border p-2 rounded-lg text-sm" placeholder="Qué se espera que logre el estudiante en esta asignatura." oninput="setMetaPACI(' + idx + ',\'meta\',this.value)">' + escapePaciHtml(m.meta) + '</textarea>' +
+                            '<textarea id="meta-' + idx + '-meta" rows="2" class="w-full border p-2 rounded-lg text-sm" placeholder="Meta ALCANZABLE según el nivel real del estudiante. Ej: lee comprensivamente textos breves de 3-4 oraciones con apoyo visual." oninput="setMetaPACI(' + idx + ',\'meta\',this.value)">' + escapePaciHtml(m.meta) + '</textarea>' +
                         '</div>' +
                         '<div>' +
                             '<label class="text-[10px] font-black text-slate-600 uppercase mb-1 block">¿Cómo se verifica?</label>' +
@@ -1034,6 +1058,7 @@
             if (!state.metas[asig]) state.metas[asig] = { meta: '', verificacion: '' };
             state.metas[asig][campo] = valor;
             renderMetasPreview();
+            refreshMetasCounter();
         }
 
         // Renderiza la seccion imprimible "III. Metas por Asignatura" (#out-metas).
@@ -5120,6 +5145,8 @@
             '2026-05-21': 'Glorias Navales',
             '2026-06-29': 'San Pedro y San Pablo',
             '2026-07-16': 'Virgen del Carmen',
+            '2026-07-17': 'Interferiado (sin clases - Esc. Luis Cruz Martinez)',
+            '2026-08-14': 'Jornada Reflexion Pedagogica DPD (sin clases - Esc. Luis Cruz Martinez)',
             '2026-08-15': 'Asuncion de la Virgen',
             '2026-09-18': 'Fiestas Patrias',
             '2026-09-19': 'Glorias del Ejercito',
@@ -6169,15 +6196,16 @@
             }
         }
 
-        // Calendario escolar trimestral Region del Biobio 2026.
-        // Inicio clases estudiantes: 04-mar. Vacaciones de invierno: 22-jun a 03-jul
-        // (regreso 06-jul). Fin de ano escolar: ~11-dic. El receso de invierno cae
-        // ENTRE el 1er y el 2do trimestre, por eso el 2do parte el 06-jul.
+        // Calendario escolar trimestral 2026 - Escuela Luis Cruz Martinez (Pulebu).
+        // Fuente: Calendarizacion oficial del establecimiento (2do trimestre):
+        //   2do trimestre: lunes 08-jun a jueves 10-sep; el receso de invierno
+        //   (22-jun a 03-jul) cae DENTRO del 2do trimestre (el motor lo salta).
+        //   1er trimestre termina el viernes previo (05-jun); 3er parte 14-sep.
         // Estas fechas son editables por el establecimiento.
         const FECHAS_TRIMESTRE = {
-            '1er': { inicio: '2026-03-04', fin: '2026-06-19' },
-            '2do': { inicio: '2026-07-06', fin: '2026-09-18' },
-            '3er': { inicio: '2026-09-21', fin: '2026-12-11' },
+            '1er': { inicio: '2026-03-04', fin: '2026-06-05' },
+            '2do': { inicio: '2026-06-08', fin: '2026-09-10' },
+            '3er': { inicio: '2026-09-14', fin: '2026-12-11' },
             'Anual': { inicio: '2026-03-04', fin: '2026-12-11' }
         };
 

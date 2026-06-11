@@ -657,6 +657,7 @@
       </button>
       <button type="button" class="btn btn-ghost" onclick="descargarWord()" title="Descargar como Word editable (.doc)"><i class="fa-regular fa-file-word"></i> Word</button>
       <button type="button" class="btn btn-ghost" onclick="descargarPDF()" title="Descargar como PDF MINEDUC"><i class="fa-regular fa-file-pdf"></i> PDF</button>
+      <button type="button" id="btn-redactar-ia" class="btn" onclick="redactarConIA()" title="Redacta borradores con IA para los campos de texto vacíos" style="background:linear-gradient(135deg,#a78bfa,#7c3aed);color:#fff;box-shadow:0 4px 14px rgba(124,58,237,0.4);"><i class="fa-solid fa-wand-magic-sparkles"></i> Redactar con IA</button>
       <button type="button" class="btn btn-primary" onclick="guardarDocumento()"><i class="fa-solid fa-cloud-arrow-up"></i> Guardar</button>
     </nav>
   </header>
@@ -717,6 +718,14 @@
     const docType = (window.DOC_TYPES || {})[typeKey];
     const phase = docType ? (window.DOC_PHASES || []).find(p => p.key === docType.phase) : null;
 
+    // Toggle global de IA: mismo mecanismo que app.html (const AI_ENABLED).
+    // Habilitada cuando hay API key de IA configurada en Cloudflare; cambiar a
+    // false para ocultar el boton "Redactar con IA".
+    const AI_ENABLED = true;
+
+    // Ultimo estudiante seleccionado (para dar contexto a la IA sin re-consultar)
+    let studentSeleccionado = null;
+
     function esc(s) {
       return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
@@ -748,7 +757,7 @@
       if (typeKey === 'fur' && furCodeOverride && docType.officialByDiag && docType.officialByDiag[furCodeOverride]) {
         effectiveOfficialUrl = docType.officialByDiag[furCodeOverride];
         const diagName = (docType.diagLabel && docType.diagLabel[furCodeOverride]) || furCodeOverride;
-        effectiveOfficialLabel = 'Formato oficial MINEDUC: ' + diagName;
+        effectiveOfficialLabel = 'Formato oficial (referencia): ' + diagName;
         badges.push('<span class="badge" style="background:rgba(52,211,153,0.15);color:#34d399;border-color:rgba(52,211,153,0.4);"><i class="fa-solid fa-bullseye"></i> Diagnóstico: ' + esc(diagName) + '</span>');
       }
 
@@ -759,7 +768,7 @@
         officialBar =
           '<div class="official-bar" style="flex-direction:column;align-items:stretch;gap:0.7rem;">' +
             '<div style="font-size:0.78rem;color:#94a3b8;font-weight:700;display:flex;align-items:center;gap:0.4rem;">' +
-              '<i class="fa-solid fa-landmark" style="color:#c084fc;"></i> Formato oficial del MINEDUC disponible' +
+              '<i class="fa-solid fa-landmark" style="color:#c084fc;"></i> Formato oficial MINEDUC (solo referencia)' +
             '</div>' +
             '<div style="display:flex;gap:0.55rem;flex-wrap:wrap;">' +
               '<a class="official-link" style="background:linear-gradient(135deg,#a78bfa,#7c3aed);color:#fff;border-color:transparent;font-weight:800;padding:0.7rem 1.1rem;box-shadow:0 6px 20px rgba(124,58,237,0.35);" href="' + esc(effectiveOfficialUrl) + '" target="_blank" rel="noopener">' +
@@ -771,7 +780,7 @@
             '</div>' +
             (mensajeExtra ? '<div style="font-size:0.75rem;color:#fbbf24;background:rgba(251,191,36,0.1);padding:0.5rem 0.7rem;border-radius:0.5rem;border-left:3px solid #fbbf24;"><i class="fa-solid fa-circle-info"></i> ' + esc(mensajeExtra) + '</div>' : '') +
             '<div style="font-size:0.72rem;color:#94a3b8;line-height:1.5;">' +
-              '<strong>Flujo recomendado:</strong> Llena los campos abajo → descarga arriba el formato oficial MINEDUC → ábrelo en Word → copia los datos cargados (botón <strong>Word</strong>) y pégalos en el formato oficial.' +
+              '<strong>Flujo recomendado:</strong> 1) Selecciona al estudiante: la plataforma precarga sus datos y hereda contenido de sus documentos anteriores. 2) Completa o ajusta los campos con la vista previa en vivo a la derecha (puedes apoyarte en <strong>Redactar con IA</strong>). 3) <strong>Guarda</strong> y descarga directamente en <strong>PDF</strong> o <strong>Word</strong>: el documento generado ya sigue el formato oficial MINEDUC. El enlace de arriba es solo una referencia opcional para verificar el formato o responder a fiscalizaciones.' +
             '</div>' +
           '</div>';
       } else if (docType.officialLabel) {
@@ -876,6 +885,7 @@
     // con datos coherentes (nombre, RUT, fecha nac, curso, diagnostico, apoderado).
     function aplicarPrefillEstudiante(student) {
       if (!docType || !docType.schema) return;
+      studentSeleccionado = student;
       const profile = student.profile_json
         ? (typeof student.profile_json === 'string'
             ? (() => { try { return JSON.parse(student.profile_json); } catch (e) { return {}; } })()
@@ -1127,6 +1137,102 @@
         }
       } catch (e) {
         toast('Error de conexion al guardar.', true);
+      }
+    }
+
+    // ====== Redactar con IA: borradores para los textareas vacios ======
+    // Junta los campos de texto largo VACIOS del schema, los datos no sensibles
+    // del estudiante (sin RUT ni apoderado) y el contenido ya heredado como
+    // contexto, y pide a /api/ai/fill-document borradores breves por campo.
+    async function redactarConIA() {
+      if (!docType || !docType.schema) { toast('Tipo de documento invalido.', true); return; }
+      const data = collectSchemaData();
+      const nombre = (data.student_name || '').trim();
+      if (!nombre) {
+        toast('Selecciona primero al estudiante para dar contexto a la IA.', true);
+        return;
+      }
+
+      // Textareas vacios (a redactar) y textareas con contenido (contexto previo)
+      const vacios = [];
+      const camposPrevios = {};
+      docType.schema.sections.forEach(sec => {
+        sec.fields.forEach(f => {
+          if (f.type !== 'textarea') return;
+          const el = document.getElementById('f-' + f.id);
+          if (!el) return;
+          const val = (el.value || '').trim();
+          if (!val) {
+            vacios.push({ id: f.id, label: f.label, section: sec.label });
+          } else {
+            camposPrevios[f.id] = val.substring(0, 700);
+          }
+        });
+      });
+
+      if (!vacios.length) {
+        toast('No hay campos de redacción vacíos: todos tienen contenido.');
+        return;
+      }
+
+      // Datos NO sensibles del estudiante: nombre de pila, curso, diagnóstico,
+      // nivel real. NUNCA enviar RUT ni datos del apoderado.
+      const studentInfo = {
+        nombre: nombre.split(/\s+/)[0],
+        curso: data.student_curso || (studentSeleccionado && studentSeleccionado.curso) || '',
+        diagnostico: (studentSeleccionado && studentSeleccionado.diagnosis) || '',
+        nivelReal: (studentSeleccionado && (studentSeleccionado.real_level || studentSeleccionado.work_level)) || ''
+      };
+
+      const btn = $('btn-redactar-ia');
+      const btnHtml = btn ? btn.innerHTML : '';
+      if (btn) {
+        btn.disabled = true;
+        btn.style.opacity = '0.7';
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Redactando…';
+      }
+
+      try {
+        const res = await fetch('/api/ai/fill-document', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            _token: token,
+            typeKey,
+            docLabel: docType.label,
+            studentInfo,
+            camposPrevios,
+            fields: vacios.slice(0, 20)
+          })
+        });
+        const out = await res.json();
+        if (!out.ok || !out.fields) {
+          toast(out.error || 'No se pudo redactar con IA. Intenta de nuevo.', true);
+          return;
+        }
+        // Rellenar SOLO los campos que siguen vacios
+        let aplicados = 0;
+        for (const [fid, txt] of Object.entries(out.fields)) {
+          const el = document.getElementById('f-' + fid);
+          if (el && !(el.value || '').trim() && txt) {
+            el.value = String(txt);
+            aplicados++;
+          }
+        }
+        updatePreview();
+        if (aplicados > 0) {
+          toast('IA redactó ' + aplicados + ' campo(s). Revisa y edita los textos antes de guardar.');
+        } else {
+          toast('La IA no aportó texto nuevo (los campos ya tenían contenido).', true);
+        }
+      } catch (e) {
+        toast('Error de conexión al redactar con IA.', true);
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.style.opacity = '';
+          btn.innerHTML = btnHtml;
+        }
       }
     }
 
@@ -1851,6 +1957,9 @@
     fetch('/api/tenant-config').then(r => r.json()).then(c => { window.TENANT_CONFIG = c; updatePreview(); }).catch(() => {});
 
     (async function init() {
+      // Mostrar "Redactar con IA" solo si AI_ENABLED (mismo toggle que app.html)
+      const btnIA = $('btn-redactar-ia');
+      if (btnIA) btnIA.style.display = AI_ENABLED ? '' : 'none';
       renderHero();
       if (docType) {
         renderSections({});

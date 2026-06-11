@@ -208,8 +208,38 @@
       </div>
     </div>
 
-    <!-- Contenido scrolleable: 8 secciones en acordeones -->
+    <!-- Contenido scrolleable: secciones en acordeones -->
     <div style="flex:1 1 auto;overflow-y:scroll;padding:1rem;">
+
+      <!-- 0. Logos institucionales -->
+      <div class="acc-card">
+        <button type="button" class="acc-btn" onclick="toggleAcc('acc-0')">
+          <span><i class="fa-solid fa-image acc-ico"></i> 0. Logos institucionales</span>
+          <i class="fa-solid fa-chevron-down acc-chev"></i>
+        </button>
+        <div id="acc-0" class="accordion-content">
+          <div class="acc-body">
+            <p class="hint">Carga aquí los logos para incluirlos en el encabezado del documento y en el PDF.</p>
+            <div class="grid grid-2">
+              <div>
+                <label for="in-logo-escuela">Logo del Establecimiento</label>
+                <input id="in-logo-escuela" type="file" accept="image/*" onchange="loadLogo(event, 'escuela')">
+                <img id="logo-escuela-prev" alt="Vista previa logo del establecimiento" style="display:none;max-height:60px;margin-top:0.5rem;border-radius:0.4rem;background:#ffffff;padding:4px;">
+              </div>
+              <div>
+                <label for="in-logo-pie">Logo P.I.E.</label>
+                <input id="in-logo-pie" type="file" accept="image/*" onchange="loadLogo(event, 'pie')">
+                <img id="logo-pie-prev" alt="Vista previa logo P.I.E." style="display:none;max-height:60px;margin-top:0.5rem;border-radius:0.4rem;background:#ffffff;padding:4px;">
+              </div>
+            </div>
+            <div class="section-actions" style="justify-content:flex-start;margin:0.7rem 0 0;">
+              <button type="button" class="btn btn-ghost btn-sm" onclick="quitarLogos()">
+                <i class="fa-solid fa-trash" aria-hidden="true"></i> Quitar logos
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <!-- 1. Datos del estudiante -->
       <div class="acc-card">
@@ -373,10 +403,24 @@
         </div>
       </div>
 
-      <!-- 8. Firmas y compromisos -->
+      <!-- 8. Equipo de aula / Profesionales (mismo patron que el editor PACI) -->
+      <div class="acc-card">
+        <button type="button" class="acc-btn" onclick="toggleAcc('acc-equipo-aula')">
+          <span><i class="fa-solid fa-users acc-ico"></i> 8. Equipo de aula / Profesionales</span>
+          <i class="fa-solid fa-chevron-down acc-chev"></i>
+        </button>
+        <div id="acc-equipo-aula" class="accordion-content">
+          <div class="acc-body">
+            <p class="hint">Marca los profesionales que participan en el plan y escribe su nombre (mismo listado de cargos que el editor PACI).</p>
+            <div id="equipo-aula-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 9. Firmas y compromisos -->
       <div class="acc-card">
         <button type="button" class="acc-btn" onclick="toggleAcc('acc-8')">
-          <span><i class="fa-solid fa-signature acc-ico"></i> 8. Firmas y compromisos</span>
+          <span><i class="fa-solid fa-signature acc-ico"></i> 9. Firmas y compromisos</span>
           <i class="fa-solid fa-chevron-down acc-chev"></i>
         </button>
         <div id="acc-8" class="accordion-content">
@@ -443,10 +487,34 @@
 
     const ESTADOS_SEGUIMIENTO = ['Por evaluar', 'En desarrollo', 'Logrado parcial', 'Logrado', 'No logrado'];
 
+    // Cargos del equipo de aula (mismo listado que renderEquipoForm() del editor PACI).
+    const EQUIPO_AULA_ROLES = [
+      'Profesor/a de Educación Diferencial',
+      'Psicólogo',
+      'Fonoaudiólogo/a',
+      'Profesor/a Jefe',
+      'Coordinador/a PIE',
+      'Profesor/a de Lenguaje y Comunicación',
+      'Profesor/a de Matemáticas',
+      'Profesor/a de Ciencias Naturales',
+      'Profesor/a de Historia y Geografía',
+      'Profesor/a de Inglés',
+      'Profesor/a de Artes Visuales',
+      'Profesor/a de Música',
+      'Profesor/a de Tecnología',
+      'Profesor/a de Religión',
+      'Profesor/a de Educación Física y Salud',
+      'Profesor/a de Lengua Indígena',
+      'Apoderado/a o Familia',
+      'Jefe/a UTP / Coordinador/a PIE'
+    ];
+
     // ====== Estado ======
     const state = {
       apoyos: [],
       equipo: [],
+      equipoAula: EQUIPO_AULA_ROLES.map((r) => ({ rol: r, nombre: '', incluido: false })),
+      logos: { escuela: '', pie: '' },
       antecedentesSalud: '',
       evaluacion: { fortalezas: '', dificultades: '', barreras: '' },
       metas: AREAS_PAI.map(a => ({ area: a.key, meta: '', indicador: '' })),
@@ -611,6 +679,67 @@
     function setMiembro(id, campo, valor) {
       const m = state.equipo.find((x) => x._id === id);
       if (m) m[campo] = valor;
+      updatePreviewPAI();
+    }
+
+    // ====== Logos institucionales (mismo patron loadLogo del editor PACI, adaptado a estado) ======
+    function loadLogo(event, key) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        state.logos[key] = e.target.result;
+        renderLogoPreviews();
+        updatePreviewPAI();
+      };
+      reader.readAsDataURL(file);
+    }
+    function quitarLogos() {
+      state.logos = { escuela: '', pie: '' };
+      if ($('in-logo-escuela')) $('in-logo-escuela').value = '';
+      if ($('in-logo-pie')) $('in-logo-pie').value = '';
+      renderLogoPreviews();
+      updatePreviewPAI();
+    }
+    function renderLogoPreviews() {
+      [['escuela', 'logo-escuela-prev'], ['pie', 'logo-pie-prev']].forEach((par) => {
+        const img = $(par[1]);
+        if (!img) return;
+        const src = state.logos[par[0]];
+        if (src) { img.src = src; img.style.display = 'block'; }
+        else { img.removeAttribute('src'); img.style.display = 'none'; }
+      });
+    }
+
+    // ====== Equipo de aula / Profesionales (checkbox + nombre, patron del editor PACI) ======
+    function toggleProfesional(idx, checked) {
+      const p = state.equipoAula[idx];
+      if (!p) return;
+      p.incluido = !!checked;
+      renderEquipoAula();
+    }
+    function setProfesionalNombre(idx, valor) {
+      const p = state.equipoAula[idx];
+      if (!p) return;
+      p.nombre = valor;
+      updatePreviewPAI();
+    }
+    function renderEquipoAula() {
+      const cont = $('equipo-aula-list');
+      if (!cont) return;
+      cont.innerHTML = state.equipoAula.map((p, i) =>
+        '<div class="firma-row" style="padding:0.6rem 0.8rem;">' +
+          '<div style="display:flex;align-items:center;gap:0.6rem;">' +
+            '<input type="checkbox" id="prof-aula-' + i + '" style="width:auto;flex-shrink:0;margin:0;"' +
+              (p.incluido ? ' checked' : '') + ' onchange="toggleProfesional(' + i + ',this.checked)">' +
+            '<label for="prof-aula-' + i + '" style="margin:0;flex:1;cursor:pointer;">' + escapeHtml(p.rol) + '</label>' +
+          '</div>' +
+          (p.incluido
+            ? '<div style="margin-top:0.5rem;"><input type="text" placeholder="Nombre completo" value="' +
+              escapeHtml(p.nombre) + '" oninput="setProfesionalNombre(' + i + ',this.value)"></div>'
+            : '') +
+        '</div>'
+      ).join('');
       updatePreviewPAI();
     }
 
@@ -788,6 +917,12 @@
         periodo: a.periodo
       }));
       const team = state.equipo.map((m) => ({ nombre: m.nombre, cargo: m.cargo }));
+      // Equipo de aula: solo los profesionales marcados (rol + nombre).
+      const equipoAula = state.equipoAula
+        .filter((p) => p.incluido)
+        .map((p) => ({ rol: p.rol, nombre: (p.nombre || '').trim() }));
+      // Logos como data: URIs (persisten en el JSON del documento y sirven en el PDF server-side).
+      const logos = { escuela: state.logos.escuela || '', pie: state.logos.pie || '' };
       // Sincronizar evaluacion desde los inputs (state se actualiza vía oninput también).
       const evaluacion = {
         fortalezas: ($('in-fortalezas') && $('in-fortalezas').value.trim()) || '',
@@ -805,6 +940,8 @@
         student,
         apoyos,
         team,
+        equipoAula,
+        logos,
         antecedentesSalud,
         evaluacion,
         metas,
@@ -868,15 +1005,24 @@
     function construirCuerpoDocumento(d, cfg) {
       cfg = cfg || { nombre: 'Establecimiento' };
 
-      // --- Encabezado del documento ---
+      // --- Encabezado del documento (logos como data: URIs, tambien funcionan en el PDF server-side) ---
+      const logoImg = (src, alt) => src
+        ? '<img src="' + escapeHtml(src) + '" alt="' + alt + '" style="max-height:70px;max-width:120px;object-fit:contain;">'
+        : '';
+      const logoEscuela = logoImg(d.logos && d.logos.escuela, 'Logo del establecimiento');
+      const logoPie = logoImg(d.logos && d.logos.pie, 'Logo P.I.E.');
       let html = '' +
-        '<div style="text-align:center;border-bottom:3px solid #091845;padding-bottom:14px;margin-bottom:6px;">' +
-          '<div style="font-size:34px;font-weight:900;letter-spacing:-1px;color:#091845;line-height:1;">PAI</div>' +
-          '<div style="width:64px;height:4px;background:#1240c4;margin:6px auto 8px;border-radius:9999px;"></div>' +
-          '<div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:0.16em;color:#475569;">Plan de Apoyo Individual</div>' +
-          '<div style="font-size:11px;font-weight:800;text-transform:uppercase;color:#1a1a2e;margin-top:6px;">' + escapeHtml(cfg.nombre || 'Establecimiento') + '</div>' +
-          '<div style="font-size:9.5px;font-weight:700;text-transform:uppercase;color:#64748b;margin-top:2px;">Programa de Integración Escolar · Decreto N° 170 / N° 83</div>' +
-          '<div style="font-size:9.5px;color:#64748b;margin-top:2px;">Año escolar: ' + escapeHtml(d.student.anoEscolar || '—') + ' · Período: ' + escapeHtml(d.trimester || '—') + '</div>' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:3px solid #091845;padding-bottom:14px;margin-bottom:6px;">' +
+          '<div style="width:125px;flex-shrink:0;text-align:left;">' + logoEscuela + '</div>' +
+          '<div style="flex:1 1 auto;text-align:center;">' +
+            '<div style="font-size:34px;font-weight:900;letter-spacing:-1px;color:#091845;line-height:1;">PAI</div>' +
+            '<div style="width:64px;height:4px;background:#1240c4;margin:6px auto 8px;border-radius:9999px;"></div>' +
+            '<div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:0.16em;color:#475569;">Plan de Apoyo Individual</div>' +
+            '<div style="font-size:11px;font-weight:800;text-transform:uppercase;color:#1a1a2e;margin-top:6px;">' + escapeHtml(cfg.nombre || 'Establecimiento') + '</div>' +
+            '<div style="font-size:9.5px;font-weight:700;text-transform:uppercase;color:#64748b;margin-top:2px;">Programa de Integración Escolar · Decreto N° 170 / N° 83</div>' +
+            '<div style="font-size:9.5px;color:#64748b;margin-top:2px;">Año escolar: ' + escapeHtml(d.student.anoEscolar || '—') + ' · Período: ' + escapeHtml(d.trimester || '—') + '</div>' +
+          '</div>' +
+          '<div style="width:125px;flex-shrink:0;text-align:right;">' + logoPie + '</div>' +
         '</div>' +
         '<div style="height:3px;background:linear-gradient(to right,#1240c4,#091845,#1240c4);border-radius:9999px;margin:10px 0 4px;"></div>';
 
@@ -942,14 +1088,22 @@
         '<table style="' + DOC.table + '"><thead><tr>' + th('Nombre') + th('Cargo') +
         '</tr></thead><tbody>' + filasEquipo + '</tbody></table>';
 
-      // --- VIII. Firmas y compromisos ---
+      // --- VIII. Equipo de aula ---
+      const filasEquipoAula = (d.equipoAula || []).length
+        ? d.equipoAula.map((p) => '<tr>' + td(p.rol) + td(p.nombre) + '</tr>').join('')
+        : '<tr><td style="' + DOC.td + '" colspan="2">Sin profesionales seleccionados.</td></tr>';
+      html += secHeader('VIII', 'Equipo de aula') +
+        '<table style="' + DOC.table + '"><thead><tr>' + th('Cargo / Rol') + th('Nombre') +
+        '</tr></thead><tbody>' + filasEquipoAula + '</tbody></table>';
+
+      // --- IX. Firmas y compromisos ---
       const filasFirmas = d.firmas.length
         ? d.firmas.map((f) => {
             const estado = f.firmadoEn ? ('Firmado · ' + fmtFechaHora(f.firmadoEn)) : 'Pendiente';
             return '<tr>' + td(f.rol) + td(f.nombre) + td(f.email) + td(estado) + '</tr>';
           }).join('')
         : '<tr><td style="' + DOC.td + '" colspan="4">Sin firmas registradas.</td></tr>';
-      html += secHeader('VIII', 'Firmas y compromisos') +
+      html += secHeader('IX', 'Firmas y compromisos') +
         '<table style="' + DOC.table + '"><thead><tr>' +
           th('Rol') + th('Nombre') + th('Email / Contacto') + th('Estado') +
         '</tr></thead><tbody>' + filasFirmas + '</tbody></table>' +
@@ -1098,6 +1252,22 @@
         state.equipo = [];
         (parsed.team || []).forEach((m) => agregarMiembro(m));
 
+        // Logos institucionales (data: URIs guardados en el JSON del documento)
+        const lg = parsed.logos || {};
+        state.logos = { escuela: lg.escuela || '', pie: lg.pie || '' };
+        renderLogoPreviews();
+
+        // Equipo de aula: marcar los roles guardados; roles desconocidos se agregan al final.
+        state.equipoAula = EQUIPO_AULA_ROLES.map((r) => {
+          const saved = (parsed.equipoAula || []).find((x) => x && x.rol === r);
+          return { rol: r, nombre: (saved && saved.nombre) || '', incluido: !!saved };
+        });
+        (parsed.equipoAula || []).forEach((x) => {
+          if (x && x.rol && EQUIPO_AULA_ROLES.indexOf(x.rol) === -1) {
+            state.equipoAula.push({ rol: x.rol, nombre: x.nombre || '', incluido: true });
+          }
+        });
+
         // Metas por área (merge: usa el array por defecto y sobreescribe desde parsed)
         state.metas = AREAS_PAI.map((a) => {
           const saved = (parsed.metas || []).find((x) => x.area === a.key);
@@ -1120,6 +1290,7 @@
 
         renderApoyos();
         renderEquipo();
+        renderEquipoAula();
         renderMetas();
         renderDua();
         renderSeguimiento();
@@ -1153,6 +1324,8 @@
       }
       renderApoyos();
       renderEquipo();
+      renderEquipoAula();
+      renderLogoPreviews();
       renderMetas();
       renderDua();
       renderSeguimiento();

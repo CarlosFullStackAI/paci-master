@@ -2713,14 +2713,17 @@
     // (FECHAS_TRIMESTRE, FERIADOS_CHILE y VACACIONES_2026). Si cambian las
     // fechas de un ano, actualizar ambos archivos.
     // ==========================================
+    // Trimestres segun la Calendarizacion oficial Esc. Luis Cruz Martinez 2026:
+    // 2do trimestre 08-jun a 10-sep (el receso de invierno cae dentro y se salta).
     const FECHAS_TRIMESTRE = {
-      '1er': { inicio: '2026-03-04', fin: '2026-06-19' },
-      '2do': { inicio: '2026-07-06', fin: '2026-09-18' },
-      '3er': { inicio: '2026-09-21', fin: '2026-12-11' }
+      '1er': { inicio: '2026-03-04', fin: '2026-06-05' },
+      '2do': { inicio: '2026-06-08', fin: '2026-09-10' },
+      '3er': { inicio: '2026-09-14', fin: '2026-12-11' }
     };
     const FERIADOS_2026 = [
       '2026-01-01','2026-04-03','2026-04-04','2026-05-01','2026-05-21',
-      '2026-06-29','2026-07-16','2026-08-15','2026-09-18','2026-09-19',
+      '2026-06-29','2026-07-16','2026-07-17','2026-08-14','2026-08-15',
+      '2026-09-18','2026-09-19',
       '2026-10-12','2026-10-31','2026-11-01','2026-12-08','2026-12-25'
     ];
     const VACACIONES_2026 = [
@@ -3143,6 +3146,20 @@
       { fecha: '2026-05-09', titulo: 'Día Mundial de las Aves', tipo: 'efemeride', icon: 'fa-feather' },
       { fecha: '2026-09-30', titulo: 'Día del Educador Diferencial (Chile)', tipo: 'efemeride', icon: 'fa-chalkboard-user' },
       { fecha: '2026-12-03', titulo: 'Día Internacional de las Personas con Discapacidad', tipo: 'efemeride', icon: 'fa-wheelchair' },
+
+      // Calendarización Escuela Luis Cruz Martínez 2026 (2° trimestre)
+      { fecha: '2026-06-08', titulo: 'Inicio de clases 2° Trimestre', tipo: 'pie', icon: 'fa-school' },
+      { fecha: '2026-06-18', titulo: 'Acto Wetripantü (14:45 hrs)', tipo: 'efemeride', icon: 'fa-sun' },
+      { fecha: '2026-06-19', titulo: 'Convivencias por curso "Bienvenidas Vacaciones de Invierno"', tipo: 'efemeride', icon: 'fa-people-group' },
+      { fecha: '2026-06-22', titulo: 'Inicio Receso Escolar de Invierno (hasta 03-jul)', tipo: 'feriado', icon: 'fa-snowflake' },
+      { fecha: '2026-07-17', titulo: 'Interferiado (sin clases)', tipo: 'feriado', icon: 'fa-flag' },
+      { fecha: '2026-08-14', titulo: 'Jornada para la Reflexión Pedagógica DPD', tipo: 'feriado', icon: 'fa-chalkboard-user' },
+      { fecha: '2026-09-02', titulo: 'Promedios en libros de clases 2° trimestre', tipo: 'pie', icon: 'fa-book' },
+      { fecha: '2026-09-04', titulo: 'Entrega Niveles de Aprendizaje', tipo: 'pie', icon: 'fa-chart-line' },
+      { fecha: '2026-09-07', titulo: 'Informes de notas (07 al 09 de septiembre)', tipo: 'pie', icon: 'fa-file-lines' },
+      { fecha: '2026-09-10', titulo: 'Término de clases 2° Trimestre', tipo: 'pie', icon: 'fa-flag-checkered' },
+      { fecha: '2026-09-14', titulo: 'Consejo de Evaluación y Planificación Curricular', tipo: 'pie', icon: 'fa-users' },
+      { fecha: '2026-09-16', titulo: 'Acto Fiestas Patrias (por confirmar)', tipo: 'efemeride', icon: 'fa-flag' },
 
       // Hitos PIE relevantes
       { fecha: '2026-04-30', titulo: 'Cierre etapa de evaluación diagnóstica PIE', tipo: 'pie', icon: 'fa-clipboard-list' },
