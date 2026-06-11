@@ -17,13 +17,18 @@ export async function getUser(request, env) {
 
   const session = JSON.parse(sessionData);
 
-  // Completar rol y establecimiento desde el perfil del usuario si la sesion
-  // (puede ser una sesion vieja, creada antes de guardar estos campos) no los trae.
-  if (!session.role || session.tenantSlug === undefined) {
-    const userData = await env.PACI_USERS.get(`user:${session.email}`);
-    const user = userData ? JSON.parse(userData) : {};
-    if (!session.role) session.role = user.role || 'teacher';
-    if (session.tenantSlug === undefined) session.tenantSlug = user.tenantSlug || '';
+  // Rol y establecimiento se leen SIEMPRE frescos del perfil: si un admin
+  // cambia el rol o el colegio de un usuario, aplica de inmediato y no
+  // cuando expire la sesion (antes la sesion conservaba el rol 24h-7d).
+  const userData = await env.PACI_USERS.get(`user:${session.email}`);
+  if (userData) {
+    const user = JSON.parse(userData);
+    session.role = user.role || session.role || 'teacher';
+    session.tenantSlug = user.tenantSlug !== undefined ? user.tenantSlug : (session.tenantSlug || '');
+  } else {
+    // Perfil inexistente (sesion huerfana): valores conservadores.
+    if (!session.role) session.role = 'teacher';
+    if (session.tenantSlug === undefined) session.tenantSlug = '';
   }
 
   return session;

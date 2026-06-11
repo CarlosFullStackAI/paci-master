@@ -1464,6 +1464,7 @@
                 body: JSON.stringify({})
             }).catch(function() {});
             localStorage.removeItem('paci_user');
+            localStorage.removeItem('paci_token');
             window.location.href = '/login.html';
         }
 
@@ -1593,11 +1594,17 @@
                 { id: 'fil', nombre: 'Funcionamiento Intelectual Rango Limítrofe (FIL)', decreto: 'D. 170', tipo: 'NEET' },
                 { id: 'di_l', nombre: 'Discapacidad Intelectual Leve', decreto: 'D. 170', tipo: 'NEEP' },
                 { id: 'di_m', nombre: 'Discapacidad Intelectual Moderada', decreto: 'D. 170', tipo: 'NEEP' },
+                { id: 'di_s', nombre: 'Discapacidad Intelectual Severa', decreto: 'D. 170', tipo: 'NEEP' },
+                { id: 'rgd', nombre: 'Retraso Global del Desarrollo (RGD)', decreto: 'D. 170', tipo: 'NEEP' },
                 { id: 'tea', nombre: 'Trastorno del Espectro Autista (TEA)', decreto: 'Ley 21.545', tipo: 'NEEP' },
-                { id: 'motor', nombre: 'Discapacidad Motora', decreto: 'D. 170', tipo: 'NEEP' },
-                { id: 'visual', nombre: 'Discapacidad Visual', decreto: 'D. 170', tipo: 'NEEP' },
-                { id: 'auditiva', nombre: 'Discapacidad Auditiva', decreto: 'D. 170', tipo: 'NEEP' }
+                { id: 'disc_mot', nombre: 'Discapacidad Motora', decreto: 'D. 170', tipo: 'NEEP' },
+                { id: 'dv', nombre: 'Discapacidad Visual', decreto: 'D. 170', tipo: 'NEEP' },
+                { id: 'da', nombre: 'Discapacidad Auditiva', decreto: 'D. 170', tipo: 'NEEP' },
+                { id: 'sordoceg', nombre: 'Sordoceguera / Multidéficit', decreto: 'D. 170', tipo: 'NEEP' }
             ],
+            // Ids guardados por versiones antiguas de este editor; se normalizan
+            // al id oficial (el que usan nee-templates, REEVAL_RULES y diagToFurCode).
+            diagIdLegacy: { motor: 'disc_mot', visual: 'dv', auditiva: 'da' },
             edadesD332: {
                 'nt1': {min:4, max:5, n:'Pre-Kínder'}, 'nt2': {min:5, max:6, n:'Kínder'},
                 '1b': {min:6, max:7, n:'1° Básico'}, '2b': {min:7, max:8, n:'2° Básico'},
@@ -3561,9 +3568,10 @@
                 setVal('in-fnac', st.birthDate || st.birth_date);
                 setVal('in-edad', st.age);
 
-                // Diagnostico
+                // Diagnostico (normalizando ids legados: motor/visual/auditiva)
                 if (st.diagnosisId || st.diagnosis_id) {
-                    setVal('in-diag', st.diagnosisId || st.diagnosis_id);
+                    const rawDiag = st.diagnosisId || st.diagnosis_id;
+                    setVal('in-diag', MINEDUC_DB.diagIdLegacy[rawDiag] || rawDiag);
                 } else if (st.diagnosis) {
                     setSelect('in-diag', st.diagnosis);
                 }

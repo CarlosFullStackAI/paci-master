@@ -1062,11 +1062,15 @@
         const out = await res.json();
         if (!out.ok || !out.document) { toast('No se pudo cargar el documento.', true); return; }
         // Este documento es un PACI, no un PAI: abrirlo en el editor correcto.
+        // En NINGUN caso se carga aqui (si se cargara y el usuario guardara,
+        // el PACI se sobreescribiria como PAI, corrompiendolo).
         if (out.document.plan_type && out.document.plan_type !== 'pai') {
           if (confirm('Este documento es un PACI, no un PAI. ¿Abrirlo en el editor de PACI?')) {
             window.location.href = '/app.html?doc=' + out.document.id;
-            return;
+          } else {
+            window.location.href = '/dashboard.html';
           }
+          return;
         }
         state.documentId = out.document.id;
         state.studentId = out.document.student_id;

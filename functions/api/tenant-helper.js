@@ -45,7 +45,13 @@ export async function resolveTenant(request, env, user) {
   const subSlug = getSubdomainSlug(request);
   if (subSlug) {
     const t = await getTenantBySlug(env, subSlug);
-    if (t) return t;
+    if (t) {
+      // El subdominio NUNCA puede otorgar acceso a un colegio distinto del
+      // asignado al usuario: un token del colegio A usado en el subdominio
+      // del colegio B no debe heredar el tenant B (cross-tenant).
+      if (user && user.tenantSlug && user.tenantSlug !== t.slug) return null;
+      return t;
+    }
   }
   // Si el usuario YA tiene colegio asignado, ese es el unico valido. Si no resuelve
   // (colegio borrado/inactivo), NO caemos a otro colegio: devolvemos null (sin acceso).

@@ -37,9 +37,10 @@ export async function onRequest(context) {
   try {
     payload = await verifyGoogleIdToken(credential, env.GOOGLE_CLIENT_ID);
   } catch (e) {
+    console.error('Error validando token de Google:', e);
     return new Response(JSON.stringify({
       ok: false,
-      error: 'Token de Google invalido: ' + (e.message || 'unknown')
+      error: 'Token de Google invalido.'
     }), { status: 401, headers });
   }
 

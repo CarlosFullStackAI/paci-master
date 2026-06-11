@@ -42,7 +42,10 @@ export async function encrypt(plaintext, envKey) {
     const ctB64 = btoa(String.fromCharCode(...new Uint8Array(ciphertext)));
     return `enc:${ivB64}.${ctB64}`;
   } catch (e) {
-    return plaintext; // Si falla, guardar sin cifrar (fallback)
+    // Si falla, se guarda sin cifrar (fallback) pero se registra para detectar
+    // una ENCRYPTION_KEY mal configurada (sin loggear el dato).
+    console.error('encrypt() fallo; persistiendo sin cifrar:', e.name || 'error');
+    return plaintext;
   }
 }
 

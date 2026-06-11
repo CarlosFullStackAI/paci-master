@@ -88,6 +88,24 @@ export async function onRequest(context) {
     browser = await puppeteer.launch(env.BROWSER);
     const page = await browser.newPage();
 
+    // El HTML viene del cliente: bloquear recursos remotos no esperados (SSRF).
+    // Solo se permiten el documento, data:/about:, las fuentes de Google que
+    // usan los HTML de impresion (Merriweather) y FontAwesome (iconos del PACI).
+    const ALLOWED_HOSTS = new Set(['fonts.googleapis.com', 'fonts.gstatic.com', 'cdnjs.cloudflare.com']);
+    await page.setRequestInterception(true);
+    page.on('request', (req) => {
+      try {
+        const url = req.url();
+        if (req.resourceType() === 'document' || url.startsWith('data:') || url.startsWith('about:')) {
+          return req.continue();
+        }
+        if (ALLOWED_HOSTS.has(new URL(url).hostname)) return req.continue();
+        return req.abort();
+      } catch (e) {
+        return req.abort();
+      }
+    });
+
     // Activar @media print: equivalente al dialogo Ctrl+P del navegador
     await page.emulateMediaType('print');
 
@@ -113,8 +131,7 @@ export async function onRequest(context) {
   } catch (err) {
     console.error('Error generando PDF server-side:', err);
     return new Response(JSON.stringify({
-      error: 'Error generando PDF',
-      detail: err && err.message ? err.message : String(err)
+      error: 'Error generando PDF. Intenta de nuevo o usa Imprimir como alternativa.'
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

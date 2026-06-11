@@ -171,7 +171,7 @@ export async function onRequestPost(context) {
     return new Response(JSON.stringify({ ok: true, candidatos: candidatos.length, sent: totalSent, skipped: candidatos.length - totalSent }), { headers });
   } catch (e) {
     console.error('Error en check-fur-reminders:', e);
-    return new Response(JSON.stringify({ ok: false, error: 'Error interno: ' + (e.message || 'desconocido') }), { status: 500, headers });
+    return new Response(JSON.stringify({ ok: false, error: 'Error interno del servidor.' }), { status: 500, headers });
   }
 }
 

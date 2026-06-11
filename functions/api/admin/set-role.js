@@ -24,6 +24,12 @@ export async function onRequestPost(context) {
       return new Response(JSON.stringify({ ok: false, error: `Email y rol valido requeridos (${VALID_ROLES.join(', ')}).` }), { status: 400, headers });
     }
 
+    // La cuenta maestra no puede ser degradada: garantiza que siempre exista
+    // al menos un administrador con acceso de recuperacion.
+    if (email === masterEmail && role !== 'admin') {
+      return new Response(JSON.stringify({ ok: false, error: 'La cuenta maestra no puede cambiar de rol.' }), { status: 403, headers });
+    }
+
     // Actualizar rol del usuario en KV
     const targetData = await env.PACI_USERS.get(`user:${email}`);
     if (!targetData) {

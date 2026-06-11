@@ -2605,6 +2605,11 @@
       'sordoceg': { type: 'NEEP', period: 5, note: 'Reevaluacion cada 3 a 5 anos segun evolucion del estudiante.' }
     };
 
+    // Ids guardados por versiones antiguas del editor PACI; se normalizan al
+    // id oficial antes de consultar REEVAL_RULES o resaltar la tabla.
+    const LEGACY_DIAG_IDS = { motor: 'disc_mot', visual: 'dv', auditiva: 'da' };
+    function normDiagId(id) { return LEGACY_DIAG_IDS[id] || id || ''; }
+
     // ===== Periodicidad de reevaluación (FUDEI) por diagnóstico =====
     // Fuente única usada por el panel del inicio y por el modal del ícono de ayuda (ℹ️).
     const REEVAL_PERIODICIDAD = [
@@ -2664,7 +2669,7 @@
         document.body.appendChild(m);
       }
       const tb = m.querySelector('#reeval-tbody-modal');
-      if (tb) tb.innerHTML = reevalTablaHtml(diagId || '');
+      if (tb) tb.innerHTML = reevalTablaHtml(normDiagId(diagId));
       m.style.display = 'flex';
     }
     function cerrarReevalModal() {
@@ -2682,6 +2687,13 @@
     async function api(endpoint, data = {}) {
       data._token = TOKEN;
       const res = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+      if (res.status === 401) {
+        // Sesion expirada: limpiar credenciales locales y volver al login.
+        localStorage.removeItem('paci_token');
+        localStorage.removeItem('paci_user');
+        window.location.href = '/login.html';
+        return { ok: false, error: 'Sesion expirada.' };
+      }
       return res.json();
     }
 
@@ -3095,10 +3107,12 @@
     }, 60 * 1000);
 
     // ===== Calendario escolar 2026 =====
+    // Derivado de FECHAS_TRIMESTRE (fuente unica, sincronizada con app.html)
+    // para que el widget nunca contradiga al motor de planificacion.
     const TRIMESTRES_2026 = [
-      { n: 1, label: '1° Trimestre', desde: '2026-03-03', hasta: '2026-05-29' },
-      { n: 2, label: '2° Trimestre', desde: '2026-06-01', hasta: '2026-09-11' },
-      { n: 3, label: '3° Trimestre', desde: '2026-09-14', hasta: '2026-12-18' }
+      { n: 1, label: '1° Trimestre', desde: FECHAS_TRIMESTRE['1er'].inicio, hasta: FECHAS_TRIMESTRE['1er'].fin },
+      { n: 2, label: '2° Trimestre', desde: FECHAS_TRIMESTRE['2do'].inicio, hasta: FECHAS_TRIMESTRE['2do'].fin },
+      { n: 3, label: '3° Trimestre', desde: FECHAS_TRIMESTRE['3er'].inicio, hasta: FECHAS_TRIMESTRE['3er'].fin }
     ];
 
     // Feriados Chile 2026 + efemérides educativas/PIE
@@ -3467,7 +3481,7 @@
         : '';
 
       const accion = masReciente
-        ? '<a href="' + esc(tipo.route) + '?doc=' + masReciente.id + '" class="check-action ghost"><i class="fa-solid fa-pen"></i> Editar</a>'
+        ? '<a href="' + esc(tipo.route) + (tipo.route.includes('?') ? '&' : '?') + 'doc=' + masReciente.id + '" class="check-action ghost"><i class="fa-solid fa-pen"></i> Editar</a>'
         : '<a href="' + esc(tipo.route) + (tipo.route.includes('?') ? '&' : '?') + 'student=' + studentId + '" class="check-action primary"><i class="fa-solid fa-plus"></i> Crear</a>';
 
       const dupsHtml = duplicados.length
@@ -3525,7 +3539,7 @@
                     <div class="rl">${i === 0 ? 'MÁS RECIENTE — MANTENER' : 'DUPLICADO #' + i}</div>
                     <div class="rv">${esc(d.trimester || '(sin trimestre)')} — Creado ${new Date(d.created_at).toLocaleDateString('es-CL', { day:'2-digit', month:'long', year:'numeric' })}</div>
                   </div>
-                  <a href="${esc(tipo.route)}?doc=${d.id}" style="background:rgba(56,189,248,0.15);color:#38bdf8;padding:0.3rem 0.65rem;border-radius:0.4rem;font-size:0.7rem;font-weight:700;text-decoration:none;">Ver</a>
+                  <a href="${esc(tipo.route)}${tipo.route.includes('?') ? '&' : '?'}doc=${d.id}" style="background:rgba(56,189,248,0.15);color:#38bdf8;padding:0.3rem 0.65rem;border-radius:0.4rem;font-size:0.7rem;font-weight:700;text-decoration:none;">Ver</a>
                   ${i > 0 ? `<button onclick="eliminarDocumentoDup(${d.id}, ${studentId})" style="background:rgba(239,68,68,0.2);color:#fca5a5;border:none;padding:0.3rem 0.55rem;border-radius:0.4rem;cursor:pointer;font-size:0.7rem;font-weight:700;margin-left:0.3rem;"><i class="fa-solid fa-trash"></i></button>` : ''}
                 </div>
               `).join('')}
@@ -3766,7 +3780,7 @@
         courseStudents.forEach(s => {
           cardIndex++;
           const sDocs = docs.filter(d => d.student_id === s.id);
-          const neeType = s.nee_type || (REEVAL_RULES[s.diagnosis_id] ? REEVAL_RULES[s.diagnosis_id].type : '');
+          const neeType = s.nee_type || (REEVAL_RULES[normDiagId(s.diagnosis_id)] ? REEVAL_RULES[normDiagId(s.diagnosis_id)].type : '');
           const staggerClass = cardIndex <= 10 ? `stagger-${(cardIndex % 5) + 1}` : '';
 
           html += `
@@ -3870,7 +3884,7 @@
     // PROFILE TAB
     // ==========================================
     function renderProfile(id, s) {
-      const rule = REEVAL_RULES[s.diagnosis_id] || {};
+      const rule = REEVAL_RULES[normDiagId(s.diagnosis_id)] || {};
       const neeType = s.nee_type || rule.type || '';
 
       // Parsear profile_json (datos extendidos: apoderado completo, contexto familiar, etc.)
@@ -4201,7 +4215,7 @@
     // ==========================================
     function calcNextReeval(dateStr, diagId) {
       if (!dateStr) return null;
-      const rule = REEVAL_RULES[diagId];
+      const rule = REEVAL_RULES[normDiagId(diagId)];
       if (!rule) return null;
       const d = new Date(dateStr);
       d.setFullYear(d.getFullYear() + rule.period);
@@ -4212,7 +4226,7 @@
       const nextDate = calcNextReeval(fromDate, diagId);
       if (!nextDate) return;
 
-      const rule = REEVAL_RULES[diagId] || {};
+      const rule = REEVAL_RULES[normDiagId(diagId)] || {};
       const periodStr = rule.period + ' anos';
 
       // Llenar fecha proxima reevaluacion

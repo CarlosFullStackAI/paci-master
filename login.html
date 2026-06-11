@@ -239,7 +239,7 @@
         </div>
         <div class="field">
           <label>Contraseña</label>
-          <input type="password" id="reg-password" required minlength="6" placeholder="Mínimo 6 caracteres">
+          <input type="password" id="reg-password" required minlength="8" placeholder="Mín. 8 caracteres, 1 mayúscula y 1 número">
         </div>
         <div class="field">
           <label>Establecimiento</label>
@@ -393,8 +393,9 @@
           if (!lista.length) {
             sel.innerHTML = '<option value="">No hay establecimientos disponibles</option>';
           } else {
+            const escHtml = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
             sel.innerHTML = '<option value="">Selecciona tu establecimiento</option>' +
-              lista.map(t => '<option value="' + t.slug + '">' + (t.nombre || t.slug) + '</option>').join('');
+              lista.map(t => '<option value="' + escHtml(t.slug) + '">' + escHtml(t.nombre || t.slug) + '</option>').join('');
             // Pre-seleccionar el del subdominio (si lo hay) o, si es el unico, ese.
             if (tenantActual && lista.some(t => t.slug === tenantActual)) {
               sel.value = tenantActual;

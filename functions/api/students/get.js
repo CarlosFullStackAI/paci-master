@@ -40,9 +40,9 @@ export async function onRequestPost(context) {
       // Registrar en audit log (acceso a datos sensibles completos)
       await logAudit(env, request, user, 'VIEW_FULL_STUDENT', 'students', studentId,
         'Full data access by ' + role);
-    } else if (fullAccess && !canSeeFullData) {
-      // Profesor pidiendo acceso completo: dar datos completos de SUS estudiantes
-      // (pueden ver datos completos de estudiantes que ellos crearon)
+    } else if (fullAccess && !canSeeFullData && student.user_email === user.email) {
+      // Profesor pidiendo acceso completo: solo de estudiantes que ELLOS crearon
+      // (sin esta verificacion el flag fullAccess del cliente anulaba la mascara).
       responseStudent = decrypted;
 
       await logAudit(env, request, user, 'VIEW_FULL_STUDENT', 'students', studentId,

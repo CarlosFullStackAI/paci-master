@@ -36,8 +36,7 @@ export async function onRequestPost(context) {
     const hashBytes = new TextEncoder().encode(hash);
     const storedBytes = new TextEncoder().encode(user.passwordHash);
     const isMatch = hashBytes.length === storedBytes.length &&
-      crypto.subtle.timingSafeEqual ? await timingSafeCompare(hashBytes, storedBytes) :
-      hash === user.passwordHash;
+      await timingSafeCompare(hashBytes, storedBytes);
     if (!isMatch) {
       await env.PACI_USERS.put(rlKey, String(rlCount + 1), { expirationTtl: 900 });
       return new Response(JSON.stringify({ ok: false, error: 'Correo o contrasena incorrectos.' }), { status: 401, headers });

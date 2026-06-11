@@ -164,7 +164,7 @@
         const res = await fetch('/api/admin/tenants', { method: 'GET', headers: { 'Content-Type': 'application/json' } });
         if (res.status === 401) { window.location.href = '/login.html'; return; }
         if (res.status === 403) {
-          document.getElementById('tbody').innerHTML = '<tr><td colspan="6" class="p-6 text-center text-amber-400">Solo los administradores pueden gestionar colegios.</td></tr>';
+          document.getElementById('tbody').innerHTML = '<tr><td colspan="7" class="p-6 text-center text-amber-400">Solo los administradores pueden gestionar colegios.</td></tr>';
           document.querySelector('.card').style.opacity = '0.4';
           return;
         }
