@@ -2446,39 +2446,6 @@
           </div>
         </div>
 
-        <!-- Nota informativa: distingue las DOS reevaluaciones del Decreto 170 (siempre visible) -->
-        <div class="reeval-alert info" style="margin-top:1rem;align-items:flex-start;">
-          <i class="fa-solid fa-circle-info" style="margin-top:2px;"></i>
-          <div style="line-height:1.55;">
-            <strong>Dos reevaluaciones distintas (Decreto 170/2009):</strong>
-            <div style="margin-top:4px;"><strong>FUR — Reevaluación anual:</strong> cada año, al cierre del año escolar, para <u>todos</u> los estudiantes PIE.</div>
-            <div style="margin-top:3px;"><strong>FUDEI — Evaluación diagnóstica integral:</strong> cada <u>2 años</u> (NEE transitorias) o <u>3 a 5 años</u> (NEE permanentes; Discapacidad Intelectual leve/moderada cada 2 años).</div>
-            <div style="margin-top:5px;font-size:0.7rem;opacity:0.85;">Las fechas "cada X año(s)" que ves más abajo corresponden al ciclo <strong>FUDEI</strong>; el <strong>FUR es siempre anual</strong>.</div>
-          </div>
-        </div>
-
-        <!-- Panel desplegable: periodicidad de reevaluación (FUDEI) por diagnóstico -->
-        <details class="reeval-panel">
-          <summary>
-            <i class="fa-solid fa-calendar-days"></i> Periodicidad de reevaluación por diagnóstico (FUDEI)
-            <i class="fa-solid fa-chevron-down chev"></i>
-          </summary>
-          <div class="rp-body">
-            <table class="reeval-table">
-              <thead>
-                <tr><th>Diagnóstico</th><th>Tipo NEE</th><th>Reevaluación integral (FUDEI)</th></tr>
-              </thead>
-              <tbody id="reeval-tbody-home"><!-- generado por populateReevalHome() --></tbody>
-            </table>
-            <div class="reeval-foot">
-              * Excepción: la Discapacidad Intelectual leve y moderada se reevalúa cada 2 años, aunque sea permanente.<br>
-              El ciclo cuenta desde el año de ingreso al PIE. Las transitorias que siguen un 3er año se tratan como "Nuevo Ingreso" (FUDEI completo). Un cambio de diagnóstico siempre exige crear un FUDEI nuevo.<br>
-              <strong>Además, el FUR (reevaluación anual) se realiza cada año para todos los estudiantes PIE.</strong><br>
-              Fuente: Decreto 170/2009 y orientaciones MINEDUC (FUDEI-PIE 2026).
-            </div>
-          </div>
-        </details>
-
         <!-- Alerta FUR: estudiantes con reevaluación vencida o próxima -->
         <section class="fur-alert-section" id="fur-alert-section" style="display:none;">
           <div class="fur-alert-head">
@@ -2502,6 +2469,40 @@
             <h2 class="section-title"><i class="fa-solid fa-folder-plus" aria-hidden="true"></i> Crear documento</h2>
             <span style="font-size:0.75rem;color:#94a3b8;">Selecciona un tipo según la fase del proceso PIE</span>
           </div>
+
+          <!-- Nota informativa: distingue las DOS reevaluaciones del Decreto 170 -->
+          <div class="reeval-alert info" style="margin-bottom:0.75rem;align-items:flex-start;">
+            <i class="fa-solid fa-circle-info" style="margin-top:2px;"></i>
+            <div style="line-height:1.55;">
+              <strong>Dos reevaluaciones distintas (Decreto 170/2009):</strong>
+              <div style="margin-top:4px;"><strong>FUR — Reevaluación anual:</strong> cada año, al cierre del año escolar, para <u>todos</u> los estudiantes PIE.</div>
+              <div style="margin-top:3px;"><strong>FUDEI — Evaluación diagnóstica integral:</strong> cada <u>2 años</u> (NEE transitorias) o <u>3 a 5 años</u> (NEE permanentes; Discapacidad Intelectual leve/moderada cada 2 años).</div>
+              <div style="margin-top:5px;font-size:0.7rem;opacity:0.85;">Las fechas "cada X año(s)" corresponden al ciclo <strong>FUDEI</strong>; el <strong>FUR es siempre anual</strong>.</div>
+            </div>
+          </div>
+
+          <!-- Panel desplegable: periodicidad de reevaluación (FUDEI) por diagnóstico -->
+          <details class="reeval-panel" style="margin-top:0;margin-bottom:1rem;">
+            <summary>
+              <i class="fa-solid fa-calendar-days"></i> Periodicidad de reevaluación por diagnóstico (FUDEI)
+              <i class="fa-solid fa-chevron-down chev"></i>
+            </summary>
+            <div class="rp-body">
+              <table class="reeval-table">
+                <thead>
+                  <tr><th>Diagnóstico</th><th>Tipo NEE</th><th>Reevaluación integral (FUDEI)</th></tr>
+                </thead>
+                <tbody id="reeval-tbody-home"><!-- generado por populateReevalHome() --></tbody>
+              </table>
+              <div class="reeval-foot">
+                * Excepción: la Discapacidad Intelectual leve y moderada se reevalúa cada 2 años, aunque sea permanente.<br>
+                El ciclo cuenta desde el año de ingreso al PIE. Las transitorias que siguen un 3er año se tratan como "Nuevo Ingreso" (FUDEI completo). Un cambio de diagnóstico siempre exige crear un FUDEI nuevo.<br>
+                <strong>Además, el FUR (reevaluación anual) se realiza cada año para todos los estudiantes PIE.</strong><br>
+                Fuente: Decreto 170/2009 y orientaciones MINEDUC (FUDEI-PIE 2026).
+              </div>
+            </div>
+          </details>
+
           <div class="docs-phases" id="docs-phases"></div>
         </section>
       </div>
