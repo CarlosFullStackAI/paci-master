@@ -570,6 +570,126 @@
                         </div>
                     </div>
 
+                    <!-- 4. Contexto para la IA. NO se guarda en el documento PACI:
+                         los textos se envian al endpoint /api/ai/generate-classes solo al
+                         momento de generar clases con IA, y persisten en localStorage del
+                         navegador para no reescribirlos entre modulos. Visible solo si AI_ENABLED. -->
+                    <div id="ai-context-panel" class="bg-white border border-violet-200 rounded-xl shadow-sm overflow-hidden" style="display:none;">
+                        <button class="w-full text-left p-4 bg-violet-50 font-bold text-xs uppercase flex justify-between items-center" onclick="toggleAcc('acc-ai-context')">
+                            <span class="flex items-center gap-2">
+                                Contexto para la IA
+                                <span class="text-[10px] font-normal normal-case text-slate-500">(opcional, mejora las clases)</span>
+                                <span id="ai-context-indicator" class="hidden bg-violet-600 text-white px-1.5 py-0.5 rounded-full text-[9px]" title="Hay informacion guardada">activo</span>
+                            </span>
+                            <i class="fa-solid fa-wand-magic-sparkles text-violet-600"></i>
+                        </button>
+                        <div id="acc-ai-context" class="accordion-content px-4 space-y-3 pb-4 open">
+                            <p class="text-[10px] text-slate-600 leading-relaxed bg-violet-50 border border-violet-200 rounded-lg p-2.5">
+                                <i class="fa-solid fa-circle-info text-violet-600 mr-1"></i>
+                                Completa esto ANTES de presionar "Generar Clases con IA": la IA lo usa con alta prioridad para ajustar actividades, evaluaciones y materiales a tu realidad de aula. Es opcional, pero mientras mas completo, mas realistas seran las clases. No se guarda en el documento PACI; queda solo en este navegador.
+                            </p>
+        
+                            <!-- Duracion por clase: solo una opcion -->
+                            <div>
+                                <label class="text-[10px] font-black text-slate-500 uppercase mb-1 block">Duracion por clase</label>
+                                <div class="grid grid-cols-3 gap-1.5">
+                                    <button type="button" data-duracion="45" data-selected="false" onclick="selectAIDuracion('45')" class="ai-duracion-btn text-[10px] font-bold py-2 px-1 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition leading-tight">
+                                        45 min<br><span class="text-[9px] font-normal opacity-60">1 bloque</span>
+                                    </button>
+                                    <button type="button" data-duracion="90" data-selected="false" onclick="selectAIDuracion('90')" class="ai-duracion-btn text-[10px] font-bold py-2 px-1 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition leading-tight">
+                                        90 min<br><span class="text-[9px] font-normal opacity-60">2 bloques</span>
+                                    </button>
+                                    <button type="button" data-duracion="135" data-selected="false" onclick="selectAIDuracion('135')" class="ai-duracion-btn text-[10px] font-bold py-2 px-1 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition leading-tight">
+                                        135 min<br><span class="text-[9px] font-normal opacity-60">3 bloques</span>
+                                    </button>
+                                </div>
+                            </div>
+        
+                            <!-- Estrategia de Evaluacion: una o varias -->
+                            <div>
+                                <label class="text-[10px] font-black text-slate-500 uppercase mb-1 block">Estrategias de evaluacion <span class="font-normal normal-case text-slate-400">(una o varias)</span></label>
+                                <div class="grid grid-cols-2 gap-1.5">
+                                    <label class="flex items-center gap-2 text-[10px] cursor-pointer px-2 py-1.5 rounded border border-slate-200 bg-white hover:bg-slate-50">
+                                        <input type="checkbox" class="ai-eval-cb w-3 h-3" value="Ticket de salida" onchange="onAIContextInput()">
+                                        <span class="text-slate-700">Ticket de salida</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 text-[10px] cursor-pointer px-2 py-1.5 rounded border border-slate-200 bg-white hover:bg-slate-50">
+                                        <input type="checkbox" class="ai-eval-cb w-3 h-3" value="Pauta de cotejo" onchange="onAIContextInput()">
+                                        <span class="text-slate-700">Pauta de cotejo</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 text-[10px] cursor-pointer px-2 py-1.5 rounded border border-slate-200 bg-white hover:bg-slate-50">
+                                        <input type="checkbox" class="ai-eval-cb w-3 h-3" value="Rubrica de trabajo grupal" onchange="onAIContextInput()">
+                                        <span class="text-slate-700">Rubrica grupal</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 text-[10px] cursor-pointer px-2 py-1.5 rounded border border-slate-200 bg-white hover:bg-slate-50">
+                                        <input type="checkbox" class="ai-eval-cb w-3 h-3" value="Evaluacion formativa rapida" onchange="onAIContextInput()">
+                                        <span class="text-slate-700">Formativa rapida</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 text-[10px] cursor-pointer px-2 py-1.5 rounded border border-slate-200 bg-white hover:bg-slate-50 col-span-2">
+                                        <input type="checkbox" class="ai-eval-cb w-3 h-3" value="Sin evaluacion explicita" onchange="onAIContextInput()">
+                                        <span class="text-slate-700">Sin evaluacion explicita</span>
+                                    </label>
+                                </div>
+                            </div>
+        
+                            <!-- Contexto del aula -->
+                            <div>
+                                <label for="in-ai-contexto" class="text-[10px] font-black text-slate-500 uppercase mb-1 block">Contexto de las clases</label>
+                                <textarea id="in-ai-contexto" rows="3" maxlength="500" placeholder="Ej: curso de 8 estudiantes con apoyo PIE 2 veces por semana, trabajamos mucho en parejas, el estudiante se distrae con ruidos fuertes, estamos cerca de fiestas patrias." class="w-full border p-2.5 rounded-lg text-xs outline-none focus:ring-2 focus:ring-violet-500 resize-none" oninput="onAIContextInput()"></textarea>
+                                <p class="text-[9px] text-slate-500 mt-1 text-right"><span id="in-ai-contexto-count">0</span>/500</p>
+                            </div>
+        
+                            <!-- Conocimientos previos -->
+                            <div>
+                                <label for="in-ai-conocimientos" class="text-[10px] font-black text-slate-500 uppercase mb-1 block">Conocimientos previos del grupo</label>
+                                <textarea id="in-ai-conocimientos" rows="2" maxlength="400" placeholder="Ej: Ya manejan las operaciones basicas, pero les cuesta resolver problemas de planteo." class="w-full border p-2.5 rounded-lg text-xs outline-none focus:ring-2 focus:ring-violet-500 resize-none" oninput="onAIContextInput()"></textarea>
+                                <p class="text-[9px] text-slate-500 mt-1 text-right"><span id="in-ai-conocimientos-count">0</span>/400</p>
+                            </div>
+        
+                            <!-- Intereses del grupo -->
+                            <div>
+                                <label for="in-ai-intereses" class="text-[10px] font-black text-slate-500 uppercase mb-1 block">Intereses del grupo <span class="font-normal normal-case text-slate-400">(opcional)</span></label>
+                                <input type="text" id="in-ai-intereses" maxlength="200" placeholder="Ej: Les gustan los videojuegos de aventura, la tecnologia y el futbol." class="w-full border p-2.5 rounded-lg text-xs outline-none focus:ring-2 focus:ring-violet-500" oninput="onAIContextInput()">
+                            </div>
+        
+                            <!-- Recursos disponibles -->
+                            <div>
+                                <label for="in-ai-recursos" class="text-[10px] font-black text-slate-500 uppercase mb-1 block">Recursos disponibles</label>
+                                <textarea id="in-ai-recursos" rows="3" maxlength="500" placeholder="Ej: sala con proyector, no hay tablets, biblioteca con libros Caligrafix, material concreto de matematicas (regletas, abaco), pizarra acrilica." class="w-full border p-2.5 rounded-lg text-xs outline-none focus:ring-2 focus:ring-violet-500 resize-none" oninput="onAIContextInput()"></textarea>
+                                <p class="text-[9px] text-slate-500 mt-1 text-right"><span id="in-ai-recursos-count">0</span>/500</p>
+                            </div>
+        
+                            <!-- DUA / Accesibilidad -->
+                            <div>
+                                <label class="text-[10px] font-black text-slate-500 uppercase mb-1 block">Requerimientos DUA / Accesibilidad</label>
+                                <div class="grid grid-cols-2 gap-1.5 mb-2">
+                                    <label class="flex items-center gap-2 text-[10px] cursor-pointer px-2 py-1.5 rounded border border-slate-200 bg-white hover:bg-slate-50">
+                                        <input type="checkbox" class="ai-dua-cb w-3 h-3" value="Simplificar vocabulario" onchange="onAIContextInput()">
+                                        <span class="text-slate-700">Simplificar vocabulario</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 text-[10px] cursor-pointer px-2 py-1.5 rounded border border-slate-200 bg-white hover:bg-slate-50">
+                                        <input type="checkbox" class="ai-dua-cb w-3 h-3" value="Instrucciones paso a paso" onchange="onAIContextInput()">
+                                        <span class="text-slate-700">Instrucciones paso a paso</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 text-[10px] cursor-pointer px-2 py-1.5 rounded border border-slate-200 bg-white hover:bg-slate-50">
+                                        <input type="checkbox" class="ai-dua-cb w-3 h-3" value="Incluir pausas activas" onchange="onAIContextInput()">
+                                        <span class="text-slate-700">Pausas activas</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 text-[10px] cursor-pointer px-2 py-1.5 rounded border border-slate-200 bg-white hover:bg-slate-50">
+                                        <input type="checkbox" class="ai-dua-cb w-3 h-3" value="Apoyo visual constante" onchange="onAIContextInput()">
+                                        <span class="text-slate-700">Apoyo visual constante</span>
+                                    </label>
+                                </div>
+                                <textarea id="in-ai-dua-detalle" rows="2" maxlength="400" placeholder="Ej: Un estudiante requiere material con alto contraste o macrotipo. Otro necesita audifonos por hipoacusia leve." class="w-full border p-2.5 rounded-lg text-xs outline-none focus:ring-2 focus:ring-violet-500 resize-none" oninput="onAIContextInput()"></textarea>
+                                <p class="text-[9px] text-slate-500 mt-1 text-right"><span id="in-ai-dua-detalle-count">0</span>/400</p>
+                            </div>
+        
+                            <button type="button" onclick="clearAIContext()" class="text-[10px] text-violet-700 hover:text-violet-900 underline">
+                                <i class="fa-solid fa-eraser mr-1"></i>Limpiar todos los campos
+                            </button>
+                        </div>
+                    </div>
+
                     <button id="btn-generar" onclick="addModulo()" class="w-full bg-slate-900 text-white p-4 rounded-xl font-black hover:bg-slate-800 transition active:scale-95 shadow-xl uppercase text-xs mt-4 disabled:bg-slate-500 disabled:cursor-not-allowed disabled:active:scale-100 border-2 border-slate-900">
                         <i class="fa-solid fa-bolt mr-1"></i> Generar Planificación (Rápida)
                     </button>
@@ -581,125 +701,6 @@
                 </div>
             </div>
 
-            <!-- 4. Contexto para la IA. NO se guarda en el documento PACI:
-                 los textos se envian al endpoint /api/ai/generate-classes solo al
-                 momento de generar clases con IA, y persisten en localStorage del
-                 navegador para no reescribirlos entre modulos. Visible solo si AI_ENABLED. -->
-            <div id="ai-context-panel" class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden" style="display:none;">
-                <button class="w-full text-left p-4 bg-slate-50 font-bold text-xs uppercase flex justify-between items-center" onclick="toggleAcc('acc-ai-context')">
-                    <span class="flex items-center gap-2">
-                        4. Contexto para la IA
-                        <span class="text-[10px] font-normal normal-case text-slate-500">(opcional)</span>
-                        <span id="ai-context-indicator" class="hidden bg-violet-600 text-white px-1.5 py-0.5 rounded-full text-[9px]" title="Hay informacion guardada">activo</span>
-                    </span>
-                    <i class="fa-solid fa-wand-magic-sparkles text-violet-600"></i>
-                </button>
-                <div id="acc-ai-context" class="accordion-content px-4 space-y-3 pb-4 open">
-                    <p class="text-[10px] text-slate-600 leading-relaxed bg-violet-50 border border-violet-200 rounded-lg p-2.5">
-                        <i class="fa-solid fa-circle-info text-violet-600 mr-1"></i>
-                        Esta informacion se envia a la IA al generar clases para ajustar actividades, evaluaciones y materiales a tu realidad de aula. No se guarda en el documento PACI; queda solo en este navegador.
-                    </p>
-
-                    <!-- Duracion por clase: solo una opcion -->
-                    <div>
-                        <label class="text-[10px] font-black text-slate-500 uppercase mb-1 block">Duracion por clase</label>
-                        <div class="grid grid-cols-3 gap-1.5">
-                            <button type="button" data-duracion="45" data-selected="false" onclick="selectAIDuracion('45')" class="ai-duracion-btn text-[10px] font-bold py-2 px-1 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition leading-tight">
-                                45 min<br><span class="text-[9px] font-normal opacity-60">1 bloque</span>
-                            </button>
-                            <button type="button" data-duracion="90" data-selected="false" onclick="selectAIDuracion('90')" class="ai-duracion-btn text-[10px] font-bold py-2 px-1 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition leading-tight">
-                                90 min<br><span class="text-[9px] font-normal opacity-60">2 bloques</span>
-                            </button>
-                            <button type="button" data-duracion="135" data-selected="false" onclick="selectAIDuracion('135')" class="ai-duracion-btn text-[10px] font-bold py-2 px-1 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition leading-tight">
-                                135 min<br><span class="text-[9px] font-normal opacity-60">3 bloques</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Estrategia de Evaluacion: una o varias -->
-                    <div>
-                        <label class="text-[10px] font-black text-slate-500 uppercase mb-1 block">Estrategias de evaluacion <span class="font-normal normal-case text-slate-400">(una o varias)</span></label>
-                        <div class="grid grid-cols-2 gap-1.5">
-                            <label class="flex items-center gap-2 text-[10px] cursor-pointer px-2 py-1.5 rounded border border-slate-200 bg-white hover:bg-slate-50">
-                                <input type="checkbox" class="ai-eval-cb w-3 h-3" value="Ticket de salida" onchange="onAIContextInput()">
-                                <span class="text-slate-700">Ticket de salida</span>
-                            </label>
-                            <label class="flex items-center gap-2 text-[10px] cursor-pointer px-2 py-1.5 rounded border border-slate-200 bg-white hover:bg-slate-50">
-                                <input type="checkbox" class="ai-eval-cb w-3 h-3" value="Pauta de cotejo" onchange="onAIContextInput()">
-                                <span class="text-slate-700">Pauta de cotejo</span>
-                            </label>
-                            <label class="flex items-center gap-2 text-[10px] cursor-pointer px-2 py-1.5 rounded border border-slate-200 bg-white hover:bg-slate-50">
-                                <input type="checkbox" class="ai-eval-cb w-3 h-3" value="Rubrica de trabajo grupal" onchange="onAIContextInput()">
-                                <span class="text-slate-700">Rubrica grupal</span>
-                            </label>
-                            <label class="flex items-center gap-2 text-[10px] cursor-pointer px-2 py-1.5 rounded border border-slate-200 bg-white hover:bg-slate-50">
-                                <input type="checkbox" class="ai-eval-cb w-3 h-3" value="Evaluacion formativa rapida" onchange="onAIContextInput()">
-                                <span class="text-slate-700">Formativa rapida</span>
-                            </label>
-                            <label class="flex items-center gap-2 text-[10px] cursor-pointer px-2 py-1.5 rounded border border-slate-200 bg-white hover:bg-slate-50 col-span-2">
-                                <input type="checkbox" class="ai-eval-cb w-3 h-3" value="Sin evaluacion explicita" onchange="onAIContextInput()">
-                                <span class="text-slate-700">Sin evaluacion explicita</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <!-- Contexto del aula -->
-                    <div>
-                        <label for="in-ai-contexto" class="text-[10px] font-black text-slate-500 uppercase mb-1 block">Contexto de las clases</label>
-                        <textarea id="in-ai-contexto" rows="3" maxlength="500" placeholder="Ej: curso de 8 estudiantes con apoyo PIE 2 veces por semana, trabajamos mucho en parejas, el estudiante se distrae con ruidos fuertes, estamos cerca de fiestas patrias." class="w-full border p-2.5 rounded-lg text-xs outline-none focus:ring-2 focus:ring-violet-500 resize-none" oninput="onAIContextInput()"></textarea>
-                        <p class="text-[9px] text-slate-500 mt-1 text-right"><span id="in-ai-contexto-count">0</span>/500</p>
-                    </div>
-
-                    <!-- Conocimientos previos -->
-                    <div>
-                        <label for="in-ai-conocimientos" class="text-[10px] font-black text-slate-500 uppercase mb-1 block">Conocimientos previos del grupo</label>
-                        <textarea id="in-ai-conocimientos" rows="2" maxlength="400" placeholder="Ej: Ya manejan las operaciones basicas, pero les cuesta resolver problemas de planteo." class="w-full border p-2.5 rounded-lg text-xs outline-none focus:ring-2 focus:ring-violet-500 resize-none" oninput="onAIContextInput()"></textarea>
-                        <p class="text-[9px] text-slate-500 mt-1 text-right"><span id="in-ai-conocimientos-count">0</span>/400</p>
-                    </div>
-
-                    <!-- Intereses del grupo -->
-                    <div>
-                        <label for="in-ai-intereses" class="text-[10px] font-black text-slate-500 uppercase mb-1 block">Intereses del grupo <span class="font-normal normal-case text-slate-400">(opcional)</span></label>
-                        <input type="text" id="in-ai-intereses" maxlength="200" placeholder="Ej: Les gustan los videojuegos de aventura, la tecnologia y el futbol." class="w-full border p-2.5 rounded-lg text-xs outline-none focus:ring-2 focus:ring-violet-500" oninput="onAIContextInput()">
-                    </div>
-
-                    <!-- Recursos disponibles -->
-                    <div>
-                        <label for="in-ai-recursos" class="text-[10px] font-black text-slate-500 uppercase mb-1 block">Recursos disponibles</label>
-                        <textarea id="in-ai-recursos" rows="3" maxlength="500" placeholder="Ej: sala con proyector, no hay tablets, biblioteca con libros Caligrafix, material concreto de matematicas (regletas, abaco), pizarra acrilica." class="w-full border p-2.5 rounded-lg text-xs outline-none focus:ring-2 focus:ring-violet-500 resize-none" oninput="onAIContextInput()"></textarea>
-                        <p class="text-[9px] text-slate-500 mt-1 text-right"><span id="in-ai-recursos-count">0</span>/500</p>
-                    </div>
-
-                    <!-- DUA / Accesibilidad -->
-                    <div>
-                        <label class="text-[10px] font-black text-slate-500 uppercase mb-1 block">Requerimientos DUA / Accesibilidad</label>
-                        <div class="grid grid-cols-2 gap-1.5 mb-2">
-                            <label class="flex items-center gap-2 text-[10px] cursor-pointer px-2 py-1.5 rounded border border-slate-200 bg-white hover:bg-slate-50">
-                                <input type="checkbox" class="ai-dua-cb w-3 h-3" value="Simplificar vocabulario" onchange="onAIContextInput()">
-                                <span class="text-slate-700">Simplificar vocabulario</span>
-                            </label>
-                            <label class="flex items-center gap-2 text-[10px] cursor-pointer px-2 py-1.5 rounded border border-slate-200 bg-white hover:bg-slate-50">
-                                <input type="checkbox" class="ai-dua-cb w-3 h-3" value="Instrucciones paso a paso" onchange="onAIContextInput()">
-                                <span class="text-slate-700">Instrucciones paso a paso</span>
-                            </label>
-                            <label class="flex items-center gap-2 text-[10px] cursor-pointer px-2 py-1.5 rounded border border-slate-200 bg-white hover:bg-slate-50">
-                                <input type="checkbox" class="ai-dua-cb w-3 h-3" value="Incluir pausas activas" onchange="onAIContextInput()">
-                                <span class="text-slate-700">Pausas activas</span>
-                            </label>
-                            <label class="flex items-center gap-2 text-[10px] cursor-pointer px-2 py-1.5 rounded border border-slate-200 bg-white hover:bg-slate-50">
-                                <input type="checkbox" class="ai-dua-cb w-3 h-3" value="Apoyo visual constante" onchange="onAIContextInput()">
-                                <span class="text-slate-700">Apoyo visual constante</span>
-                            </label>
-                        </div>
-                        <textarea id="in-ai-dua-detalle" rows="2" maxlength="400" placeholder="Ej: Un estudiante requiere material con alto contraste o macrotipo. Otro necesita audifonos por hipoacusia leve." class="w-full border p-2.5 rounded-lg text-xs outline-none focus:ring-2 focus:ring-violet-500 resize-none" oninput="onAIContextInput()"></textarea>
-                        <p class="text-[9px] text-slate-500 mt-1 text-right"><span id="in-ai-dua-detalle-count">0</span>/400</p>
-                    </div>
-
-                    <button type="button" onclick="clearAIContext()" class="text-[10px] text-violet-700 hover:text-violet-900 underline">
-                        <i class="fa-solid fa-eraser mr-1"></i>Limpiar todos los campos
-                    </button>
-                </div>
-            </div>
         </div>
     </aside>
 
@@ -7383,7 +7384,12 @@
         { icon: 'fa-users', label: 'Equipo de Aula', action: function() { toggleAcc('acc-equipo'); }, section: 'acc-equipo' },
         { icon: 'fa-bullseye', label: 'Objetivos de Aprendizaje', action: function() { toggleAcc('acc-oas'); }, section: 'acc-oas' },
         { icon: 'fa-image', label: 'Logos Institucionales', action: function() { toggleAcc('acc-logos'); }, section: 'acc-logos' },
-        { icon: 'fa-wand-magic-sparkles', label: 'Contexto para la IA', action: function() { toggleAcc('acc-ai-context'); }, section: 'acc-ai-context' },
+        { icon: 'fa-wand-magic-sparkles', label: 'Contexto para la IA', action: function() {
+            var curr = document.getElementById('acc-curr');
+            if (curr && !curr.classList.contains('open')) toggleAcc('acc-curr');
+            var ctx = document.getElementById('acc-ai-context');
+            if (ctx && !ctx.classList.contains('open')) toggleAcc('acc-ai-context');
+        }, section: 'acc-ai-context' },
         { icon: 'fa-cloud-arrow-up', label: 'Guardar PACI', action: function() { guardarPACI(); }, shortcut: 'Ctrl+S' },
         { icon: 'fa-download', label: 'Descargar PDF', action: function() { downloadPDF(); }, shortcut: 'Ctrl+P' },
         { icon: 'fa-print', label: 'Imprimir', action: function() { printPDF(); } },
