@@ -7,6 +7,12 @@
     {
       "binding": "PACI_USERS",
       "id": "2267d7e543e240fa877bfb632da0371a"
+    },
+    {
+      // Archivos subidos (documentos PIE ya listos: PDF/Word/imagen).
+      // KV free tier: 1GB total, 25MB por valor. Si se queda corto, migrar a R2.
+      "binding": "PACI_FILES",
+      "id": "cace1fb341784de2b8fc99ca4bffb4b0"
     }
   ],
   "d1_databases": [

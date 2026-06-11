@@ -3498,9 +3498,27 @@
         ? '<span style="background:rgba(239,68,68,0.18);color:#fca5a5;padding:0.1rem 0.45rem;border-radius:999px;font-size:0.58rem;font-weight:800;margin-left:0.45rem;">OBLIGATORIO</span>'
         : '';
 
-      const accion = masReciente
-        ? '<a href="' + esc(tipo.route) + (tipo.route.includes('?') ? '&' : '?') + 'doc=' + masReciente.id + '" class="check-action ghost"><i class="fa-solid fa-pen"></i> Editar</a>'
-        : '<a href="' + esc(tipo.route) + (tipo.route.includes('?') ? '&' : '?') + 'student=' + studentId + '" class="check-action primary"><i class="fa-solid fa-plus"></i> Crear</a>';
+      // Documento subido como archivo (file_key): no hay editor, se abre el binario.
+      const esSubido = !!(masReciente && masReciente.file_key);
+      let accion;
+      if (esSubido) {
+        accion = '<a href="/api/documents/file?id=' + masReciente.id + '" target="_blank" rel="noopener" class="check-action ghost"><i class="fa-solid fa-eye"></i> Ver archivo</a>';
+      } else if (masReciente) {
+        accion = '<a href="' + esc(tipo.route) + (tipo.route.includes('?') ? '&' : '?') + 'doc=' + masReciente.id + '" class="check-action ghost"><i class="fa-solid fa-pen"></i> Editar</a>';
+      } else {
+        accion = '<a href="' + esc(tipo.route) + (tipo.route.includes('?') ? '&' : '?') + 'student=' + studentId + '" class="check-action primary"><i class="fa-solid fa-plus"></i> Crear</a>';
+      }
+
+      // Boton "Subir": permite cargar un documento ya listo (PDF/Word/imagen)
+      // que cuenta como cumplido para este tipo. El input file queda oculto.
+      const subirBtn = CAN_CREATE
+        ? '<button type="button" id="upload-btn-' + studentId + '-' + esc(key) + '" class="check-action ghost" ' +
+            'style="background:none;border:1px dashed rgba(56,189,248,0.55);color:#38bdf8;border-radius:0.45rem;padding:0.25rem 0.6rem;font-size:0.72rem;font-weight:700;cursor:pointer;font-family:inherit;" ' +
+            'title="Subir un documento ya listo (PDF, Word o imagen, máx 8 MB)" ' +
+            'onclick="document.getElementById(\'upload-input-' + studentId + '-' + esc(key) + '\').click()">' +
+            '<i class="fa-solid fa-upload"></i> Subir</button>' +
+          '<input type="file" id="upload-input-' + studentId + '-' + esc(key) + '" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" style="display:none;" onchange="subirDocumentoListo(' + studentId + ',\'' + esc(key) + '\',this)">'
+        : '';
 
       const dupsHtml = duplicados.length
         ? '<div class="check-dups">' +
@@ -3517,14 +3535,71 @@
           '<div class="check-name"><i class="fa-solid ' + esc(tipo.icon) + '" style="opacity:0.7;margin-right:0.35rem;"></i>' + esc(tipo.label) + reqBadge + '</div>' +
           '<div class="check-meta">' +
             '<span style="color:' + s.color + ';font-weight:700;"><i class="fa-solid ' + s.icon + '"></i> ' + s.label + '</span>' +
+            (esSubido ? ' · <span style="background:rgba(14,165,233,0.14);color:#0ea5e9;font-weight:800;padding:0.08rem 0.45rem;border-radius:999px;">📎 Subido</span>' : '') +
             (fechaHecho ? ' · <span>Último: ' + fechaHecho + '</span>' : '') +
             (fechaProx && (estado === 'hecho' || estado === 'proximo-vence' || estado === 'vencido') ? ' · <span>Renovar: ' + fechaProx + '</span>' : '') +
             (alerta && estado !== 'hecho' ? ' · <span style="color:' + s.color + ';font-weight:800;">' + esc(alerta) + '</span>' : '') +
           '</div>' +
           dupsHtml +
         '</div>' +
-        '<div class="check-actions">' + accion + '</div>' +
+        '<div class="check-actions">' + accion + subirBtn + '</div>' +
       '</div>';
+    }
+
+    // Sube un documento ya listo (PDF/Word/imagen) para un tipo del checklist.
+    // Usa fetch + FormData (multipart), no el wrapper api() que es JSON.
+    async function subirDocumentoListo(studentId, docType, inputEl) {
+      const file = inputEl.files && inputEl.files[0];
+      if (!file) return;
+      if (file.size > 8 * 1024 * 1024) {
+        alert('El archivo supera el máximo de 8 MB.');
+        inputEl.value = '';
+        return;
+      }
+      const btn = document.getElementById('upload-btn-' + studentId + '-' + docType);
+      const prevHtml = btn ? btn.innerHTML : '';
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Subiendo…';
+      }
+      try {
+        const fd = new FormData();
+        fd.append('file', file);
+        fd.append('studentId', studentId);
+        fd.append('docType', docType);
+        fd.append('_token', TOKEN);
+        const res = await fetch('/api/documents/upload', { method: 'POST', body: fd });
+        if (res.status === 401) {
+          localStorage.removeItem('paci_token');
+          localStorage.removeItem('paci_user');
+          window.location.href = '/login.html';
+          return;
+        }
+        const data = await res.json();
+        if (!data.ok) {
+          alert('Error al subir: ' + (data.error || 'no se pudo subir el archivo.'));
+          return;
+        }
+        // Refrescar datos (mismo patrón que deleteDoc): recordar si el card
+        // estaba abierto, recargar el dashboard y reabrir en el checklist.
+        const bodyEl = document.getElementById('body-' + studentId);
+        const wasOpen = bodyEl ? bodyEl.classList.contains('open') : false;
+        loadedStudents[studentId] = false;
+        await loadDashboard();
+        if (wasOpen) {
+          toggleCard(studentId);
+          showTab(studentId, 'checklist');
+        }
+        alert('Archivo "' + (data.fileName || file.name) + '" subido correctamente. Quedó registrado en el checklist.');
+      } catch (e) {
+        alert('Error de conexión al subir el archivo.');
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = prevHtml;
+        }
+        inputEl.value = '';
+      }
     }
 
     // Mostrar modal con los duplicados de un tipo
@@ -3557,7 +3632,7 @@
                     <div class="rl">${i === 0 ? 'MÁS RECIENTE — MANTENER' : 'DUPLICADO #' + i}</div>
                     <div class="rv">${esc(d.trimester || '(sin trimestre)')} — Creado ${new Date(d.created_at).toLocaleDateString('es-CL', { day:'2-digit', month:'long', year:'numeric' })}</div>
                   </div>
-                  <a href="${esc(tipo.route)}${tipo.route.includes('?') ? '&' : '?'}doc=${d.id}" style="background:rgba(56,189,248,0.15);color:#38bdf8;padding:0.3rem 0.65rem;border-radius:0.4rem;font-size:0.7rem;font-weight:700;text-decoration:none;">Ver</a>
+                  <a href="${d.file_key ? '/api/documents/file?id=' + d.id : esc(tipo.route) + (tipo.route.includes('?') ? '&' : '?') + 'doc=' + d.id}"${d.file_key ? ' target="_blank" rel="noopener"' : ''} style="background:rgba(56,189,248,0.15);color:#38bdf8;padding:0.3rem 0.65rem;border-radius:0.4rem;font-size:0.7rem;font-weight:700;text-decoration:none;">Ver</a>
                   ${i > 0 ? `<button onclick="eliminarDocumentoDup(${d.id}, ${studentId})" style="background:rgba(239,68,68,0.2);color:#fca5a5;border:none;padding:0.3rem 0.55rem;border-radius:0.4rem;cursor:pointer;font-size:0.7rem;font-weight:700;margin-left:0.3rem;"><i class="fa-solid fa-trash"></i></button>` : ''}
                 </div>
               `).join('')}
@@ -3940,9 +4015,12 @@
 
       const html = `
         ${reevalAlert}
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;gap:0.5rem;flex-wrap:wrap;">
           <span style="font-size:0.7rem;font-weight:800;color:#1e3a8a;text-transform:uppercase;">Ficha del Estudiante</span>
-          <span class="save-status" id="save-status-${id}"><i class="fa-solid fa-check"></i> Guardado</span>
+          <span style="display:inline-flex;align-items:center;gap:0.5rem;">
+            ${CAN_MANAGE_STUDENTS ? `<button type="button" id="autofill-btn-${id}" onclick="autocompletarFicha(${id})" title="Rellena los campos vacíos de la ficha con datos de los documentos del estudiante" style="background:none;border:1px dashed #94a3b8;color:#475569;border-radius:999px;padding:0.25rem 0.7rem;font-size:0.65rem;font-weight:700;cursor:pointer;font-family:inherit;"><i class="fa-solid fa-wand-magic-sparkles"></i> Autocompletar desde documentos</button>` : ''}
+            <span class="save-status" id="save-status-${id}"><i class="fa-solid fa-check"></i> Guardado</span>
+          </span>
         </div>
         <div class="profile-grid">
           <div class="profile-section"><i class="fa-solid fa-user"></i> Datos Personales <span class="auto-tag">Auto</span></div>
@@ -3957,7 +4035,7 @@
           </div>
           <div class="profile-field">
             <label>Fecha de Nacimiento <span class="auto-tag">Auto</span></label>
-            <input type="date" value="${esc(s.birth_date || '')}" onchange="saveField(${id},'birth_date',this.value)">
+            <input type="date" id="prof-birth-${id}" value="${esc(s.birth_date || '')}" onchange="saveField(${id},'birth_date',this.value)">
           </div>
           <div class="profile-field">
             <label>Edad <span class="auto-tag">Auto</span></label>
@@ -3965,19 +4043,19 @@
           </div>
           <div class="profile-field">
             <label>Apoderado <span class="manual-tag">Manual</span></label>
-            <input type="text" value="${esc(s.guardian || '')}" placeholder="Nombre del apoderado" onchange="saveField(${id},'guardian',this.value)">
+            <input type="text" id="prof-guardian-${id}" value="${esc(s.guardian || '')}" placeholder="Nombre del apoderado" onchange="saveField(${id},'guardian',this.value)">
           </div>
           <div class="profile-field">
             <label>RUT Apoderado <span class="manual-tag">Manual</span></label>
-            <input type="text" value="${esc(profile.apoderado_rut || '')}" placeholder="12.345.678-9" onchange="saveProfileField(${id},'apoderado_rut',this.value)">
+            <input type="text" id="prof-aporut-${id}" value="${esc(profile.apoderado_rut || '')}" placeholder="12.345.678-9" onchange="saveProfileField(${id},'apoderado_rut',this.value)">
           </div>
           <div class="profile-field">
             <label>Relación con el estudiante <span class="manual-tag">Manual</span></label>
-            <input type="text" value="${esc(profile.apoderado_rel || '')}" placeholder="Madre / Padre / Tutor legal" onchange="saveProfileField(${id},'apoderado_rel',this.value)">
+            <input type="text" id="prof-aporel-${id}" value="${esc(profile.apoderado_rel || '')}" placeholder="Madre / Padre / Tutor legal" onchange="saveProfileField(${id},'apoderado_rel',this.value)">
           </div>
           <div class="profile-field">
             <label>Teléfono Apoderado <span class="manual-tag">Manual</span></label>
-            <input type="text" value="${esc(profile.apoderado_tel || '')}" placeholder="+56 9 1234 5678" onchange="saveProfileField(${id},'apoderado_tel',this.value)">
+            <input type="text" id="prof-apotel-${id}" value="${esc(profile.apoderado_tel || '')}" placeholder="+56 9 1234 5678" onchange="saveProfileField(${id},'apoderado_tel',this.value)">
           </div>
           <div class="profile-field">
             <label>Establecimiento <span class="auto-tag">Auto</span></label>
@@ -3998,7 +4076,7 @@
           </div>
           <div class="profile-field">
             <label>Curso / Sección <span class="manual-tag">Manual</span></label>
-            <input type="text" value="${esc(s.curso || '')}" placeholder="Ej: 3° Básico A" onchange="saveField(${id},'curso',this.value)">
+            <input type="text" id="prof-curso-${id}" value="${esc(s.curso || '')}" placeholder="Ej: 3° Básico A" onchange="saveField(${id},'curso',this.value)">
           </div>
 
           <div class="profile-field profile-full">
@@ -4225,6 +4303,169 @@
         status.style.display = 'inline';
         status.innerHTML = res.ok ? '<i class="fa-solid fa-check"></i> Guardado' : '<i class="fa-solid fa-xmark" style="color:#ef4444;"></i> Error';
         setTimeout(() => { status.style.display = 'none'; }, 2000);
+      }
+    }
+
+    // ==========================================
+    // AUTOCOMPLETAR FICHA DESDE DOCUMENTOS
+    // ==========================================
+    // Recorre los documentos creados en la plataforma (excluye archivos subidos,
+    // que no traen JSON útil), extrae datos del estudiante/apoderado y rellena
+    // SOLO los campos vacíos de la ficha. Al setear cada input se dispara su
+    // evento change, que ejecuta el guardado normal (saveField/saveProfileField).
+    async function autocompletarFicha(studentId) {
+      const btn = document.getElementById('autofill-btn-' + studentId);
+      const prevHtml = btn ? btn.innerHTML : '';
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Buscando datos…';
+      }
+      try {
+        const res = await api('/api/documents/list', { studentId });
+        if (!res.ok) {
+          alert('Error: ' + (res.error || 'no se pudieron cargar los documentos.'));
+          return;
+        }
+        // Más recientes primero (la API ya ordena DESC); máx 5 no subidos.
+        const candidatos = (res.documents || []).filter(d => !d.file_key).slice(0, 5);
+        const subidos = (res.documents || []).filter(d => d.file_key);
+        if (!candidatos.length && !subidos.length) {
+          alert('Este estudiante no tiene documentos (creados o subidos) desde donde extraer datos.');
+          return;
+        }
+
+        const normFecha = v => {
+          const m = String(v || '').match(/^(\d{4}-\d{2}-\d{2})/);
+          return m ? m[1] : '';
+        };
+        const datos = {}; // campo -> { valor, fuente } (gana el doc más reciente)
+
+        for (const docMeta of candidatos) {
+          const tipoDef = (window.DOC_TYPES || {})[docMeta.plan_type];
+          const tipoLabel = tipoDef ? tipoDef.label : (docMeta.plan_type === 'pai' ? 'PAI' : 'PACI');
+          const fechaDoc = docMeta.created_at
+            ? new Date(docMeta.created_at).toLocaleDateString('es-CL', { day: '2-digit', month: 'short' })
+            : '';
+          const fuente = tipoLabel + (fechaDoc ? ' (' + fechaDoc + ')' : '');
+          const setear = (campo, valor) => {
+            const v = String(valor == null ? '' : valor).trim();
+            if (v && !datos[campo]) datos[campo] = { valor: v, fuente };
+          };
+
+          let parsed = null;
+          try {
+            const full = await api('/api/documents/get', { documentId: docMeta.id });
+            if (!full.ok || !full.document) continue;
+            parsed = JSON.parse(full.document.document_json);
+          } catch (e) { continue; }
+          if (!parsed || typeof parsed !== 'object') continue;
+
+          // Shape PAI/PACI: parsed.student { name, rut, birthDate, curso }
+          if (parsed.student) {
+            setear('birth_date', normFecha(parsed.student.birthDate));
+            setear('curso', parsed.student.curso);
+          }
+
+          // Shape docs schema-driven: parsed.notas (string JSON) -> notas.docData
+          if (parsed.notas) {
+            let notas = null;
+            try {
+              notas = typeof parsed.notas === 'string' ? JSON.parse(parsed.notas) : parsed.notas;
+            } catch (e) { notas = null; }
+            const dd = notas && notas.docData;
+            if (dd) {
+              setear('birth_date', normFecha(dd.student_birth));
+              setear('curso', dd.student_curso);
+              setear('guardian', dd.apoderado_nombre);
+              setear('apoderado_rut', dd.apoderado_rut);
+              setear('apoderado_rel', dd.apoderado_rel);
+              setear('apoderado_tel', dd.apoderado_tel);
+            }
+          }
+        }
+
+        // Rellenar SOLO los inputs vacíos. La ficha no tiene campo de
+        // "habilidades reales", por eso evaluacion.fortalezas no se usa aquí.
+        const objetivos = [
+          { campo: 'birth_date',    inputId: 'prof-birth-' + studentId },
+          { campo: 'curso',         inputId: 'prof-curso-' + studentId },
+          { campo: 'guardian',      inputId: 'prof-guardian-' + studentId },
+          { campo: 'apoderado_rut', inputId: 'prof-aporut-' + studentId },
+          { campo: 'apoderado_rel', inputId: 'prof-aporel-' + studentId },
+          { campo: 'apoderado_tel', inputId: 'prof-apotel-' + studentId }
+        ];
+        let completados = 0;
+        const fuentes = [];
+        objetivos.forEach(o => {
+          const input = document.getElementById(o.inputId);
+          const dato = datos[o.campo];
+          if (!input || input.value.trim() || !dato) return;
+          input.value = dato.valor;
+          if (!input.value) return; // el input rechazó el formato (ej: fecha inválida)
+          input.dispatchEvent(new Event('change'));
+          completados++;
+          if (!fuentes.includes(dato.fuente)) fuentes.push(dato.fuente);
+        });
+
+        // Fase IA: si quedan campos vacíos y hay archivos subidos (PDF/Word),
+        // el servidor extrae su texto y la IA propone los datos de la ficha.
+        let completadosIA = 0;
+        let fuentesIA = [];
+        const quedanVacios = objetivos.some(o => {
+          const input = document.getElementById(o.inputId);
+          return input && !input.value.trim();
+        });
+        if (quedanVacios && subidos.length) {
+          if (btn) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Analizando archivos con IA…';
+          const ia = await api('/api/ai/autofill-student', { studentId });
+          if (ia.ok && ia.fields) {
+            const mapaIA = {
+              birth_date: normFecha(ia.fields.birth_date),
+              curso: ia.fields.curso,
+              guardian: ia.fields.apoderado_nombre,
+              apoderado_rut: ia.fields.apoderado_rut,
+              apoderado_rel: ia.fields.apoderado_rel,
+              apoderado_tel: ia.fields.apoderado_tel
+            };
+            objetivos.forEach(o => {
+              const input = document.getElementById(o.inputId);
+              const v = String(mapaIA[o.campo] || '').trim();
+              if (!input || input.value.trim() || !v) return;
+              input.value = v;
+              if (!input.value) return; // formato rechazado por el input
+              input.dispatchEvent(new Event('change'));
+              completadosIA++;
+            });
+            fuentesIA = ia.sources || [];
+          } else if (!completados && ia.error) {
+            alert('IA: ' + ia.error);
+            return;
+          }
+        }
+
+        if (completados || completadosIA) {
+          let msg = '';
+          if (completados) {
+            const listaFuentes = fuentes.length > 1
+              ? fuentes.slice(0, -1).join(', ') + ' y ' + fuentes[fuentes.length - 1]
+              : fuentes[0];
+            msg += completados + ' campo(s) completado(s) desde ' + listaFuentes + '.';
+          }
+          if (completadosIA) {
+            msg += (msg ? '\n' : '') + completadosIA + ' campo(s) extraído(s) con IA desde ' +
+              fuentesIA.join(', ') + ' — revisa que sean correctos.';
+          }
+          alert(msg + '\nLos cambios quedaron guardados en la ficha.');
+        } else {
+          alert('No se encontraron datos nuevos: los campos ya estaban completos o los documentos no contienen esa información.');
+        }
+      } catch (e) {
+        alert('Error de conexión al autocompletar la ficha.');
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = prevHtml;
+        }
       }
     }
 
@@ -4519,9 +4760,39 @@
         return;
       }
 
+      // /api/students/get no trae plan_type/file_key/file_name: completar cada
+      // doc con la fila completa de /api/documents/list (DASH_DOCS) para poder
+      // detectar archivos subidos. Los campos de students/get tienen prioridad.
+      const fullById = {};
+      (DASH_DOCS || []).forEach(fd => { fullById[fd.id] = fd; });
+      docs = docs.map(d => Object.assign({}, fullById[d.id] || {}, d));
+
       // Renderiza la tarjeta de un documento (PACI o PAI). Se usa tanto para los
       // documentos de nivel superior como para los trimestres hijos anidados.
       const renderDocCard = (d) => {
+        // Documento subido como archivo listo: sin editor, solo ver/eliminar.
+        if (d.file_key) {
+          const tipoDef = (window.DOC_TYPES || {})[d.plan_type] || {};
+          return `
+        <div class="doc-card">
+          <div class="doc-card-accent" style="background:#0ea5e9;"></div>
+          <div class="doc-card-body">
+            <div class="doc-card-title">
+              <span class="doc-card-icon" style="background:#0ea5e9;"><i class="fa-solid fa-paperclip"></i></span>
+              ${esc(tipoDef.label || 'Documento')} &middot; Archivo subido
+            </div>
+            <div class="doc-chips"><span class="status-chip" style="background:#e0f2fe;color:#0369a1;">📎 Subido</span></div>
+            <div class="doc-meta">
+              <span><i class="fa-solid fa-file"></i> ${esc(d.file_name || 'archivo')}</span>
+              <span><i class="fa-regular fa-clock"></i> Subido ${formatDate(d.created_at)}</span>
+            </div>
+            <div class="doc-actions">
+              <a href="/api/documents/file?id=${d.id}" target="_blank" rel="noopener" class="btn btn-primary btn-sm" title="Abrir el archivo en una pestaña nueva"><i class="fa-solid fa-eye"></i> Ver archivo</a>
+              ${CAN_DELETE ? '<button class="btn btn-red btn-sm" onclick="deleteDoc(' + d.id + ', ' + id + ')" title="Eliminar"><i class="fa-solid fa-trash"></i></button>' : ''}
+            </div>
+          </div>
+        </div>`;
+        }
         // Contar modulos dentro del documento
         let modCount = 0;
         let oaCodes = [];

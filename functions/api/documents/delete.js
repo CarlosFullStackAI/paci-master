@@ -18,10 +18,15 @@ export async function onRequestPost(context) {
 
     // Verificar que el documento pertenece al establecimiento del usuario
     const doc = await env.DB.prepare(
-      'SELECT id FROM documents WHERE id = ? AND tenant_id = ?'
+      'SELECT id, file_key FROM documents WHERE id = ? AND tenant_id = ?'
     ).bind(documentId, tenantId).first();
 
     if (!doc) return new Response(JSON.stringify({ ok: false, error: 'Documento no encontrado.' }), { status: 404, headers });
+
+    // Si era un archivo subido, eliminar tambien el binario de KV.
+    if (doc.file_key && env.PACI_FILES) {
+      await env.PACI_FILES.delete(doc.file_key).catch(() => {});
+    }
 
     // Si este documento es un plan anual padre, sus trimestres hijos quedarian
     // apuntando a un padre inexistente. Para NO perder datos, los desvinculamos

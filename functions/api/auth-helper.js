@@ -10,6 +10,12 @@ export async function getUser(request, env) {
     token = body._token;
   }
 
+  return getUserByToken(env, token);
+}
+
+// Variante para endpoints cuyo body NO es JSON (ej. multipart de subida de
+// archivos): el caller extrae el token (cookie o campo del form) y lo valida aqui.
+export async function getUserByToken(env, token) {
   if (!token) return null;
 
   const sessionData = await env.PACI_USERS.get(`session:${token}`);
