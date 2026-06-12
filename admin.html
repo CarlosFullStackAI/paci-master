@@ -9,6 +9,7 @@
        la página quedaba sin estilos. Corregido 2026-06-13.) -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="/establecimientos-autocomplete.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -204,6 +205,14 @@
       <div class="acc-body"><div class="acc-inner">
         <div class="acc-pad">
           <input type="hidden" id="f-id">
+
+          <div class="form-group">
+            <div class="form-group-title"><i class="fa-solid fa-magnifying-glass"></i> Buscar en el directorio oficial MINEDUC</div>
+            <div class="field">
+              <input type="text" id="f-buscar-ee" placeholder="Escribe el nombre del colegio o su RBD… (ej: Luis Cruz Martinez, o 5151)">
+              <p class="hint">12.038 establecimientos en funcionamiento (Directorio Oficial 2025). Al elegir uno se autocompletan nombre, RBD, comuna y región — todo editable después.</p>
+            </div>
+          </div>
 
           <div class="form-group">
             <div class="form-group-title"><i class="fa-solid fa-id-card-clip"></i> Identificación</div>
@@ -657,6 +666,29 @@
     }
 
     if (!token()) { window.location.href = '/login.html'; } else { loadTenants(); }
+
+    // ===== Buscador del directorio oficial MINEDUC =====
+    // Autocompleta nombre, RBD, comuna y región; sugiere slug y nombre corto
+    // solo al CREAR (si el slug está vacío y editable).
+    function slugify(s) {
+      return String(s).toLowerCase()
+        .normalize('NFD').replace(/[̀-ͯ]/g, '')
+        .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+    }
+    initEstablecimientoSearch(document.getElementById('f-buscar-ee'), {
+      onSelect: function (est) {
+        document.getElementById('f-nombre').value = est.nombre;
+        document.getElementById('f-rbd').value = est.rbd + '-' + est.dgv;
+        document.getElementById('f-comuna').value = est.comuna || '';
+        document.getElementById('f-region').value = est.region || '';
+        const slugEl = document.getElementById('f-slug');
+        if (!slugEl.disabled && !slugEl.value.trim()) slugEl.value = slugify(est.nombre);
+        const cortoEl = document.getElementById('f-nombre-corto');
+        if (!cortoEl.value.trim()) cortoEl.value = est.nombre.split(/\s+/).slice(0, 3).join(' ');
+        document.getElementById('f-buscar-ee').value = est.nombre + ' (RBD ' + est.rbd + '-' + est.dgv + ')';
+        showMsg('Datos oficiales cargados desde el directorio MINEDUC. Revísalos y guarda.', true);
+      }
+    });
   </script>
 </body>
 </html>

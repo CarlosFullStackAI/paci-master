@@ -66,7 +66,7 @@ window.DOC_TYPES = {
     sublabel: 'Historia del desarrollo del estudiante',
     icon: 'fa-clipboard-user',
     route: '/docs.html?type=anamnesis',
-    decree: 'Decreto Supremo 170/2009 art. 11',
+    decree: 'Decreto Supremo 170/2009 (evaluación diagnóstica integral). Formato referencial: se permite formato propio (Cartilla 6).',
     officialUrl: 'https://especial.mineduc.cl/wp-content/uploads/sites/31/2018/06/ANAMNESIS_2010.doc',
     officialUrlPdf: 'https://especial.mineduc.cl/wp-content/uploads/sites/31/2018/06/ANAMNESIS_2010.pdf',
     officialLabel: 'Formato MINEDUC 2010 (referencial)',
@@ -137,9 +137,9 @@ window.DOC_TYPES = {
     ministerial: true,
     docTitle: 'INFORME DE EVALUACIÓN PSICOPEDAGÓGICA',
     info: {
-      cuando: 'Al ingreso al PIE, como parte de la evaluación diagnóstica integral del educador diferencial.',
+      cuando: 'Al ingreso al PIE + en cada reevaluación integral + al egreso + en 4° medio (octubre, para ajustes PAES).',
       paraQuien: 'Todo estudiante candidato al PIE. OBLIGATORIO el formato 2025 desde ingresos 2026.',
-      renovacion: 'Una vez al ingreso. Se rehace si hay reevaluación significativa o cambio diagnóstico.'
+      renovacion: 'Ligado al ciclo de reevaluación integral (2 años NEET/DI/RGD; 5 años resto NEEP), no anual. También al egreso. Cartilla 5 §4.3.5.'
     },
     // Estructura alineada al "Formato Informe de Evaluación Psicopedagógica 2025" (MINEDUC).
     schema: {
@@ -298,9 +298,9 @@ window.DOC_TYPES = {
     description: 'Informe profesional externo (psicologo, fonoaudiologo, neurologo, kinesiologo) que respalda la NEE. No hay formato unico; el profesional debe estar inscrito en el Registro MINEDUC.',
     requiresMineduc: true,
     info: {
-      cuando: 'Al ingreso del estudiante al PIE, según el tipo de NEE detectada.',
-      paraQuien: 'Por diagnóstico: fonoaudiólogo (TEL), psicólogo (FIL/DI), neurólogo (TDA/TEA), médico (discapacidad sensorial/motora).',
-      renovacion: 'Al ingreso + en cada reevaluación: anual para NEET, cada 2-3 años para NEEP.'
+      cuando: 'Al ingreso y en cada reevaluación integral, SOLO para los diagnósticos que lo requieren.',
+      paraQuien: 'Requerido para TL (fonoaudiólogo), FIL/DI (psicólogo: WISC/WAIS + conductas adaptativas), TEA (psicólogo + fonoaudiólogo) y GARC. Para DEA, TDA y discapacidades sensoriales/motoras NO se exige (el diagnóstico va en el informe psicopedagógico o la valoración de salud).',
+      renovacion: 'Ingreso + cada reevaluación integral (según el ciclo del diagnóstico). Cartilla 5 anexos.'
     },
     schema: {
       sections: [
@@ -347,7 +347,7 @@ window.DOC_TYPES = {
     sublabel: 'Consentimiento informado',
     icon: 'fa-file-signature',
     route: '/docs.html?type=autorizacion_familia',
-    decree: 'DS 170/2009 art. 9 y 89',
+    decree: 'DS 170/2009 art. 5 (consentimiento para la evaluación)',
     officialUrl: 'https://especial.mineduc.cl/wp-content/uploads/sites/31/2018/06/AUTORIZACION_EVALUACION_2010.doc',
     officialUrlPdf: 'https://especial.mineduc.cl/wp-content/uploads/sites/31/2018/06/AUTORIZACION_EVALUACION_2010.pdf',
     officialLabel: 'Formato MINEDUC 2010 (referencial)',
@@ -358,7 +358,7 @@ window.DOC_TYPES = {
     info: {
       cuando: 'Al inicio del proceso de evaluación PIE, antes de aplicar cualquier instrumento.',
       paraQuien: 'Todo estudiante. La firma debe ser del apoderado titular registrado en el establecimiento.',
-      renovacion: 'Anual al inicio del año escolar. Se renueva si cambia el apoderado titular.'
+      renovacion: 'Una sola vez al ingreso (se mantiene la misma del año 1). Cartilla 6: actualizarla en cada nueva evaluación integral es buena práctica, NO requisito obligatorio.'
     },
     // El documento se arma con la prosa oficial (CUSTOM_BODIES.autorizacion_familia en docs.html);
     // estos campos solo alimentan los espacios a completar.
@@ -435,14 +435,14 @@ window.DOC_TYPES = {
     decree: 'DS 170/2009 art. 8 letra a',
     officialUrl: 'https://especial.mineduc.cl/wp-content/uploads/sites/31/2024/10/FU_EVALUACION-DE_SALUD_2024-3.doc',
     officialUrlPdf: 'https://especial.mineduc.cl/wp-content/uploads/sites/31/2024/10/FU_EVALUACION-DE_SALUD_2024-3.pdf',
-    officialLabel: 'Formato MINEDUC 2024 (obligatorio)',
-    description: 'Certificacion medica obligatoria como parte de la evaluacion diagnostica integral. El medico debe estar inscrito en la Superintendencia.',
+    officialLabel: 'Formato MINEDUC 2024 (referencial: certificado médico propio también es válido)',
+    description: 'Certificacion medica como parte de la evaluacion diagnostica integral. El FU MINEDUC es OPTATIVO: un certificado medico propio es valido si trae fecha, firma, timbre, RUT y registro. El medico debe estar inscrito en la Superintendencia.',
     requiresMineduc: false,
     ministerial: true,
     info: {
-      cuando: 'Al ingreso del estudiante al PIE, como parte de los antecedentes obligatorios.',
+      cuando: 'Al ingreso y en cada reevaluación integral (parte de los antecedentes obligatorios).',
       paraQuien: 'Todo estudiante PIE. Firma un médico inscrito en la Superintendencia de Salud.',
-      renovacion: 'Una vez al ingreso. Se actualiza solo si hay cambios médicos significativos o nuevos tratamientos.'
+      renovacion: 'Se renueva por ciclo: cada 2 años en NEET y NEEP-DI; en el resto de NEEP al finalizar el año 3, 4 o 5 según determine el equipo de aula (Cartilla 6).'
     },
     schema: {
       sections: [
@@ -541,7 +541,7 @@ window.DOC_TYPES = {
     officialUrl: 'https://especial.mineduc.cl/wp-content/uploads/sites/31/2025/06/Cartilla_2-Trabajo_Colaborativo-0625.pdf',
     officialUrlPdf: 'https://especial.mineduc.cl/wp-content/uploads/sites/31/2016/09/201304051030320.Registro_PIE_2013.doc',
     officialLabel: 'Cartilla 2 MINEDUC 2025 + Registro PIE 2013',
-    description: 'Evidencia las horas de co-docencia y planificacion conjunta entre el profesor de aula y el educador diferencial (minimo 3 hrs cronologicas semanales para basica).',
+    description: 'Evidencia las horas de co-docencia y planificacion conjunta entre el profesor de aula y el educador diferencial (Cartilla 6: 3 hrs cronologicas por curso; 16 hrs JECD / 13 hrs sin JECD por grupo 5+2).',
     requiresMineduc: true,
     info: {
       cuando: 'Cada sesión de co-docencia o planificación conjunta (mínimo 3 hrs cronológicas/semana en básica).',
@@ -650,7 +650,7 @@ window.DOC_TYPES = {
     sublabel: 'Formato OBLIGATORIO 2025',
     icon: 'fa-house-user',
     route: '/docs.html?type=informe_familia',
-    decree: 'DS 170/2009 art. 89 + Cartilla 1 MINEDUC',
+    decree: 'DS 170/2009 arts. 9 y 14 + Cartilla 1 MINEDUC',
     officialUrl: 'https://especial.mineduc.cl/wp-content/uploads/sites/31/2025/02/INFORME_PARA_LA_FAMILIA_2025.doc',
     officialUrlPdf: 'https://especial.mineduc.cl/wp-content/uploads/sites/31/2025/02/INFORME_PARA_LA_FAMILIA_2025.pdf',
     officialLabel: 'Formato MINEDUC 2025 (obligatorio)',
@@ -660,9 +660,9 @@ window.DOC_TYPES = {
     docTitle: 'INFORME PARA LA FAMILIA',
     firmantes: ['Fonoaudióloga', 'Psicólogo/a', 'Prof. Educación Diferencial', 'Apoderado/a'],
     info: {
-      cuando: 'Al cierre de cada semestre o trimestre según calendario del establecimiento. OBLIGATORIO al menos anual.',
+      cuando: 'El formato ministerial se exige en INGRESO y EGRESO (Cartilla 6). En seguimiento basta informar por medios habituales (notas, entrevistas); el informe semestral/trimestral es buena práctica interna, no exigencia ministerial.',
       paraQuien: 'Todo estudiante PIE. Se entrega al apoderado titular firmado.',
-      renovacion: 'Semestral o trimestral. Anual es el mínimo obligatorio MINEDUC.'
+      renovacion: 'Obligatorio en ingreso y egreso. Semestral/trimestral opcional como práctica del establecimiento.'
     },
     // Estructura alineada al formato oficial "INFORME PARA LA FAMILIA" (MINEDUC 2025).
     schema: {
@@ -729,18 +729,31 @@ window.DOC_TYPES = {
       'TDA': 'https://especial.mineduc.cl/wp-content/uploads/sites/31/2020/11/FU_REVALUACION_TDA_20121.pdf',
       'FIL': 'https://especial.mineduc.cl/wp-content/uploads/sites/31/2021/07/FU_REVALUACION_FIL_-2012-1.pdf',
       'DI':  'https://especial.mineduc.cl/wp-content/uploads/sites/31/2016/09/201210291841320.FU_REVALUACION_D_INTELECTUAL_NEEP_-2012-1.pdf',
-      'TEA': 'https://especial.mineduc.cl/wp-content/uploads/sites/31/2016/09/201210291844310.FU_REVALUACION_TEA_2012-1.pdf'
+      'TEA': 'https://especial.mineduc.cl/wp-content/uploads/sites/31/2016/09/201210291844310.FU_REVALUACION_TEA_2012-1.pdf',
+      // Discapacidades sensoriales/motoras y disfasia: formularios oficiales 2012 que SI existen.
+      'DV':  'https://especial.mineduc.cl/wp-content/uploads/sites/31/2016/09/201210291847010.FU_REEVALUACION_DISCAPACIDAD_VISUAL_2012-1.pdf',
+      'DA':  'https://especial.mineduc.cl/wp-content/uploads/sites/31/2016/09/201210291846100.FU_REEVALUACION_DISCAPACIDAD_AUDITIVA_2012-1.pdf',
+      'DM':  'https://especial.mineduc.cl/wp-content/uploads/sites/31/2016/09/FU_REVALUACION_DISCAPACIDAD-MOTORA_2012.pdf',
+      'MULT':'https://especial.mineduc.cl/wp-content/uploads/sites/31/2016/09/201210291849000.FU_REVALUACION_DISCAPACIDAD-MULTIPLE_2012-1.pdf',
+      'DISF':'https://especial.mineduc.cl/wp-content/uploads/sites/31/2016/09/201210291847510.FU_REVALUACION_DISFASIA-SEVERA_2012-1.pdf'
     },
     // Etiqueta legible por codigo FUR (para mostrar al educador)
     diagLabel: {
-      'TEL': 'Trastorno Específico del Lenguaje',
+      'TEL': 'Trastorno del Lenguaje (TL)',
       'DEA': 'Dificultad Específica de Aprendizaje',
       'TDA': 'TDA / TDAH',
       'FIL': 'Funcionamiento Intelectual Limítrofe',
       'DI':  'Discapacidad Intelectual',
-      'TEA': 'Trastorno del Espectro Autista'
+      'TEA': 'Trastorno del Espectro Autista',
+      'DV':  'Discapacidad Visual',
+      'DA':  'Discapacidad Auditiva',
+      'DM':  'Discapacidad Motora',
+      'MULT':'Discapacidad Múltiple',
+      'DISF':'Disfasia Severa'
     },
-    // Mapeo internal diagnosis_id (REEVAL_RULES) -> codigo FUR oficial
+    // Mapeo internal diagnosis_id (REEVAL_RULES) -> codigo FUR oficial.
+    // Desde 2025 el TEL es "Trastorno del Lenguaje (TL)" sin subtipos: ambos ids
+    // historicos (tel_e/tel_m) usan el mismo FU, dejando en blanco la casilla mixto/expresivo.
     diagToFurCode: {
       'tel_e':    'TEL',
       'tel_m':    'TEL',
@@ -751,19 +764,19 @@ window.DOC_TYPES = {
       'di_m':     'DI',
       'di_s':     'DI',
       'tea':      'TEA',
-      'rgd':      'TEA', // Retraso global - usa formato TEA según orientaciones MINEDUC
-      'dv':       null,  // sin formato oficial unico, usar indice MINEDUC
-      'da':       null,
-      'disc_mot': null,
-      'sordoceg': null
+      'rgd':      'TEA', // GARC / salud mental: usa el FU de TEA, consignando el diagnostico real en Observaciones (Cartilla 6)
+      'dv':       'DV',
+      'da':       'DA',
+      'disc_mot': 'DM',
+      'sordoceg': 'MULT' // Sordoceguera: sin formato propio, usar Discapacidad Multiple
     },
-    description: 'Formulario MINISTERIAL obligatorio. Aplica anualmente (NEET) o cada 2-3 anos (NEEP) para certificar continuidad o egreso del programa.',
+    description: 'Formulario MINISTERIAL obligatorio. NEEP: FUR anual al cierre de los años 1 a 4 (el año 5 es reevaluación integral, sin FUR). NEET: FUR solo al cierre del año 1 (el año 2 es reevaluación integral). DI y RGD siguen ciclo de 2 años. Certifica continuidad, cambio de categoría o egreso.',
     requiresMineduc: true,
     ministerial: true,
     info: {
-      cuando: 'Al cierre del ciclo: anual para NEET (TEL/DEA/TDA/FIL), cada 2-3 años para NEEP (DI/TEA/discapacidades sensoriales/motoras).',
-      paraQuien: 'Todo estudiante PIE para certificar si continúa, cambia de categoría o egresa del programa.',
-      renovacion: 'NEET: 1 año (FUR anual). NEEP: cada 2 o 3 años según diagnóstico (ver D170 art. 11).'
+      cuando: 'Al cierre del año escolar (iniciar en noviembre, hasta diciembre). 4° medio: en octubre, junto al informe psicopedagógico para ajustes PAES. NEEP: cierre de años 1-4. NEET: solo cierre del año 1. DI/RGD: cada 2 años.',
+      paraQuien: 'Todo estudiante PIE en los años en que NO corresponde reevaluación integral (esa usa FUDEI + informe psicopedagógico completos).',
+      renovacion: 'NEEP: anual (años 1-4). NEET: solo año 1. DI/RGD: cada 2 años. Fuente: Cartilla 5 §4.2.2 y anexos por diagnóstico.'
     },
     schema: {
       sections: [
@@ -872,11 +885,13 @@ window.DOC_TYPES = {
         { key: 'docs_ingreso', label: '2. Documentos de ingreso', icon: 'fa-door-open',
           fields: [
             { id: 'check_anamnesis',         label: 'Anamnesis', type: 'checkbox' },
-            { id: 'check_ip',                label: 'Informe Psicopedagógico (formato 2025)', type: 'checkbox' },
+            { id: 'check_ip',                label: 'Informe Psicopedagógico + Pauta de Observación (formato 2025)', type: 'checkbox' },
+            { id: 'check_protocolo_psp',     label: 'Protocolo de evaluación psicopedagógica (todos los diagnósticos; DEA: al menos 1 prueba estandarizada)', type: 'checkbox' },
             { id: 'check_fudei',             label: 'FUDEI finalizado en plataforma online', type: 'checkbox' },
-            { id: 'check_esp',               label: 'Informe(s) de especialista(s)', type: 'checkbox' },
+            { id: 'check_esp',               label: 'Informe(s) de especialista(s) — TL, FIL, DI, TEA, GARC', type: 'checkbox' },
+            { id: 'check_protocolo_esp',     label: 'Protocolo(s) del especialista (WISC/WAIS + conducta adaptativa en DI/FIL; fonoaudiológico en TL/TEA)', type: 'checkbox' },
             { id: 'check_autorizacion',      label: 'Autorización firmada por apoderado', type: 'checkbox' },
-            { id: 'check_salud',             label: 'Valoración de Salud (FU 2024)', type: 'checkbox' }
+            { id: 'check_salud',             label: 'Valoración de Salud (FU 2024 o certificado médico propio válido)', type: 'checkbox' }
           ]},
         { key: 'docs_planificacion', label: '3. Documentos de planificación', icon: 'fa-calendar-day',
           fields: [
@@ -887,12 +902,19 @@ window.DOC_TYPES = {
           ]},
         { key: 'docs_seguimiento', label: '4. Documentos de seguimiento', icon: 'fa-chart-line',
           fields: [
-            { id: 'check_informe_familia',   label: 'Informe a la Familia (semestral/anual)', type: 'checkbox' },
-            { id: 'check_fur',               label: 'FUR del período (cierre anual / 2-3 años)', type: 'checkbox' },
+            { id: 'check_informe_familia',   label: 'Informe a la Familia (ministerial: ingreso y egreso)', type: 'checkbox' },
+            { id: 'check_fur',               label: 'FUR del período (NEEP años 1-4; NEET año 1; DI/RGD cada 2 años)', type: 'checkbox' },
             { id: 'check_avance',            label: 'Informe de Avance Pedagógico', type: 'checkbox' }
           ]},
-        { key: 'observaciones', label: '5. Observaciones', icon: 'fa-note-sticky',
+        { key: 'docs_egreso', label: '5. Egreso (solo si el estudiante egresa del PIE)', icon: 'fa-door-closed',
           fields: [
+            { id: 'check_egreso_ip',     label: 'Informe psicopedagógico que fundamenta el egreso', type: 'checkbox' },
+            { id: 'check_egreso_fur',    label: 'FUR con la decisión de egreso argumentada en Observaciones', type: 'checkbox' },
+            { id: 'check_egreso_familia',label: 'Informe a la Familia justificando el egreso', type: 'checkbox' }
+          ]},
+        { key: 'observaciones', label: '6. Observaciones', icon: 'fa-note-sticky',
+          fields: [
+            { id: 'nota_certificado', label: 'Nota: el certificado de nacimiento NO debe duplicarse en la carpeta PIE; basta el resguardado en matrícula (Precisiones feb 2026). El egreso es posible desde el fin del año 1 (Cartilla 6).', type: 'checkbox' },
             { id: 'fecha_auditoria', label: 'Fecha de revisión', type: 'date' },
             { id: 'pendientes',      label: 'Documentos pendientes (a completar)', type: 'textarea', rows: 3 },
             { id: 'observaciones',   label: 'Observaciones', type: 'textarea', rows: 3 }
@@ -963,20 +985,32 @@ window.DOC_TYPES = {
 //   semester      : 1 por estudiante por semestre (Informe Familia)
 //   periodic-fur  : 1 cada N años según diagnóstico (FUR)
 //   continuous    : Sin restricción (Reg. Colaborativo, Reg. Atención)
+// Periodicidades alineadas a Cartilla 5 (2025) + Precisiones (feb 2026) + Cartilla 6
+// (abr 2026): MINEDUC organiza el expediente por CICLOS DE REEVALUACION INTEGRAL
+// (2 anos NEET/DI/RGD; 5 anos resto NEEP), no por renovacion anual uniforme.
+// `mode` solo controla la clave de unicidad (dedup); `required` la obligatoriedad
+// del checklist; `renewMonths` el aviso de "proximo a vencer".
 window.DOC_RECURRENCE = {
+  // Una sola vez al ingreso (se mantiene la misma del ano 1):
   anamnesis:                { mode: 'once',         renewMonths: 0,  required: true,  group: 'Ingreso' },
-  informe_psicopedagogico:  { mode: 'annual',       renewMonths: 12, required: true,  group: 'Ingreso' },
-  fudei:                    { mode: 'annual',       renewMonths: 12, required: true,  group: 'Ingreso' },
-  informe_especialista:     { mode: 'annual',       renewMonths: 12, required: false, group: 'Ingreso' },
-  autorizacion_familia:     { mode: 'annual',       renewMonths: 12, required: true,  group: 'Ingreso' },
-  valoracion_salud:         { mode: 'once',         renewMonths: 0,  required: true,  group: 'Ingreso' },
+  autorizacion_familia:     { mode: 'once',         renewMonths: 0,  required: true,  group: 'Ingreso' },
+  // Ingreso + cada reevaluacion integral + egreso (no anual):
+  informe_psicopedagogico:  { mode: 'annual',       renewMonths: 0,  required: true,  group: 'Ingreso' },
+  fudei:                    { mode: 'annual',       renewMonths: 0,  required: true,  group: 'Ingreso' },
+  // Solo para diagnosticos que lo requieren (TL, FIL, DI, TEA, GARC):
+  informe_especialista:     { mode: 'annual',       renewMonths: 0,  required: false, group: 'Ingreso' },
+  // Se renueva por ciclo (2 anos NEET/DI; resto NEEP fin de ano 3-5). El FU es optativo:
+  valoracion_salud:         { mode: 'annual',       renewMonths: 0,  required: true,  group: 'Ingreso' },
 
   pai:                      { mode: 'annual',       renewMonths: 12, required: true,  group: 'Planificación' },
   paci:                     { mode: 'trimester',    renewMonths: 4,  required: false, group: 'Planificación' },
   registro_colaborativo:    { mode: 'continuous',   renewMonths: 0,  required: false, group: 'Planificación' },
   registro_atencion:        { mode: 'continuous',   renewMonths: 0,  required: false, group: 'Planificación' },
 
-  informe_familia:          { mode: 'semester',     renewMonths: 6,  required: true,  group: 'Seguimiento' },
+  // Formato ministerial exigible en ingreso y egreso; el semestral es practica interna:
+  informe_familia:          { mode: 'semester',     renewMonths: 0,  required: true,  group: 'Seguimiento' },
+  // FUR: NEEP anual (cierre anos 1-4; ano 5 = reevaluacion integral); NEET solo fin ano 1.
+  // DI/RGD ciclo de 2 anos. 4 medio: en octubre (incluye FUR + informe para PAES):
   fur:                      { mode: 'periodic-fur', renewMonths: 12, required: true,  group: 'Seguimiento' },
   informe_avance:           { mode: 'trimester',    renewMonths: 4,  required: false, group: 'Seguimiento' }
 };

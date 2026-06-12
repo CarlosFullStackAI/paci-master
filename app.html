@@ -48,6 +48,7 @@
     <link href="/assets/theme/paci-theme-v2.css?v=1" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="/nee-templates.js"></script>
+    <script src="/establecimientos-autocomplete.js"></script>
     <script src="/paci-state.js"></script>
     <script src="/paci-persistence.js"></script>
     <link rel="stylesheet" href="/paci.css">
@@ -3753,6 +3754,17 @@
                         var inEscuela = document.getElementById('in-escuela');
                         if (inEscuela && !inEscuela.value) {
                             inEscuela.value = cfg.nombre || '';
+                            if (typeof updatePreview === 'function') updatePreview();
+                        }
+                    });
+                }
+
+                // Autocompletado con el directorio oficial MINEDUC en #in-escuela
+                if (window.initEstablecimientoSearch) {
+                    initEstablecimientoSearch(document.getElementById('in-escuela'), {
+                        onSelect: function(est) {
+                            var inEscuela = document.getElementById('in-escuela');
+                            inEscuela.value = est.nombre;
                             if (typeof updatePreview === 'function') updatePreview();
                         }
                     });

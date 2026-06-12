@@ -44,6 +44,7 @@
       });
   </script>
   <script src="/docs-registry.js"></script>
+  <script src="/establecimientos-autocomplete.js"></script>
   <link rel="stylesheet" href="/paci.css">
   <link rel="stylesheet" href="/tailwind-utils.css">
   <style>
@@ -4234,7 +4235,7 @@
           </div>
           <div class="profile-field">
             <label>Establecimiento <span class="auto-tag">Auto</span></label>
-            <input type="text" value="${esc(s.school || '')}" onchange="saveField(${id},'school',this.value)">
+            <input type="text" id="prof-school-${id}" value="${esc(s.school || '')}" placeholder="Busca en el directorio MINEDUC…" onchange="saveField(${id},'school',this.value)">
           </div>
 
           <div class="profile-section"><i class="fa-solid fa-graduation-cap"></i> Datos Académicos <span class="auto-tag">Auto</span></div>
@@ -4319,6 +4320,11 @@
       document.getElementById('tab-profile-' + id).innerHTML = html;
       // Llenar la lista dinámica de niveles por asignatura
       renderWorkLevels(id);
+      // Autocompletado MINEDUC en el campo Establecimiento (rellena y guarda al elegir)
+      if (window.initEstablecimientoSearch) {
+        const schoolInput = document.getElementById('prof-school-' + id);
+        if (schoolInput) initEstablecimientoSearch(schoolInput);
+      }
     }
 
     // Save individual field
@@ -5483,6 +5489,10 @@
                 <label>Nivel general (de trabajo)</label>
                 <select id="ne-worklevel">${renderNivelOptions('')}</select>
               </div>
+              <div class="ne-field ne-full">
+                <label>Establecimiento</label>
+                <input type="text" id="ne-school" placeholder="Busca en el directorio MINEDUC… (opcional)" autocomplete="off">
+              </div>
             </div>
             <p style="font-size:0.75rem;color:#94a3b8;margin-top:0.85rem;">
               <i class="fa-solid fa-circle-info"></i> Solo el nombre es obligatorio. Los demás datos los puedes completar después en la ficha del estudiante.
@@ -5501,6 +5511,7 @@
       `;
       overlay.addEventListener('click', (ev) => { if (ev.target === overlay) cerrarAgregarEstudiante(); });
       document.body.appendChild(overlay);
+      if (window.initEstablecimientoSearch) initEstablecimientoSearch(document.getElementById('ne-school'));
       setTimeout(() => { const n = document.getElementById('ne-name'); if (n) n.focus(); }, 50);
     }
 
@@ -5523,7 +5534,8 @@
         rut: (document.getElementById('ne-rut').value || '').trim(),
         diagnosis: (document.getElementById('ne-diagnosis').value || '').trim(),
         diagnosis_date: (document.getElementById('ne-diagdate').value || '').trim(),
-        work_level: document.getElementById('ne-worklevel').value || ''
+        work_level: document.getElementById('ne-worklevel').value || '',
+        school: (document.getElementById('ne-school').value || '').trim()
       };
 
       const btn = document.getElementById('ne-save-btn');
