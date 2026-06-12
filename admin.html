@@ -109,6 +109,44 @@
           </div>
 
           <div class="form-group">
+            <div class="form-group-title"><i class="fa-solid fa-calendar-days mr-1"></i> Calendario escolar</div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+              <div>
+                <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">1° Trimestre</label>
+                <div class="flex gap-2">
+                  <input type="date" id="f-t1i" class="w-full p-2 rounded-lg text-xs" title="Inicio">
+                  <input type="date" id="f-t1f" class="w-full p-2 rounded-lg text-xs" title="Fin">
+                </div>
+              </div>
+              <div>
+                <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">2° Trimestre</label>
+                <div class="flex gap-2">
+                  <input type="date" id="f-t2i" class="w-full p-2 rounded-lg text-xs" title="Inicio">
+                  <input type="date" id="f-t2f" class="w-full p-2 rounded-lg text-xs" title="Fin">
+                </div>
+              </div>
+              <div>
+                <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">3° Trimestre</label>
+                <div class="flex gap-2">
+                  <input type="date" id="f-t3i" class="w-full p-2 rounded-lg text-xs" title="Inicio">
+                  <input type="date" id="f-t3f" class="w-full p-2 rounded-lg text-xs" title="Fin">
+                </div>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">Vacaciones / recesos (uno por línea)</label>
+                <textarea id="f-vacaciones" rows="3" class="w-full p-2.5 rounded-lg text-xs font-mono" placeholder="2026-06-22 a 2026-07-03 | Receso escolar de invierno"></textarea>
+              </div>
+              <div>
+                <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">Días sin clases del colegio (uno por línea)</label>
+                <textarea id="f-diassc" rows="3" class="w-full p-2.5 rounded-lg text-xs font-mono" placeholder="2026-07-17 | Interferiado (sin clases)"></textarea>
+              </div>
+            </div>
+            <p class="text-[10px] text-slate-500 mt-2">Formato de fechas: AAAA-MM-DD. Las clases nunca se agendan en vacaciones ni en días sin clases. Los eventos del calendario (actos, hitos) se conservan al guardar.</p>
+          </div>
+
+          <div class="form-group">
             <div class="form-group-title"><i class="fa-solid fa-palette mr-1"></i> Apariencia y estado</div>
             <div class="flex flex-wrap gap-4 items-end">
               <div>
@@ -222,6 +260,49 @@
     function toggleAcc(headerEl) {
       const acc = headerEl.closest('.acc');
       if (acc) acc.classList.toggle('open');
+    }
+
+    // ===== Calendario escolar: parseo de los textareas =====
+    // Vacaciones: "AAAA-MM-DD a AAAA-MM-DD | Nombre" (una por línea)
+    function parseVacacionesText(txt) {
+      return String(txt || '').split('\n').map(l => l.trim()).filter(Boolean).map(l => {
+        const m = /^(\d{4}-\d{2}-\d{2})\s+a\s+(\d{4}-\d{2}-\d{2})\s*(?:\|\s*(.*))?$/.exec(l);
+        return m ? { inicio: m[1], fin: m[2], nombre: (m[3] || '').trim() } : null;
+      }).filter(Boolean);
+    }
+    // Días sin clases: "AAAA-MM-DD | Motivo" (uno por línea)
+    function parseDiasSinClasesText(txt) {
+      const out = {};
+      String(txt || '').split('\n').map(l => l.trim()).filter(Boolean).forEach(l => {
+        const m = /^(\d{4}-\d{2}-\d{2})\s*\|\s*(.+)$/.exec(l);
+        if (m) out[m[1]] = m[2].trim();
+      });
+      return out;
+    }
+    // Lee el bloque de calendario del formulario -> objeto para la API
+    function leerCalendarioForm() {
+      const g = id => (document.getElementById(id).value || '').trim();
+      return {
+        trimestres: {
+          '1er': { inicio: g('f-t1i'), fin: g('f-t1f') },
+          '2do': { inicio: g('f-t2i'), fin: g('f-t2f') },
+          '3er': { inicio: g('f-t3i'), fin: g('f-t3f') }
+        },
+        vacaciones: parseVacacionesText(g('f-vacaciones')),
+        diasSinClases: parseDiasSinClasesText(g('f-diassc'))
+      };
+    }
+    // Llena el bloque de calendario desde calendario_json del tenant
+    function llenarCalendarioForm(calJson) {
+      let cal = {};
+      try { cal = calJson ? JSON.parse(calJson) : {}; } catch (e) { cal = {}; }
+      const tr = cal.trimestres || {};
+      const set = (id, v) => { document.getElementById(id).value = v || ''; };
+      set('f-t1i', tr['1er'] && tr['1er'].inicio); set('f-t1f', tr['1er'] && tr['1er'].fin);
+      set('f-t2i', tr['2do'] && tr['2do'].inicio); set('f-t2f', tr['2do'] && tr['2do'].fin);
+      set('f-t3i', tr['3er'] && tr['3er'].inicio); set('f-t3f', tr['3er'] && tr['3er'].fin);
+      set('f-vacaciones', (cal.vacaciones || []).map(v => v.inicio + ' a ' + v.fin + (v.nombre ? ' | ' + v.nombre : '')).join('\n'));
+      set('f-diassc', Object.keys(cal.diasSinClases || {}).sort().map(d => d + ' | ' + cal.diasSinClases[d]).join('\n'));
     }
 
     function copyText(t) {
@@ -362,6 +443,7 @@
       document.getElementById('f-region').value = t.region || '';
       document.getElementById('f-color1').value = branding.color_primario || '#091845';
       document.getElementById('f-color2').value = branding.color_secundario || '#1240c4';
+      llenarCalendarioForm(t.calendario_json);
       document.getElementById('f-activo').value = t.activo ? '1' : '0';
       document.getElementById('activo-wrap').classList.remove('hidden');
       document.getElementById('btn-cancel').classList.remove('hidden');
@@ -371,7 +453,8 @@
     }
 
     function resetForm() {
-      ['f-id','f-slug','f-nombre','f-nombre-corto','f-rbd','f-comuna','f-localidad','f-region'].forEach(id => document.getElementById(id).value = '');
+      ['f-id','f-slug','f-nombre','f-nombre-corto','f-rbd','f-comuna','f-localidad','f-region',
+       'f-t1i','f-t1f','f-t2i','f-t2f','f-t3i','f-t3f','f-vacaciones','f-diassc'].forEach(id => document.getElementById(id).value = '');
       document.getElementById('f-slug').disabled = false;
       document.getElementById('f-color1').value = '#091845';
       document.getElementById('f-color2').value = '#1240c4';
@@ -395,6 +478,7 @@
         region: document.getElementById('f-region').value,
         color_primario: document.getElementById('f-color1').value,
         color_secundario: document.getElementById('f-color2').value,
+        calendario: leerCalendarioForm(),
         activo: document.getElementById('f-activo').value === '1'
       };
       const btn = document.getElementById('btn-save');

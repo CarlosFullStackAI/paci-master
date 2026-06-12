@@ -2833,27 +2833,81 @@
     function formatDate(d) { if (!d) return '-'; try { return new Date(d).toLocaleDateString('es-CL'); } catch(e) { return d; } }
 
     // ==========================================
-    // CALENDARIO ESCOLAR 2026 - Region del Biobio
-    // IMPORTANTE: mantener sincronizado con las mismas constantes en app.html
-    // (FECHAS_TRIMESTRE, FERIADOS_CHILE y VACACIONES_2026). Si cambian las
-    // fechas de un ano, actualizar ambos archivos.
+    // CALENDARIO ESCOLAR (multi-tenant, Fase 2)
+    // Estos valores son el FALLBACK (calendarizacion LCM Pulebu 2026). El
+    // calendario real de cada establecimiento llega desde /api/tenant-config
+    // (tenants.calendario_json en D1) y se aplica en aplicarCalendarioTenant().
+    // Mantener el fallback sincronizado con las mismas constantes de app.html.
     // ==========================================
-    // Trimestres segun la Calendarizacion oficial Esc. Luis Cruz Martinez 2026:
-    // 2do trimestre 08-jun a 10-sep (el receso de invierno cae dentro y se salta).
     const FECHAS_TRIMESTRE = {
       '1er': { inicio: '2026-03-04', fin: '2026-06-05' },
       '2do': { inicio: '2026-06-08', fin: '2026-09-10' },
       '3er': { inicio: '2026-09-14', fin: '2026-12-11' }
     };
+    // Solo feriados NACIONALES; los dias sin clases propios del colegio llegan
+    // del tenant (calendario.diasSinClases).
     const FERIADOS_2026 = [
       '2026-01-01','2026-04-03','2026-04-04','2026-05-01','2026-05-21',
-      '2026-06-29','2026-07-16','2026-07-17','2026-08-14','2026-08-15',
+      '2026-06-29','2026-07-16','2026-08-15',
       '2026-09-18','2026-09-19',
       '2026-10-12','2026-10-31','2026-11-01','2026-12-08','2026-12-25'
     ];
     const VACACIONES_2026 = [
       { inicio: '2026-06-22', fin: '2026-07-03' } // vacaciones de invierno
     ];
+
+    // Eventos propios del establecimiento (llegan del tenant; se suman en getAllEventos)
+    const TENANT_EVENTOS = [];
+
+    // Aplica el calendario del establecimiento sobre las constantes de arriba
+    // mutando los objetos/arrays existentes, y re-pinta el widget de calendario.
+    function aplicarCalendarioTenant(cal) {
+      if (!cal) return;
+      const RESERVADAS = ['__proto__', 'constructor', 'prototype'];
+      if (cal.trimestres) {
+        Object.keys(cal.trimestres).forEach(k => {
+          if (RESERVADAS.includes(k) || !FECHAS_TRIMESTRE[k]) return;
+          if (cal.trimestres[k].inicio) FECHAS_TRIMESTRE[k].inicio = cal.trimestres[k].inicio;
+          if (cal.trimestres[k].fin) FECHAS_TRIMESTRE[k].fin = cal.trimestres[k].fin;
+        });
+        // TRIMESTRES_2026 copia los valores al cargar: re-sincronizar.
+        ['1er', '2do', '3er'].forEach((k, i) => {
+          if (TRIMESTRES_2026[i]) {
+            TRIMESTRES_2026[i].desde = FECHAS_TRIMESTRE[k].inicio;
+            TRIMESTRES_2026[i].hasta = FECHAS_TRIMESTRE[k].fin;
+          }
+        });
+      }
+      if (cal.diasSinClases) {
+        Object.keys(cal.diasSinClases).forEach(d => {
+          if (RESERVADAS.includes(d)) return;
+          if (!FERIADOS_2026.includes(d)) FERIADOS_2026.push(d);
+        });
+      }
+      if (Array.isArray(cal.vacaciones) && cal.vacaciones.length) {
+        VACACIONES_2026.length = 0;
+        cal.vacaciones.forEach(v => { if (v && v.inicio && v.fin) VACACIONES_2026.push(v); });
+      }
+      if (Array.isArray(cal.eventos)) {
+        cal.eventos.forEach(e => {
+          if (e && e.fecha && e.titulo) {
+            TENANT_EVENTOS.push({ fecha: String(e.fecha), titulo: String(e.titulo), tipo: e.tipo || 'pie', icon: e.icon || 'fa-calendar-day' });
+          }
+        });
+      }
+      if (typeof renderCalendario === 'function') {
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', renderCalendario);
+        } else {
+          renderCalendario();
+        }
+      }
+    }
+    if (window.TENANT_CONFIG_READY) {
+      window.TENANT_CONFIG_READY.then(cfg => {
+        aplicarCalendarioTenant(cfg && cfg.calendario);
+      }).catch(() => { /* fallback hardcodeado */ });
+    }
 
     function enVacaciones(dateStr) {
       return VACACIONES_2026.some(v => dateStr >= v.inicio && dateStr <= v.fin);
@@ -3272,19 +3326,9 @@
       { fecha: '2026-09-30', titulo: 'Día del Educador Diferencial (Chile)', tipo: 'efemeride', icon: 'fa-chalkboard-user' },
       { fecha: '2026-12-03', titulo: 'Día Internacional de las Personas con Discapacidad', tipo: 'efemeride', icon: 'fa-wheelchair' },
 
-      // Calendarización Escuela Luis Cruz Martínez 2026 (2° trimestre)
-      { fecha: '2026-06-08', titulo: 'Inicio de clases 2° Trimestre', tipo: 'pie', icon: 'fa-school' },
-      { fecha: '2026-06-18', titulo: 'Acto Wetripantü (14:45 hrs)', tipo: 'efemeride', icon: 'fa-sun' },
-      { fecha: '2026-06-19', titulo: 'Convivencias por curso "Bienvenidas Vacaciones de Invierno"', tipo: 'efemeride', icon: 'fa-people-group' },
-      { fecha: '2026-06-22', titulo: 'Inicio Receso Escolar de Invierno (hasta 03-jul)', tipo: 'feriado', icon: 'fa-snowflake' },
-      { fecha: '2026-07-17', titulo: 'Interferiado (sin clases)', tipo: 'feriado', icon: 'fa-flag' },
-      { fecha: '2026-08-14', titulo: 'Jornada para la Reflexión Pedagógica DPD', tipo: 'feriado', icon: 'fa-chalkboard-user' },
-      { fecha: '2026-09-02', titulo: 'Promedios en libros de clases 2° trimestre', tipo: 'pie', icon: 'fa-book' },
-      { fecha: '2026-09-04', titulo: 'Entrega Niveles de Aprendizaje', tipo: 'pie', icon: 'fa-chart-line' },
-      { fecha: '2026-09-07', titulo: 'Informes de notas (07 al 09 de septiembre)', tipo: 'pie', icon: 'fa-file-lines' },
-      { fecha: '2026-09-10', titulo: 'Término de clases 2° Trimestre', tipo: 'pie', icon: 'fa-flag-checkered' },
-      { fecha: '2026-09-14', titulo: 'Consejo de Evaluación y Planificación Curricular', tipo: 'pie', icon: 'fa-users' },
-      { fecha: '2026-09-16', titulo: 'Acto Fiestas Patrias (por confirmar)', tipo: 'efemeride', icon: 'fa-flag' },
+      // Los eventos propios del colegio (actos, jornadas, interferiados, hitos de
+      // calendarizacion) ya NO van aqui: llegan desde /api/tenant-config
+      // (calendario.eventos) y se agregan via TENANT_EVENTOS en getAllEventos().
 
       // Hitos PIE relevantes
       { fecha: '2026-04-30', titulo: 'Cierre etapa de evaluación diagnóstica PIE', tipo: 'pie', icon: 'fa-clipboard-list' },
@@ -3316,7 +3360,7 @@
         triEvs.push({ fecha: t.desde, titulo: 'Inicio ' + t.label, tipo: 'trimestre', icon: 'fa-play' });
         triEvs.push({ fecha: t.hasta, titulo: 'Cierre ' + t.label, tipo: 'trimestre', icon: 'fa-flag-checkered' });
       });
-      return EVENTOS_BASE_2026.concat(triEvs).concat(userEvs).sort((a, b) => a.fecha.localeCompare(b.fecha));
+      return EVENTOS_BASE_2026.concat(TENANT_EVENTOS).concat(triEvs).concat(userEvs).sort((a, b) => a.fecha.localeCompare(b.fecha));
     }
 
     const MESES_CL = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];

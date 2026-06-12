@@ -19,5 +19,5 @@
     "calendario_oficial": "../../mineduc/calendario-escolar/2026/biobio.pdf"
   },
   "staff_doc": "staff/cargos-docentes.docx",
-  "_notas": "RBD y comuna pendientes de completar. Este config aun NO se carga en runtime — pendiente refactor Fase 2 para que la app lea desde aqui en vez de tener los strings hardcoded."
+  "_notas": "RBD y comuna pendientes de completar. Fase 2 aplicada (2026-06-12): nombre, branding y calendario escolar se leen en runtime desde la tabla tenants de D1 via /api/tenant-config (el calendario es editable en admin.html). Este archivo queda como respaldo/documentacion del tenant, NO se carga en runtime."
 }

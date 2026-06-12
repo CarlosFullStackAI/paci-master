@@ -112,4 +112,4 @@ npm run deploy
 - El proyecto esta en Cloudflare Pages como "proyecto-paci"
 - Los archivos `data/mineduc/oas/*_raw.txt` contienen OA crudo extraido de los PDFs MINEDUC.
 - PDF descarga: server-side via Cloudflare Browser Rendering en `functions/api/generate-pdf.js`.
-- Multi-tenancy: estructura preparada en `data/tenants/`. Strings "Escuela Luis Cruz Martinez" siguen hardcoded en `app.html` y `login.html` — pendiente refactor Fase 2 para leer desde `config.json`.
+- Multi-tenancy (Fase 2 aplicada 2026-06-12): nombre, branding y CALENDARIO ESCOLAR del colegio se leen en runtime desde la tabla `tenants` de D1 via `/api/tenant-config` (todas las paginas exponen `window.TENANT_CONFIG_READY`). El calendario (trimestres, vacaciones, dias sin clases, eventos) vive en `tenants.calendario_json` (migracion 015) y es editable por el admin en `admin.html`. Las constantes de calendario en `app.html`/`dashboard.html` son solo FALLBACK si la red falla — mantenerlas sincronizadas. `data/tenants/<slug>/config.json` es respaldo/documentacion, no se carga en runtime.

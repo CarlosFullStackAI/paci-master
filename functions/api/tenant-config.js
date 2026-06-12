@@ -17,7 +17,7 @@ export async function onRequestGet(context) {
     // Fallback final: primer establecimiento activo.
     if (!tenant && env.DB) {
       tenant = await env.DB.prepare(
-        'SELECT id, slug, nombre, nombre_corto, rbd, comuna, localidad, region, branding_json FROM tenants WHERE activo = 1 ORDER BY id LIMIT 1'
+        'SELECT id, slug, nombre, nombre_corto, rbd, comuna, localidad, region, branding_json, calendario_json FROM tenants WHERE activo = 1 ORDER BY id LIMIT 1'
       ).first();
     }
 
@@ -30,13 +30,19 @@ export async function onRequestGet(context) {
     let branding = {};
     try { branding = tenant.branding_json ? JSON.parse(tenant.branding_json) : {}; } catch (e) { branding = {}; }
 
+    // Calendario escolar del establecimiento (Fase 2 multi-tenant): trimestres,
+    // vacaciones, dias sin clases y eventos propios. null si el colegio no lo definio.
+    let calendario = null;
+    try { calendario = tenant.calendario_json ? JSON.parse(tenant.calendario_json) : null; } catch (e) { calendario = null; }
+
     return new Response(JSON.stringify({
       id: tenant.slug,
       nombre: tenant.nombre,
       nombre_corto: tenant.nombre_corto || tenant.nombre,
       localidad: tenant.localidad || '',
       region: tenant.region || '',
-      branding
+      branding,
+      calendario
     }), { headers });
   } catch (e) {
     return new Response(JSON.stringify({ error: 'Error al cargar la configuracion del establecimiento.' }), { status: 500, headers });

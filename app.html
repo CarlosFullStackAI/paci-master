@@ -5136,24 +5136,25 @@
 
         // ==========================================
         // FERIADOS CHILE 2026 (con nombres)
+        // Solo feriados NACIONALES. Los dias sin clases propios del colegio
+        // (interferiados, jornadas) llegan desde /api/tenant-config
+        // (calendario.diasSinClases) y se agregan en aplicarCalendarioTenant().
         // ==========================================
         const FERIADOS_CHILE = {
-            '2026-01-01': 'Ano Nuevo',
+            '2026-01-01': 'Año Nuevo',
             '2026-04-03': 'Viernes Santo',
-            '2026-04-04': 'Sabado Santo',
-            '2026-05-01': 'Dia del Trabajo',
+            '2026-04-04': 'Sábado Santo',
+            '2026-05-01': 'Día del Trabajo',
             '2026-05-21': 'Glorias Navales',
             '2026-06-29': 'San Pedro y San Pablo',
             '2026-07-16': 'Virgen del Carmen',
-            '2026-07-17': 'Interferiado (sin clases - Esc. Luis Cruz Martinez)',
-            '2026-08-14': 'Jornada Reflexion Pedagogica DPD (sin clases - Esc. Luis Cruz Martinez)',
-            '2026-08-15': 'Asuncion de la Virgen',
+            '2026-08-15': 'Asunción de la Virgen',
             '2026-09-18': 'Fiestas Patrias',
-            '2026-09-19': 'Glorias del Ejercito',
+            '2026-09-19': 'Glorias del Ejército',
             '2026-10-12': 'Encuentro de Dos Mundos',
-            '2026-10-31': 'Iglesias Evangelicas',
+            '2026-10-31': 'Iglesias Evangélicas',
             '2026-11-01': 'Todos los Santos',
-            '2026-12-08': 'Inmaculada Concepcion',
+            '2026-12-08': 'Inmaculada Concepción',
             '2026-12-25': 'Navidad'
         };
         const FERIADOS_2026 = Object.keys(FERIADOS_CHILE);
@@ -6196,18 +6197,51 @@
             }
         }
 
-        // Calendario escolar trimestral 2026 - Escuela Luis Cruz Martinez (Pulebu).
-        // Fuente: Calendarizacion oficial del establecimiento (2do trimestre):
-        //   2do trimestre: lunes 08-jun a jueves 10-sep; el receso de invierno
-        //   (22-jun a 03-jul) cae DENTRO del 2do trimestre (el motor lo salta).
-        //   1er trimestre termina el viernes previo (05-jun); 3er parte 14-sep.
-        // Estas fechas son editables por el establecimiento.
+        // Calendario escolar trimestral (multi-tenant, Fase 2).
+        // Estos valores son el FALLBACK (calendarizacion LCM Pulebu 2026); el
+        // calendario real de cada establecimiento llega desde /api/tenant-config
+        // (tenants.calendario_json en D1) y se aplica en aplicarCalendarioTenant().
         const FECHAS_TRIMESTRE = {
             '1er': { inicio: '2026-03-04', fin: '2026-06-05' },
             '2do': { inicio: '2026-06-08', fin: '2026-09-10' },
             '3er': { inicio: '2026-09-14', fin: '2026-12-11' },
             'Anual': { inicio: '2026-03-04', fin: '2026-12-11' }
         };
+
+        // Aplica el calendario del establecimiento sobre las constantes de arriba.
+        // Muta los objetos/arrays existentes (no reasigna) para que todo el motor
+        // de fechas (clases, datepicker, feriados, vacaciones) lo use sin cambios.
+        function aplicarCalendarioTenant(cal) {
+            if (!cal) return;
+            const RESERVADAS = ['__proto__', 'constructor', 'prototype'];
+            if (cal.trimestres) {
+                Object.keys(cal.trimestres).forEach(function(k) {
+                    if (RESERVADAS.includes(k) || !FECHAS_TRIMESTRE[k]) return;
+                    if (cal.trimestres[k].inicio) FECHAS_TRIMESTRE[k].inicio = cal.trimestres[k].inicio;
+                    if (cal.trimestres[k].fin) FECHAS_TRIMESTRE[k].fin = cal.trimestres[k].fin;
+                });
+                FECHAS_TRIMESTRE['Anual'].inicio = FECHAS_TRIMESTRE['1er'].inicio;
+                FECHAS_TRIMESTRE['Anual'].fin = FECHAS_TRIMESTRE['3er'].fin;
+            }
+            if (cal.diasSinClases) {
+                Object.keys(cal.diasSinClases).forEach(function(d) {
+                    if (RESERVADAS.includes(d)) return;
+                    FERIADOS_CHILE[d] = String(cal.diasSinClases[d]);
+                    if (FERIADOS_2026.indexOf(d) === -1) FERIADOS_2026.push(d);
+                });
+            }
+            if (Array.isArray(cal.vacaciones) && cal.vacaciones.length) {
+                VACACIONES_2026.length = 0;
+                cal.vacaciones.forEach(function(v) {
+                    if (v && v.inicio && v.fin) VACACIONES_2026.push(v);
+                });
+            }
+        }
+        if (window.TENANT_CONFIG_READY) {
+            window.TENANT_CONFIG_READY.then(function(cfg) {
+                aplicarCalendarioTenant(cfg && cfg.calendario);
+            }).catch(function() { /* fallback hardcodeado */ });
+        }
 
         // Orden de los trimestres para generar un plan "Anual" como 3 bloques.
         const TRIMESTRES_ANUAL = [
