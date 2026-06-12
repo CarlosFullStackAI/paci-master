@@ -2413,6 +2413,10 @@
         <span class="nav-icon"><i class="fa-solid fa-school"></i></span>
         Colegios (admin)
       </button>
+      <button class="dash-nav-item" id="nav-doc-tecnica" style="display:none;" onclick="window.open('/documentacion-tecnica.html', '_blank')" title="Documentación técnica del sistema (solo admin)">
+        <span class="nav-icon"><i class="fa-solid fa-book-bookmark"></i></span>
+        Documentación técnica
+      </button>
 
       <h4 id="nav-pendientes-h4" style="display:none;">Atención</h4>
       <button class="dash-nav-item" id="nav-fur-alert" style="display:none;" onclick="switchSection('resumen');setTimeout(()=>document.getElementById('fur-alert-section').scrollIntoView({behavior:'smooth',block:'start'}),100);">
@@ -2615,6 +2619,9 @@
     if (USER_ROLE === 'admin' || (USER.email && USER.email === MASTER_ADMIN_EMAIL)) {
       const navAdmin = document.getElementById('nav-admin');
       if (navAdmin) navAdmin.style.display = '';
+      // Documentación técnica: el middleware solo la sirve a sesiones admin.
+      const navDoc = document.getElementById('nav-doc-tecnica');
+      if (navDoc) navDoc.style.display = '';
     }
 
     document.getElementById('user-name').textContent = (USER.name || USER.email || '') + ' (' + USER_ROLE + ')';

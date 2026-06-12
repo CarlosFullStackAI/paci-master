@@ -6,8 +6,9 @@
 <meta name="robots" content="noindex, nofollow">
 <title>PIE MASTER — Documentación técnica</title>
 <!--
-  DOCUMENTACIÓN TÉCNICA INTERNA — solo para el repositorio.
-  El middleware (functions/_middleware.js) bloquea esta página en el sitio publicado.
+  DOCUMENTACIÓN TÉCNICA INTERNA.
+  En el sitio publicado, el middleware (functions/_middleware.js) la sirve SOLO a
+  sesiones con rol admin (link en el dashboard); para cualquier otro responde 404.
   MANTENIMIENTO: al terminar una feature o cambio relevante, actualizar:
     1) la sección "Historial de cambios" (entrada con fecha y commit), y
     2) las secciones afectadas (API, datos, seguridad, etc.).
@@ -86,8 +87,8 @@
 <header class="hero">
   <h1>PIE MASTER — Documentación técnica</h1>
   <p>Plataforma de gestión documental para Educadores Diferenciales chilenos (Decreto 83/2015 y Decreto 170/2009).</p>
-  <span class="badge">Última actualización: 2026-06-12</span>
-  <span class="badge">Interna — no se publica en el sitio</span>
+  <span class="badge">Última actualización: 2026-06-13</span>
+  <span class="badge">Interna — solo admins (link en el dashboard)</span>
 </header>
 
 <nav class="indice">
@@ -269,10 +270,17 @@ npx wrangler d1 execute paci-db --remote --file migrations/0XX.sql   # migrar AN
   <h2>11. Historial de cambios</h2>
 
   <div class="chg">
-    <div class="fecha">2026-06-12 <span class="commit">(pendiente de commit)</span></div>
+    <div class="fecha">2026-06-13</div>
+    <ul>
+      <li>Esta página ahora es accesible desde el dashboard (ítem "Documentación técnica", visible solo para admin); el middleware la sirve únicamente a sesiones con rol admin o la cuenta maestra — para el resto sigue siendo 404.</li>
+    </ul>
+  </div>
+
+  <div class="chg">
+    <div class="fecha">2026-06-12 <span class="commit">08c9dc6</span></div>
     <ul>
       <li><span class="crit">Seguridad:</span> middleware global que bloquea archivos internos del repo en el sitio publicado (el código fuente del backend, migraciones y configs respondían 200 público).</li>
-      <li>Esta página de documentación técnica (interna, bloqueada en el sitio).</li>
+      <li>Esta página de documentación técnica.</li>
     </ul>
   </div>
 
@@ -318,7 +326,7 @@ npx wrangler d1 execute paci-db --remote --file migrations/0XX.sql   # migrar AN
     <li>Al terminar una feature o cambio relevante: agregar una entrada al <strong>Historial</strong> (fecha + commit + bullets).</li>
     <li>Actualizar las secciones afectadas (API si hay endpoints nuevos, Datos si hay migraciones, etc.).</li>
     <li>Actualizar el badge "Última actualización" del encabezado.</li>
-    <li>Esta página NO se publica: el middleware la bloquea con 404 en el sitio. Se abre localmente desde el repo.</li>
+    <li>Acceso: en el sitio solo la ven sesiones admin (link en el dashboard); para el resto el middleware responde 404. También se puede abrir localmente desde el repo.</li>
   </ol>
 </section>
 
