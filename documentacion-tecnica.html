@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>PIE MASTER — Documentación técnica</title>
+<!--
+  DOCUMENTACIÓN TÉCNICA INTERNA — solo para el repositorio.
+  El middleware (functions/_middleware.js) bloquea esta página en el sitio publicado.
+  MANTENIMIENTO: al terminar una feature o cambio relevante, actualizar:
+    1) la sección "Historial de cambios" (entrada con fecha y commit), y
+    2) las secciones afectadas (API, datos, seguridad, etc.).
+  Regla registrada en CLAUDE.md del proyecto.
+-->
+<style>
+  :root {
+    --bg: #0a0f1f; --panel: #0e1730; --border: rgba(56,189,248,0.18);
+    --text: #e2e8f0; --muted: #94a3b8; --accent: #38bdf8; --accent2: #818cf8;
+    --green: #34d399; --amber: #fbbf24; --red: #f87171;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: radial-gradient(1100px 600px at 85% -10%, #13234a 0%, var(--bg) 55%);
+    color: var(--text); font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    line-height: 1.65; padding: 2rem 1rem 4rem;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; }
+  header.hero {
+    background: linear-gradient(135deg, #091845 0%, #1240c4 100%);
+    border-radius: 1.25rem; padding: 2rem; margin-bottom: 2rem;
+    box-shadow: 0 14px 40px rgba(18,64,196,0.28);
+  }
+  header.hero h1 { color: #fff; font-size: 1.7rem; }
+  header.hero p { color: #cfe3ff; font-size: 0.95rem; margin-top: 0.4rem; }
+  .badge {
+    display: inline-block; background: rgba(255,255,255,0.15); color: #fff;
+    font-size: 0.72rem; font-weight: 700; padding: 0.2rem 0.7rem;
+    border-radius: 999px; margin-top: 0.8rem; margin-right: 0.4rem;
+  }
+  nav.indice {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 1rem; padding: 1.2rem 1.5rem; margin-bottom: 2rem;
+  }
+  nav.indice h2 { font-size: 0.8rem; text-transform: uppercase; color: var(--accent); letter-spacing: 0.5px; margin-bottom: 0.6rem; }
+  nav.indice a { color: var(--text); text-decoration: none; font-size: 0.9rem; display: inline-block; margin: 0.15rem 1rem 0.15rem 0; }
+  nav.indice a:hover { color: var(--accent); }
+  section {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 1rem; padding: 1.6rem 1.8rem; margin-bottom: 1.5rem;
+  }
+  h2 { color: var(--accent); font-size: 1.2rem; margin-bottom: 0.9rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+  h3 { color: var(--accent2); font-size: 1rem; margin: 1.1rem 0 0.45rem; }
+  p, li { font-size: 0.92rem; color: var(--text); }
+  p { margin-bottom: 0.7rem; }
+  ul, ol { margin: 0.3rem 0 0.9rem 1.4rem; }
+  li { margin-bottom: 0.3rem; }
+  code {
+    background: rgba(56,189,248,0.1); border: 1px solid rgba(56,189,248,0.2);
+    color: #7dd3fc; padding: 0.08rem 0.4rem; border-radius: 0.35rem;
+    font-family: ui-monospace, 'Cascadia Code', Consolas, monospace; font-size: 0.84em;
+  }
+  pre {
+    background: #0a1226; border: 1px solid var(--border); border-radius: 0.7rem;
+    padding: 1rem 1.2rem; overflow-x: auto; margin: 0.6rem 0 1rem;
+    font-family: ui-monospace, 'Cascadia Code', Consolas, monospace; font-size: 0.8rem;
+    color: #bae6fd; line-height: 1.55;
+  }
+  pre code { background: none; border: none; padding: 0; color: inherit; }
+  table { width: 100%; border-collapse: collapse; margin: 0.6rem 0 1rem; font-size: 0.85rem; }
+  th, td { text-align: left; padding: 0.5rem 0.7rem; border-bottom: 1px solid rgba(148,163,184,0.15); vertical-align: top; }
+  th { color: var(--muted); text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.5px; }
+  .ok { color: var(--green); font-weight: 700; }
+  .warn { color: var(--amber); font-weight: 700; }
+  .crit { color: var(--red); font-weight: 700; }
+  .muted { color: var(--muted); }
+  .chg { border-left: 3px solid var(--accent); padding: 0.4rem 0 0.4rem 1rem; margin-bottom: 1rem; }
+  .chg .fecha { color: var(--accent); font-weight: 800; font-size: 0.85rem; }
+  .chg .commit { color: var(--muted); font-family: ui-monospace, Consolas, monospace; font-size: 0.75rem; }
+  footer { text-align: center; color: var(--muted); font-size: 0.78rem; margin-top: 2rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <h1>PIE MASTER — Documentación técnica</h1>
+  <p>Plataforma de gestión documental para Educadores Diferenciales chilenos (Decreto 83/2015 y Decreto 170/2009).</p>
+  <span class="badge">Última actualización: 2026-06-12</span>
+  <span class="badge">Interna — no se publica en el sitio</span>
+</header>
+
+<nav class="indice">
+  <h2>Índice</h2>
+  <a href="#vision">1. Visión general</a>
+  <a href="#arquitectura">2. Arquitectura</a>
+  <a href="#frontend">3. Páginas (frontend)</a>
+  <a href="#api">4. API (backend)</a>
+  <a href="#datos">5. Datos (D1 + KV)</a>
+  <a href="#multitenant">6. Multi-establecimiento</a>
+  <a href="#seguridad">7. Seguridad</a>
+  <a href="#ia">8. Inteligencia artificial</a>
+  <a href="#documentos">9. Documentos PIE</a>
+  <a href="#flujo">10. Flujo de desarrollo</a>
+  <a href="#historial">11. Historial de cambios</a>
+  <a href="#mantener">12. Cómo mantener esta página</a>
+</nav>
+
+<section id="vision">
+  <h2>1. Visión general</h2>
+  <p><strong>PIE MASTER</strong> permite a los equipos PIE (Programa de Integración Escolar) crear, gestionar e imprimir
+  la documentación oficial: PACI, PAI, FUDEI, FUR, informes psicopedagógicos, registros de atención y más —
+  13 tipos de documento del ciclo PIE chileno.</p>
+  <ul>
+    <li><strong>Marca / producto:</strong> PIE MASTER. <strong>Proyecto Cloudflare:</strong> <code>proyecto-paci</code> (nombre histórico).</li>
+    <li><strong>Producción:</strong> proyecto-paci.pages.dev · <strong>Repo:</strong> github.com/CarlosFullStackAI/paci-master</li>
+    <li><strong>Costo:</strong> $0 — todo corre en tiers gratuitos (regla del proyecto: solo servicios gratis).</li>
+    <li><strong>Tenant inicial:</strong> Escuela Luis Cruz Martínez (Pulebu, Biobío), slug <code>lcm-pulebu</code>.</li>
+  </ul>
+</section>
+
+<section id="arquitectura">
+  <h2>2. Arquitectura</h2>
+  <pre>
+Navegador (HTML + JS vanilla + Tailwind 3)
+   │
+   ▼
+Cloudflare Pages  ──  sitio estático + Pages Functions (serverless, ESM)
+   │                        │
+   │   functions/_middleware.js  → bloquea archivos internos (404)
+   │                        │
+   ├── D1 "paci-db" (SQLite)      → estudiantes, documentos, OAs, tenants, auditoría
+   ├── KV "PACI_USERS"            → usuarios (hash PBKDF2), sesiones, rate-limits
+   ├── KV "PACI_FILES"            → archivos subidos y fotos de perfil
+   ├── Browser Rendering (BROWSER) → PDF server-side (@cloudflare/puppeteer 1.1)
+   └── OpenRouter (modelos :free)  → funciones de IA
+  </pre>
+  <p class="muted">Sin frameworks ni build de JS: HTML + JavaScript vanilla. El único build es el CSS de Tailwind
+  (<code>tailwind-utils.css</code> se cura a mano; <code>styles.css</code> no se usa).</p>
+</section>
+
+<section id="frontend">
+  <h2>3. Páginas (frontend)</h2>
+  <table>
+    <tr><th>Página</th><th>Qué hace</th></tr>
+    <tr><td><code>login.html</code></td><td>Login y registro (requiere código de unión del colegio). Branding dinámico del tenant.</td></tr>
+    <tr><td><code>dashboard.html</code></td><td>Centro de gestión: estudiantes (ficha completa, checklist documental, progreso de OAs), calendario escolar, documentos, fotos de perfil.</td></tr>
+    <tr><td><code>app.html</code></td><td>Editor PACI: OAs MINEDUC reales por asignatura/nivel, adecuaciones, planificación de clases con motor de fechas.</td></tr>
+    <tr><td><code>pai.html</code></td><td>Editor PAI (vista dividida igual que app.html: formulario + previsualización).</td></tr>
+    <tr><td><code>docs.html</code></td><td>Editor genérico para el resto de documentos PIE; los schemas viven en <code>docs-registry.js</code>.</td></tr>
+    <tr><td><code>admin.html</code></td><td>Administración (solo admin/cuenta maestra): colegios con acordeones, calendario escolar editable, códigos de unión, usuarios y su colegio.</td></tr>
+  </table>
+  <p>Todas las páginas cargan <code>window.TENANT_CONFIG_READY</code> (fetch a <code>/api/tenant-config</code>):
+  nombre del colegio, branding y calendario escolar.</p>
+</section>
+
+<section id="api">
+  <h2>4. API (backend — Cloudflare Pages Functions)</h2>
+  <h3>Convención de cada endpoint (en este orden)</h3>
+  <ol>
+    <li><strong>Autenticación:</strong> <code>getUser(request, env)</code> de <code>auth-helper.js</code> → 401 si no hay sesión.</li>
+    <li><strong>Permisos:</strong> <code>checkPermission(user.role, 'accion')</code> de <code>rbac-helper.js</code>.</li>
+    <li><strong>Aislamiento por colegio:</strong> <code>resolveTenant(request, env, user)</code> de <code>tenant-helper.js</code>; toda query filtra por <code>tenant_id</code>.</li>
+    <li><strong>Cifrado:</strong> campos sensibles (RUT, diagnóstico, apoderado, observaciones) con <code>crypto-helper.js</code> (AES-256-GCM) antes de guardar.</li>
+    <li><strong>SQL:</strong> solo prepared statements (<code>.prepare().bind()</code>).</li>
+  </ol>
+  <h3>Grupos de endpoints</h3>
+  <table>
+    <tr><th>Grupo</th><th>Endpoints</th></tr>
+    <tr><td>Auth</td><td>login, register (exige join_code), logout, verify, change-password, forgot-password, login-google (pendiente CLIENT_ID)</td></tr>
+    <tr><td>students/</td><td>create (ficha sin documento previo), list, get, update, delete, bulk-create (CSV), courses, oas, oa-summary, oa-progress</td></tr>
+    <tr><td>documents/</td><td>save, autosave, list, get, delete, upload (KV PACI_FILES), file, approve (admin/UTP), comments</td></tr>
+    <tr><td>users/</td><td>profile (RUT/registro MINEDUC), photo (GET sirve imagen, POST sube; KV <code>photo:&lt;email&gt;</code>)</td></tr>
+    <tr><td>ai/</td><td>chatbot, fill-document, autofill-student, adapt-oa, generate-classes, generate-metas, sequence-trimesters, context (contexto IA por colegio)</td></tr>
+    <tr><td>admin/</td><td>tenants (CRUD colegios + calendario + regenerate-code), users (asignar colegio), set-role, audit-logs, migrate-encrypt</td></tr>
+    <tr><td>Otros</td><td>tenant-config (público), tenants (público, para registro), generate-pdf (Browser Rendering), weather, cron/check-fur-reminders</td></tr>
+  </table>
+  <p class="muted">Públicos sin sesión (a propósito): tenant-config, tenants, google-config, weather.</p>
+</section>
+
+<section id="datos">
+  <h2>5. Datos</h2>
+  <h3>D1 "paci-db" — tablas principales</h3>
+  <table>
+    <tr><th>Tabla</th><th>Contenido</th></tr>
+    <tr><td><code>students</code></td><td>Ficha del estudiante (campos sensibles cifrados), <code>tenant_id</code>, curso, niveles, fechas de diagnóstico/reevaluación, <code>profile_json</code>, <code>real_skills</code></td></tr>
+    <tr><td><code>documents</code></td><td>Documentos PIE (<code>document_json</code>), <code>plan_type</code>, trimestre, archivos subidos (file_key → KV), <code>tenant_id</code></td></tr>
+    <tr><td><code>document_oas</code></td><td>OAs trabajados por documento: texto original MINEDUC + adaptado, <code>progress_status</code> (logrado/en_desarrollo/no_logrado/no_evaluado)</td></tr>
+    <tr><td><code>tenants</code></td><td>Colegios: slug, nombre, RBD, <code>branding_json</code>, <code>calendario_json</code>, <code>join_code</code>, activo</td></tr>
+    <tr><td><code>ai_contexts</code></td><td>Contexto IA compartido por colegio (una fila por tenant)</td></tr>
+    <tr><td><code>document_comments</code>, <code>audit_logs</code>, <code>fur_reminders_log</code></td><td>Colaboración, auditoría y recordatorios FUR</td></tr>
+  </table>
+  <p>Migraciones: <code>migrations/001…015</code> (la 015 agregó <code>tenants.calendario_json</code>).
+  <strong class="warn">Regla:</strong> aplicar la migración a D1 remota ANTES de desplegar código que use la columna nueva.</p>
+  <h3>KV</h3>
+  <ul>
+    <li><code>PACI_USERS</code>: <code>user:&lt;email&gt;</code> (PBKDF2 hash + salt + rol + tenantSlug), <code>session:&lt;token&gt;</code> (TTL 24h), <code>rl:*</code> (rate limits).</li>
+    <li><code>PACI_FILES</code>: archivos de documentos y <code>photo:&lt;email&gt;</code> (foto de perfil, JSON {mime, base64}, máx 2MB). Free tier: 1GB total / 25MB por valor; si queda corto, migrar a R2.</li>
+  </ul>
+</section>
+
+<section id="multitenant">
+  <h2>6. Multi-establecimiento (multi-tenant)</h2>
+  <ul>
+    <li><strong>Resolución del colegio:</strong> subdominio del Host (<code>lcm-pulebu.dominio.cl</code>) → si no hay, el <code>tenantSlug</code> del perfil del usuario → si el usuario no tiene y existe UN solo colegio activo, ese (fallback mono-colegio). Un subdominio nunca otorga acceso cross-tenant.</li>
+    <li><strong>Registro cerrado:</strong> cada colegio tiene un <code>join_code</code>; sin él no hay registro (el admin lo ve/regenera en admin.html).</li>
+    <li><strong>Datos compartidos por colegio:</strong> todos los docentes del mismo tenant ven los mismos estudiantes/documentos (equipo PIE colaborativo).</li>
+    <li><strong>Calendario escolar por colegio</strong> (migración 015): trimestres, vacaciones, días sin clases y eventos viven en <code>tenants.calendario_json</code>, editables en admin.html. Las constantes en app.html/dashboard.html son solo fallback si la red falla; <code>aplicarCalendarioTenant()</code> las muta en runtime.</li>
+    <li><strong>Subdominios reales:</strong> requieren dominio propio + DNS wildcard en Cloudflare (pendiente de Carlos; pages.dev no sirve subdominios arbitrarios).</li>
+    <li><code>data/tenants/&lt;slug&gt;/config.json</code> es documentación/respaldo del tenant — NO se carga en runtime (todo sale de D1).</li>
+  </ul>
+</section>
+
+<section id="seguridad">
+  <h2>7. Seguridad</h2>
+  <ul>
+    <li><strong>Contraseñas:</strong> PBKDF2 (100.000 iteraciones, SHA-256) + salt UUID. Irrecuperables; reset, no recuperación.</li>
+    <li><strong>Cifrado en reposo:</strong> AES-256-GCM para RUT, diagnóstico, apoderado y observaciones (llave en secret <code>ENCRYPTION_KEY</code>, nunca en código ni BD).</li>
+    <li><strong>Sesiones:</strong> cookie HttpOnly + SameSite=Strict, token doble-UUID, TTL 24h. Rol y colegio se leen frescos del perfil en cada request.</li>
+    <li><strong>RBAC:</strong> roles <code>admin, coordinator, teacher, educador_diferencial, profesor_asignatura, utp</code>; permisos centralizados en <code>rbac-helper.js</code> (Map, no objeto: anti prototype-pollution). Cuenta maestra: <code>MASTER_ADMIN_EMAIL</code>.</li>
+    <li><strong>Rate limiting:</strong> registro 5/IP/15min; login también limitado.</li>
+    <li><strong>Auditoría:</strong> <code>audit_logs</code> con datos enmascarados (maskRut/maskName).</li>
+    <li><strong>Bloqueo de archivos internos:</strong> <code>functions/_middleware.js</code> responde 404 para <code>/functions/*, /migrations/*, /specs/*, /scripts/*, /archive/*, CLAUDE.md, wrangler.jsonc, package.json</code>, esta página, etc. (antes el código fuente era público — corregido 2026-06-12).</li>
+    <li><strong>Checks pre-deploy:</strong> <code>npm run security:all</code> = npm audit + ESLint con plugin de seguridad (corre dentro de <code>npm run deploy</code>).</li>
+  </ul>
+</section>
+
+<section id="ia">
+  <h2>8. Inteligencia artificial</h2>
+  <ul>
+    <li><strong>Proveedor:</strong> OpenRouter, SOLO modelos <code>:free</code> (regla: costo cero), con cadena de fallback entre 2-3 modelos. Fetch nativo, sin SDKs.</li>
+    <li><strong>Usos:</strong> chatbot asistente, redacción de documentos (fill-document), autocompletar ficha del estudiante, adaptar OAs, generar clases/metas/secuencias por trimestre.</li>
+    <li><strong>Protecciones:</strong> endpoints con auth (no queman cuota terceros), input del usuario envuelto en <code>&lt;pregunta_usuario&gt;</code> contra prompt-injection, <code>max_tokens</code> siempre presente.</li>
+    <li><strong>Contexto por colegio:</strong> recursos, contexto de aula, intereses y DUA se guardan en D1 (<code>ai_contexts</code>) y los comparte todo el equipo del colegio.</li>
+  </ul>
+</section>
+
+<section id="documentos">
+  <h2>9. Documentos PIE (los 13 tipos)</h2>
+  <p>Registro central en <code>docs-registry.js</code>: 3 fases (Ingreso, Planificación y Gestión, Seguimiento y Reevaluación),
+  cada tipo con schema de secciones/campos, referencia normativa, URL del formato oficial MINEDUC y reglas de recurrencia
+  (<code>DOC_RECURRENCE</code>: once / annual / trimester / semester / periodic-fur / continuous + obligatoriedad).</p>
+  <ul>
+    <li><strong>PAI</strong> (D170): obligatorio para TODO estudiante PIE → <code>required: true</code>. <strong>PACI</strong> (D83): solo si requiere adecuar OAs → <code>required: false</code>. Tener PACI no exime del PAI.</li>
+    <li><strong>Informe Psicopedagógico</strong> (Cartilla 4 MINEDUC 2025, obligatorio desde ingresos 2026): son DOS instrumentos en uno — el informe (firma el profesional PIE) + la <em>Pauta de Evaluación y Observación Pedagógica</em> (firma el docente de aula regular; escala En inicio/En desarrollo/Logrado/No observado, 20 indicadores). Verificado contra el .docx oficial.</li>
+    <li><strong>FUDEI:</strong> la carga real es online en fudei.mineduc.cl; la app genera borrador + registra folio. <strong>FUR:</strong> formatos oficiales por diagnóstico (TEL, DEA, TDA, FIL, DI, TEA) con recordatorios automáticos (cron).</li>
+    <li><strong>PDF:</strong> server-side vía Browser Rendering (<code>/api/generate-pdf</code>), con fallback a <code>window.print()</code>.</li>
+  </ul>
+</section>
+
+<section id="flujo">
+  <h2>10. Flujo de desarrollo</h2>
+  <ul>
+    <li><strong>Features grandes:</strong> primero la spec en <code>specs/&lt;feature&gt;.md</code> (plantilla incluida), resolver <code>[FALTA ACLARAR]</code> con Carlos, después codificar. Cambios chicos van directo.</li>
+    <li><strong>Confirmaciones obligatorias:</strong> commit, push y deploy SIEMPRE requieren confirmación explícita de Carlos.</li>
+    <li><strong>Git:</strong> usuario CarlosFullStackAI / carlos45335@gmail.com; commits en inglés; UI en español con tildes.</li>
+    <li><strong>Reglas y lecciones:</strong> <code>.claude/rules/</code> (lecciones-aprendidas, datos-produccion) + <code>functions/CLAUDE.md</code> (convenciones API). No se commitean (.claude está en .gitignore) pero cargan en cada sesión.</li>
+  </ul>
+  <h3>Comandos</h3>
+  <pre>
+npm run watch:css        # desarrollo CSS
+npm run security:all     # npm audit + ESLint seguridad
+npm run deploy           # checks + wrangler pages deploy (requiere confirmación de Carlos)
+npx wrangler d1 execute paci-db --remote --file migrations/0XX.sql   # migrar ANTES del deploy
+  </pre>
+</section>
+
+<section id="historial">
+  <h2>11. Historial de cambios</h2>
+
+  <div class="chg">
+    <div class="fecha">2026-06-12 <span class="commit">(pendiente de commit)</span></div>
+    <ul>
+      <li><span class="crit">Seguridad:</span> middleware global que bloquea archivos internos del repo en el sitio publicado (el código fuente del backend, migraciones y configs respondían 200 público).</li>
+      <li>Esta página de documentación técnica (interna, bloqueada en el sitio).</li>
+    </ul>
+  </div>
+
+  <div class="chg">
+    <div class="fecha">2026-06-12 <span class="commit">335fc9d · 9348945</span></div>
+    <ul>
+      <li>Carpeta <code>specs/</code> (convención spec-driven inspirada en github/spec-kit, sin instalar nada) con plantilla y ejemplo.</li>
+      <li><strong>Multi-tenant Fase 2 completa:</strong> calendario escolar por colegio en <code>tenants.calendario_json</code> (migración 015), entregado por <code>/api/tenant-config</code>, aplicado en runtime por <code>aplicarCalendarioTenant()</code>, editable en admin.html. Días sin clases del colegio fuera de la lista genérica de feriados.</li>
+    </ul>
+  </div>
+
+  <div class="chg">
+    <div class="fecha">2026-06-11 <span class="commit">057e1af</span></div>
+    <ul>
+      <li>Crear ficha de estudiante sin documento previo (<code>/api/students/create</code> + modal "Agregar estudiante" con fecha de diagnóstico).</li>
+      <li>Fotos de perfil de docentes (KV PACI_FILES, avatar clickeable, visibles en comentarios y admin).</li>
+      <li>Fix bug "oaId requerido": la query con GROUP BY de students/get no exponía el id del OA (ahora MAX(id)); badges de asignatura y nivel junto a cada OA.</li>
+      <li>Informe Psicopedagógico: segundo instrumento ministerial (Pauta de Observación, Cartilla 4) completo.</li>
+      <li>admin.html con acordeones; tildes corregidos en UI y documentos impresos; Curso/Sección con sección opcional.</li>
+      <li>Usuarios producción: alta Trinidad Aguilera, Victoria Irazoqui asignada a lcm-pulebu, baja completa de Yoselyn.</li>
+    </ul>
+  </div>
+
+  <div class="chg">
+    <div class="fecha">2026-06-08/10 <span class="commit">9348fb9 · bbcbe0d · 7644957 · f72c410</span></div>
+    <ul>
+      <li>Subida de archivos al checklist del estudiante + autollenado de ficha (IA y determinístico).</li>
+      <li>Epic multi-establecimiento Fases 1–6: tablas tenants/ai_contexts, aislamiento por tenant_id en 15+ endpoints, registro con código de unión (join_code), panel admin de colegios, contexto IA por colegio. Probado el aislamiento en producción.</li>
+      <li>Logos PAI + nómina del equipo, metas PACI por asignatura, redacción de documentos con IA, calendario escolar LCM.</li>
+      <li>Auditoría completa de seguridad con fixes (approve cross-tenant, fallback de resolveTenant, etc.).</li>
+    </ul>
+  </div>
+
+  <div class="chg">
+    <div class="fecha">2026-05-12 <span class="commit">d114876</span></div>
+    <ul><li>Upgrade a @cloudflare/puppeteer 1.1.0 (PDF server-side).</li></ul>
+  </div>
+</section>
+
+<section id="mantener">
+  <h2>12. Cómo mantener esta página</h2>
+  <ol>
+    <li>Al terminar una feature o cambio relevante: agregar una entrada al <strong>Historial</strong> (fecha + commit + bullets).</li>
+    <li>Actualizar las secciones afectadas (API si hay endpoints nuevos, Datos si hay migraciones, etc.).</li>
+    <li>Actualizar el badge "Última actualización" del encabezado.</li>
+    <li>Esta página NO se publica: el middleware la bloquea con 404 en el sitio. Se abre localmente desde el repo.</li>
+  </ol>
+</section>
+
+<footer>PIE MASTER · Documentación técnica interna · Mantenida por Carlos + Claude</footer>
+</div>
+</body>
+</html>

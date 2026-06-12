@@ -100,6 +100,8 @@ npm run deploy
 
 ## Reglas Especificas
 - Features grandes: escribir primero la spec en `specs/<feature>.md` (plantilla en specs/_plantilla.md), resolver los [FALTA ACLARAR] con Carlos y recien despues codificar. Cambios chicos van directo, sin spec.
+- Al terminar una feature o cambio relevante: actualizar `documentacion-tecnica.html` (entrada en el Historial con fecha+commit, secciones afectadas y el badge "Ultima actualizacion"). Es documentacion INTERNA: el middleware la bloquea en el sitio publicado.
+- `functions/_middleware.js` bloquea archivos internos del repo en el sitio (codigo fuente, migraciones, specs, configs). Si se agrega una carpeta interna nueva, sumarla a RUTAS_BLOQUEADAS.
 - NUNCA hardcodear tokens, API keys o credenciales en el codigo
 - Usar bindings de Cloudflare (env.DB, env.PACI_USERS) para acceder a servicios
 - Toda entrada de usuario debe sanitizarse contra XSS y SQL injection
