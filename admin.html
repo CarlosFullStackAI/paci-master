@@ -16,8 +16,29 @@
     .code-pill { font-family: ui-monospace, 'Courier New', monospace; background: rgba(16,185,129,0.12); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.32); padding: 2px 9px; border-radius: 6px; letter-spacing: 1.5px; font-size: 0.8rem; }
     table tbody tr { transition: background .12s; }
     table tbody tr:hover { background: rgba(56,189,248,0.05); }
+    .avatar { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 50%; overflow: hidden; background: linear-gradient(135deg, #2563eb, #818cf8); color: #fff; font-weight: 800; font-size: 13px; flex-shrink: 0; line-height: 1; }
+    .avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
     .btn-primary { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
     .btn-primary:hover { filter: brightness(1.08); }
+
+    /* Acordeón */
+    .acc-header {
+      width: 100%; display: flex; align-items: center; justify-content: space-between;
+      padding: 1rem 1.25rem; cursor: pointer; background: transparent; border: none;
+      color: #7dd3fc; font-size: 0.78rem; font-weight: 800;
+      text-transform: uppercase; letter-spacing: .5px; text-align: left;
+    }
+    .acc-header:hover { color: #bae6fd; }
+    .acc-chevron { transition: transform .3s ease; font-size: .75rem; color: #64748b; }
+    .acc.open > .acc-header .acc-chevron { transform: rotate(180deg); }
+    /* Animación de altura sin tope fijo (grid 0fr -> 1fr) */
+    .acc-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .35s ease; }
+    .acc.open > .acc-body { grid-template-rows: 1fr; }
+    .acc-body > .acc-inner { min-height: 0; overflow: hidden; }
+    /* Grupos de campos dentro del formulario */
+    .form-group { padding: 0.9rem 0; border-top: 1px solid rgba(56,189,248,0.08); }
+    .form-group:first-child { border-top: none; padding-top: 0.2rem; }
+    .form-group-title { font-size: 0.68rem; font-weight: 800; text-transform: uppercase; letter-spacing: .6px; color: #64748b; margin-bottom: 0.6rem; }
   </style>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
@@ -36,103 +57,140 @@
 
     <div id="msg" class="hidden mb-4 p-3 rounded-lg text-sm"></div>
 
-    <!-- Formulario crear/editar -->
-    <div class="card rounded-xl p-5 mb-8">
-      <h2 id="form-title" class="text-sm font-black uppercase text-sky-300 mb-4"><i class="fa-solid fa-plus"></i> Nuevo establecimiento</h2>
-      <input type="hidden" id="f-id">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div>
-          <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">Identificador / subdominio</label>
-          <input type="text" id="f-slug" placeholder="ej. lcm-pulebu" class="w-full p-2.5 rounded-lg text-sm">
-          <p class="text-[10px] text-slate-500 mt-1">Solo minúsculas, números y guiones. No se puede cambiar después.</p>
-        </div>
-        <div>
-          <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">Nombre del establecimiento</label>
-          <input type="text" id="f-nombre" placeholder="Escuela ..." class="w-full p-2.5 rounded-lg text-sm">
-        </div>
-        <div>
-          <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">Nombre corto</label>
-          <input type="text" id="f-nombre-corto" placeholder="ej. LCM Pulebu" class="w-full p-2.5 rounded-lg text-sm">
-        </div>
-        <div>
-          <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">RBD</label>
-          <input type="text" id="f-rbd" placeholder="ej. 12345-6" class="w-full p-2.5 rounded-lg text-sm">
-        </div>
-        <div>
-          <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">Comuna</label>
-          <input type="text" id="f-comuna" class="w-full p-2.5 rounded-lg text-sm">
-        </div>
-        <div>
-          <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">Localidad</label>
-          <input type="text" id="f-localidad" class="w-full p-2.5 rounded-lg text-sm">
-        </div>
-        <div>
-          <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">Región</label>
-          <input type="text" id="f-region" class="w-full p-2.5 rounded-lg text-sm">
-        </div>
-        <div class="flex gap-3">
-          <div>
-            <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">Color primario</label>
-            <input type="color" id="f-color1" value="#091845" class="h-10 w-16 rounded-lg p-1">
+    <!-- Acordeón: crear / editar establecimiento -->
+    <div class="acc card rounded-xl mb-6 open" id="acc-form">
+      <button type="button" class="acc-header" onclick="toggleAcc(this)" aria-label="Mostrar u ocultar el formulario">
+        <span id="form-title" class="flex items-center gap-2"><i class="fa-solid fa-plus"></i> Nuevo establecimiento</span>
+        <i class="fa-solid fa-chevron-down acc-chevron"></i>
+      </button>
+      <div class="acc-body"><div class="acc-inner">
+        <div class="px-5 pb-5">
+          <input type="hidden" id="f-id">
+
+          <div class="form-group">
+            <div class="form-group-title"><i class="fa-solid fa-id-card-clip mr-1"></i> Identificación</div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">Identificador / subdominio</label>
+                <input type="text" id="f-slug" placeholder="ej. lcm-pulebu" class="w-full p-2.5 rounded-lg text-sm">
+                <p class="text-[10px] text-slate-500 mt-1">Solo minúsculas, números y guiones. No se puede cambiar después.</p>
+              </div>
+              <div>
+                <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">Nombre del establecimiento</label>
+                <input type="text" id="f-nombre" placeholder="Escuela ..." class="w-full p-2.5 rounded-lg text-sm">
+              </div>
+              <div>
+                <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">Nombre corto</label>
+                <input type="text" id="f-nombre-corto" placeholder="ej. LCM Pulebu" class="w-full p-2.5 rounded-lg text-sm">
+              </div>
+              <div>
+                <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">RBD</label>
+                <input type="text" id="f-rbd" placeholder="ej. 12345-6" class="w-full p-2.5 rounded-lg text-sm">
+              </div>
+            </div>
           </div>
-          <div>
-            <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">Color secundario</label>
-            <input type="color" id="f-color2" value="#1240c4" class="h-10 w-16 rounded-lg p-1">
+
+          <div class="form-group">
+            <div class="form-group-title"><i class="fa-solid fa-location-dot mr-1"></i> Ubicación</div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div>
+                <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">Comuna</label>
+                <input type="text" id="f-comuna" class="w-full p-2.5 rounded-lg text-sm">
+              </div>
+              <div>
+                <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">Localidad</label>
+                <input type="text" id="f-localidad" class="w-full p-2.5 rounded-lg text-sm">
+              </div>
+              <div>
+                <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">Región</label>
+                <input type="text" id="f-region" class="w-full p-2.5 rounded-lg text-sm">
+              </div>
+            </div>
           </div>
-          <div id="activo-wrap" class="hidden">
-            <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">Activo</label>
-            <select id="f-activo" class="h-10 p-2 rounded-lg text-sm"><option value="1">Sí</option><option value="0">No</option></select>
+
+          <div class="form-group">
+            <div class="form-group-title"><i class="fa-solid fa-palette mr-1"></i> Apariencia y estado</div>
+            <div class="flex flex-wrap gap-4 items-end">
+              <div>
+                <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">Color primario</label>
+                <input type="color" id="f-color1" value="#091845" class="h-10 w-16 rounded-lg p-1">
+              </div>
+              <div>
+                <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">Color secundario</label>
+                <input type="color" id="f-color2" value="#1240c4" class="h-10 w-16 rounded-lg p-1">
+              </div>
+              <div id="activo-wrap" class="hidden">
+                <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">Activo</label>
+                <select id="f-activo" class="h-10 p-2 rounded-lg text-sm"><option value="1">Sí</option><option value="0">No</option></select>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex gap-2 mt-4">
+            <button id="btn-save" onclick="saveTenant()" class="btn-primary text-white px-4 py-2 rounded-lg text-sm font-bold"><i class="fa-solid fa-floppy-disk"></i> Guardar</button>
+            <button id="btn-cancel" onclick="resetForm()" class="hidden bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm font-bold">Cancelar edición</button>
           </div>
         </div>
-      </div>
-      <div class="flex gap-2 mt-4">
-        <button id="btn-save" onclick="saveTenant()" class="bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 rounded-lg text-sm font-bold"><i class="fa-solid fa-floppy-disk"></i> Guardar</button>
-        <button id="btn-cancel" onclick="resetForm()" class="hidden bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm font-bold">Cancelar edición</button>
-      </div>
+      </div></div>
     </div>
 
-    <!-- Listado -->
-    <div class="card rounded-xl overflow-hidden">
-      <table class="w-full text-sm">
-        <thead class="bg-[#111a30] text-slate-400 text-[11px] uppercase">
-          <tr>
-            <th class="text-left p-3">Nombre</th>
-            <th class="text-left p-3">Subdominio</th>
-            <th class="text-left p-3">RBD</th>
-            <th class="text-left p-3">Comuna</th>
-            <th class="text-left p-3">Código</th>
-            <th class="text-left p-3">Activo</th>
-            <th class="text-right p-3"></th>
-          </tr>
-        </thead>
-        <tbody id="tbody"><tr><td colspan="7" class="p-6 text-center text-slate-500">Cargando...</td></tr></tbody>
-      </table>
+    <!-- Acordeón: colegios registrados -->
+    <div class="acc card rounded-xl mb-6 open" id="acc-list">
+      <button type="button" class="acc-header" onclick="toggleAcc(this)" aria-label="Mostrar u ocultar la lista de colegios">
+        <span class="flex items-center gap-2"><i class="fa-solid fa-school"></i> Colegios registrados</span>
+        <i class="fa-solid fa-chevron-down acc-chevron"></i>
+      </button>
+      <div class="acc-body"><div class="acc-inner">
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="bg-[#111a30] text-slate-400 text-[11px] uppercase">
+              <tr>
+                <th class="text-left p-3">Nombre</th>
+                <th class="text-left p-3">Subdominio</th>
+                <th class="text-left p-3">RBD</th>
+                <th class="text-left p-3">Comuna</th>
+                <th class="text-left p-3">Código</th>
+                <th class="text-left p-3">Activo</th>
+                <th class="text-right p-3"></th>
+              </tr>
+            </thead>
+            <tbody id="tbody"><tr><td colspan="7" class="p-6 text-center text-slate-500">Cargando...</td></tr></tbody>
+          </table>
+        </div>
+      </div></div>
     </div>
 
-    <!-- Usuarios y su colegio -->
-    <div class="mt-8">
-      <h2 class="text-sm font-black uppercase text-sky-300 mb-3"><i class="fa-solid fa-users"></i> Usuarios y su colegio</h2>
-      <div class="card rounded-xl p-4 mb-4 flex flex-wrap items-end gap-3">
-        <div>
-          <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">Colegio a asignar a usuarios SIN colegio</label>
-          <select id="bulk-tenant" class="p-2.5 rounded-lg text-sm"></select>
+    <!-- Acordeón: usuarios y su colegio -->
+    <div class="acc card rounded-xl mb-6 open" id="acc-users">
+      <button type="button" class="acc-header" onclick="toggleAcc(this)" aria-label="Mostrar u ocultar los usuarios">
+        <span class="flex items-center gap-2"><i class="fa-solid fa-users"></i> Usuarios y su colegio</span>
+        <i class="fa-solid fa-chevron-down acc-chevron"></i>
+      </button>
+      <div class="acc-body"><div class="acc-inner">
+        <div class="px-5 pb-5">
+          <div class="bg-[#111a30] border border-slate-800 rounded-lg p-4 mb-4 flex flex-wrap items-end gap-3">
+            <div>
+              <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">Colegio a asignar a usuarios SIN colegio</label>
+              <select id="bulk-tenant" class="p-2.5 rounded-lg text-sm"></select>
+            </div>
+            <button onclick="assignMissing()" class="bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-lg text-sm font-bold"><i class="fa-solid fa-users-gear"></i> Asignar a todos los sin colegio</button>
+            <p class="text-[10px] text-slate-500 basis-full">Útil al sumar un 2º colegio: deja a los usuarios actuales en el colegio correcto para que sigan viendo sus datos.</p>
+          </div>
+          <div class="overflow-x-auto border border-slate-800 rounded-lg">
+            <table class="w-full text-sm">
+              <thead class="bg-[#111a30] text-slate-400 text-[11px] uppercase">
+                <tr>
+                  <th class="text-left p-3">Usuario</th>
+                  <th class="text-left p-3">Rol</th>
+                  <th class="text-left p-3">Colegio</th>
+                  <th class="text-right p-3"></th>
+                </tr>
+              </thead>
+              <tbody id="users-tbody"><tr><td colspan="4" class="p-6 text-center text-slate-500">Cargando...</td></tr></tbody>
+            </table>
+          </div>
         </div>
-        <button onclick="assignMissing()" class="bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-lg text-sm font-bold"><i class="fa-solid fa-users-gear"></i> Asignar a todos los sin colegio</button>
-        <p class="text-[10px] text-slate-500 basis-full">Útil al sumar un 2º colegio: deja a los usuarios actuales en el colegio correcto para que sigan viendo sus datos.</p>
-      </div>
-      <div class="card rounded-xl overflow-hidden">
-        <table class="w-full text-sm">
-          <thead class="bg-[#111a30] text-slate-400 text-[11px] uppercase">
-            <tr>
-              <th class="text-left p-3">Usuario</th>
-              <th class="text-left p-3">Rol</th>
-              <th class="text-left p-3">Colegio</th>
-              <th class="text-right p-3"></th>
-            </tr>
-          </thead>
-          <tbody id="users-tbody"><tr><td colspan="4" class="p-6 text-center text-slate-500">Cargando...</td></tr></tbody>
-        </table>
-      </div>
+      </div></div>
     </div>
   </div>
 
@@ -150,6 +208,21 @@
     }
 
     function esc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+    // Avatar del usuario: muestra su foto de perfil (/api/users/photo) o sus iniciales.
+    function userAvatar(email, name) {
+      const clean = (name || email || '?').replace(/@.*/, '').trim();
+      const p = clean.split(/\s+/).filter(Boolean);
+      const initials = (((p[0] || '')[0] || '') + ((p[1] || '')[0] || '')).toUpperCase() || '?';
+      const src = '/api/users/photo?email=' + encodeURIComponent((email || '').toLowerCase());
+      return '<span class="avatar"><span>' + esc(initials) + '</span><img src="' + src + '" alt="" onerror="this.remove()"></span>';
+    }
+
+    // Acordeón: alterna abrir/cerrar el panel que contiene el encabezado.
+    function toggleAcc(headerEl) {
+      const acc = headerEl.closest('.acc');
+      if (acc) acc.classList.toggle('open');
+    }
 
     function copyText(t) {
       if (navigator.clipboard) {
@@ -202,7 +275,7 @@
       if (!USERS.length) { tb.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-slate-500">Sin usuarios.</td></tr>'; return; }
       tb.innerHTML = USERS.map((u, i) =>
         '<tr class="border-t border-slate-800">' +
-          '<td class="p-3"><div class="font-semibold">' + esc(u.name || '(sin nombre)') + '</div><div class="text-[11px] text-slate-500">' + esc(u.email) + '</div></td>' +
+          '<td class="p-3"><div class="flex items-center gap-2.5">' + userAvatar(u.email, u.name) + '<div><div class="font-semibold">' + esc(u.name || '(sin nombre)') + '</div><div class="text-[11px] text-slate-500">' + esc(u.email) + '</div></div></div></td>' +
           '<td class="p-3 text-slate-400">' + esc(u.role) + '</td>' +
           '<td class="p-3"><select id="u-tenant-' + i + '" class="p-2 rounded-lg text-sm">' + tenantOptions(u.tenantSlug) + '</select></td>' +
           '<td class="p-3 text-right"><button onclick="saveUserTenant(' + i + ')" class="text-sky-400 hover:text-sky-300 text-xs font-bold"><i class="fa-solid fa-floppy-disk"></i> Guardar</button></td>' +
@@ -293,6 +366,7 @@
       document.getElementById('activo-wrap').classList.remove('hidden');
       document.getElementById('btn-cancel').classList.remove('hidden');
       document.getElementById('form-title').innerHTML = '<i class="fa-solid fa-pen"></i> Editar: ' + esc(t.nombre);
+      document.getElementById('acc-form').classList.add('open'); // asegura el formulario visible al editar
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 

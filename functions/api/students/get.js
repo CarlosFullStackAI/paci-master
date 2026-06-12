@@ -56,9 +56,14 @@ export async function onRequestPost(context) {
       };
     }
 
-    // OAs agrupados por asignatura
+    // OAs agrupados por asignatura. Incluimos MAX(id) para exponer el id real de
+    // document_oas de cada OA: el dashboard lo necesita para marcar el progreso
+    // (logrado / en desarrollo / no logrado) via /api/students/oa-progress.
+    // Sin el id, el boton enviaba oaId vacio y el endpoint respondia "oaId requerido".
+    // SQLite: al usar MAX(id), las columnas sueltas (trimester, etc.) provienen de
+    // esa misma fila, asi el id y su trimestre quedan coherentes.
     const oas = await env.DB.prepare(`
-      SELECT subject, subject_key, level, oa_code, oa_text, trimester, unit_name,
+      SELECT MAX(id) as id, subject, subject_key, level, oa_code, oa_text, trimester, unit_name,
              COUNT(*) as times_worked
       FROM document_oas
       WHERE student_id = ?

@@ -393,6 +393,21 @@
         animation: dot-pulse 2.5s ease-in-out infinite;
     }
     .topbar-user:not(:empty) { padding-left: 1.45rem; }
+
+    /* ===== Avatar / foto de perfil ===== */
+    .avatar {
+      position: relative; display: inline-flex; align-items: center; justify-content: center;
+      border-radius: 50%; overflow: hidden; flex-shrink: 0; vertical-align: middle; line-height: 1;
+      background: linear-gradient(135deg, #38bdf8, #818cf8); color: #fff; font-weight: 800;
+    }
+    .avatar .avatar-initials { line-height: 1; }
+    .avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .avatar-wrap { position: relative; display: inline-flex; cursor: pointer; }
+    .avatar-wrap .avatar-cam {
+      position: absolute; right: -2px; bottom: -2px; width: 15px; height: 15px; border-radius: 50%;
+      background: #0ea5e9; color: #fff; display: flex; align-items: center; justify-content: center;
+      font-size: 7px; border: 1.5px solid #0b1220;
+    }
     @keyframes dot-pulse {
         0%, 100% { opacity: 0.7; box-shadow: 0 0 6px #34d399, 0 0 12px rgba(52, 211, 153, 0.4); }
         50%      { opacity: 1;   box-shadow: 0 0 12px #34d399, 0 0 24px rgba(52, 211, 153, 0.7); }
@@ -2142,6 +2157,35 @@
     [data-theme="light"] .csv-dropzone strong { color: #0f172a; }
     .csv-dropzone .hint { font-size: 0.78rem; color: #94a3b8; }
 
+    /* ===== Modal Agregar estudiante ===== */
+    .ne-form {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.85rem;
+    }
+    @media (max-width: 560px) { .ne-form { grid-template-columns: 1fr; } }
+    .ne-field.ne-full { grid-column: 1 / -1; }
+    .ne-field label {
+      font-size: 0.7rem; font-weight: 800;
+      text-transform: uppercase; color: #94a3b8;
+      margin-bottom: 0.3rem; display: block;
+    }
+    .ne-field input, .ne-field select {
+      width: 100%;
+      background: rgba(15,23,42,0.6);
+      border: 1.5px solid rgba(56,189,248,0.2);
+      border-radius: 0.6rem;
+      padding: 0.55rem 0.7rem;
+      font-size: 0.85rem;
+      color: #f1f5f9;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .ne-field input:focus, .ne-field select:focus { border-color: rgba(56,189,248,0.6); }
+    [data-theme="light"] .ne-field input, [data-theme="light"] .ne-field select {
+      background: #f8fafc; border-color: #cbd5e1; color: #0f172a;
+    }
+
     .csv-mapping {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -2316,11 +2360,13 @@
       </div>
     </div>
     <nav class="topbar-actions" aria-label="Acciones de la cuenta">
+      <span id="topbar-avatar" class="avatar-wrap" onclick="document.getElementById('foto-input').click()" title="Cambiar mi foto de perfil"></span>
+      <input type="file" id="foto-input" accept="image/png,image/jpeg,image/webp,image/gif" style="display:none;" onchange="subirFotoPerfil(this)">
       <span class="topbar-user" id="user-name"></span>
       <button type="button" id="theme-toggle" class="btn btn-slate btn-sm" onclick="toggleTheme()" title="Cambiar entre modo claro y oscuro" aria-label="Cambiar entre modo claro y oscuro"><i class="fa-solid fa-moon" aria-hidden="true"></i></button>
       <button type="button" class="btn btn-slate btn-sm" onclick="showMiPerfil()" title="Mi perfil (RUT, Registro MINEDUC)" aria-label="Mi perfil"><i class="fa-solid fa-id-badge" aria-hidden="true"></i></button>
-      <button type="button" class="btn btn-amber btn-sm" onclick="showChangePassword()" title="Cambiar contrasena" aria-label="Cambiar contrasena"><i class="fa-solid fa-key" aria-hidden="true"></i></button>
-      <button type="button" class="btn btn-slate" onclick="cerrarSesion()" title="Cerrar sesion" aria-label="Cerrar sesion"><i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i></button>
+      <button type="button" class="btn btn-amber btn-sm" onclick="showChangePassword()" title="Cambiar contraseña" aria-label="Cambiar contraseña"><i class="fa-solid fa-key" aria-hidden="true"></i></button>
+      <button type="button" class="btn btn-slate" onclick="cerrarSesion()" title="Cerrar sesión" aria-label="Cerrar sesión"><i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i></button>
     </nav>
   </div>
 
@@ -2512,6 +2558,9 @@
         <div class="section-head">
           <h2 class="section-title"><i class="fa-solid fa-graduation-cap" aria-hidden="true"></i> Mis Estudiantes</h2>
           <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+            <button type="button" class="btn btn-primary btn-sm" onclick="abrirAgregarEstudiante()" title="Crear una ficha de estudiante nueva">
+              <i class="fa-solid fa-user-plus" aria-hidden="true"></i> Agregar estudiante
+            </button>
             <button type="button" class="btn btn-slate btn-sm" onclick="abrirImportarCSV()" title="Importar estudiantes desde planilla CSV">
               <i class="fa-solid fa-file-import" aria-hidden="true"></i> Importar CSV
             </button>
@@ -2569,6 +2618,7 @@
     }
 
     document.getElementById('user-name').textContent = (USER.name || USER.email || '') + ' (' + USER_ROLE + ')';
+    renderTopbarAvatar();
 
     // ===== Tema dia/noche =====
     function toggleTheme() {
@@ -2584,6 +2634,80 @@
     }
     syncThemeIcon();
 
+    // ==========================================
+    // FOTO DE PERFIL / AVATARES (visibles para todos)
+    // ==========================================
+    // Genera un avatar: muestra la foto del usuario (servida por /api/users/photo)
+    // y, si no tiene o falla, cae a sus iniciales. Se usa en barra superior, comentarios, etc.
+    function avatarHtml(email, name, size, ver) {
+      const clean = (name || email || '?').replace(/@.*/, '').trim();
+      const parts = clean.split(/\s+/).filter(Boolean);
+      const initials = (((parts[0] || '')[0] || '') + ((parts[1] || '')[0] || '')).toUpperCase() || '?';
+      const src = '/api/users/photo?email=' + encodeURIComponent((email || '').toLowerCase()) + (ver ? '&v=' + encodeURIComponent(ver) : '');
+      const px = size + 'px';
+      const fs = Math.max(9, Math.round(size * 0.4)) + 'px';
+      return '<span class="avatar" style="width:' + px + ';height:' + px + ';font-size:' + fs + ';">' +
+        '<span class="avatar-initials">' + esc(initials) + '</span>' +
+        (email ? '<img src="' + src + '" alt="" loading="lazy" onerror="this.remove()">' : '') +
+        '</span>';
+    }
+
+    function renderTopbarAvatar() {
+      const el = document.getElementById('topbar-avatar');
+      if (!el) return;
+      el.innerHTML = avatarHtml(USER.email, USER.name, 32, USER.photoVersion) +
+        '<span class="avatar-cam"><i class="fa-solid fa-camera"></i></span>';
+    }
+
+    // Reescala/recorta la imagen a un cuadrado de 256px y la devuelve como JPEG
+    // (mantiene la foto liviana antes de subirla).
+    function downscaleImage(file, max) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const img = new Image();
+          img.onload = () => {
+            const side = Math.min(img.width, img.height);
+            const sx = (img.width - side) / 2;
+            const sy = (img.height - side) / 2;
+            const canvas = document.createElement('canvas');
+            canvas.width = max; canvas.height = max;
+            canvas.getContext('2d').drawImage(img, sx, sy, side, side, 0, 0, max, max);
+            resolve(canvas.toDataURL('image/jpeg', 0.85));
+          };
+          img.onerror = reject;
+          img.src = reader.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function subirFotoPerfil(input) {
+      const file = input.files && input.files[0];
+      input.value = '';
+      if (!file) return;
+      if (!/^image\//.test(file.type)) { alert('Selecciona un archivo de imagen.'); return; }
+      try {
+        const dataUrl = await downscaleImage(file, 256);
+        const res = await api('/api/users/photo', { photo: dataUrl });
+        if (res.ok) {
+          USER.photoVersion = res.photoVersion || String(Date.now());
+          try {
+            const u = JSON.parse(localStorage.getItem('paci_user') || '{}');
+            u.photoVersion = USER.photoVersion;
+            localStorage.setItem('paci_user', JSON.stringify(u));
+          } catch (e) {}
+          renderTopbarAvatar();
+          alert('✓ Foto de perfil actualizada. Los demás docentes ya pueden verla.');
+        } else {
+          alert('Error: ' + (res.error || 'no se pudo guardar la foto.'));
+        }
+      } catch (e) {
+        alert('No se pudo procesar la imagen.');
+      }
+    }
+
     // (Antes había botones "Nuevo PACI" / "Nuevo PAI" en el topbar; ahora están en
     //  la sección "Crear documento" junto al resto. Si no tiene permiso CAN_CREATE,
     //  los items de Phase planificación se ocultan en renderDocsPhases.)
@@ -2597,13 +2721,13 @@
       'fil': { type: 'NEET', period: 2, note: 'Si continua un 3er ano, se considera "Nuevo Ingreso" y requiere FUDEI completo.' },
       'di_l': { type: 'NEEP', period: 2, note: 'Aunque es NEEP, se rige por plazo de 2 anos para monitorear funcionamiento adaptativo.' },
       'di_m': { type: 'NEEP', period: 2, note: 'Aunque es NEEP, se rige por plazo de 2 anos para monitorear funcionamiento adaptativo.' },
-      'di_s': { type: 'NEEP', period: 5, note: 'Reevaluacion cada 3 a 5 anos segun evolucion del estudiante.' },
-      'tea': { type: 'NEEP', period: 5, note: 'Reevaluacion cada 3 a 5 anos segun evolucion del estudiante.' },
-      'dv': { type: 'NEEP', period: 5, note: 'Reevaluacion cada 3 a 5 anos segun evolucion.' },
-      'da': { type: 'NEEP', period: 5, note: 'Reevaluacion cada 3 a 5 anos segun evolucion.' },
-      'disc_mot': { type: 'NEEP', period: 5, note: 'Reevaluacion cada 3 a 5 anos segun evolucion.' },
+      'di_s': { type: 'NEEP', period: 5, note: 'Reevaluación cada 3 a 5 años según evolución del estudiante.' },
+      'tea': { type: 'NEEP', period: 5, note: 'Reevaluación cada 3 a 5 años según evolución del estudiante.' },
+      'dv': { type: 'NEEP', period: 5, note: 'Reevaluación cada 3 a 5 años según evolución.' },
+      'da': { type: 'NEEP', period: 5, note: 'Reevaluación cada 3 a 5 años según evolución.' },
+      'disc_mot': { type: 'NEEP', period: 5, note: 'Reevaluación cada 3 a 5 años según evolución.' },
       'rgd': { type: 'NEEP', period: 2, note: 'Requiere confirmacion diagnostica cada 2 anos.' },
-      'sordoceg': { type: 'NEEP', period: 5, note: 'Reevaluacion cada 3 a 5 anos segun evolucion del estudiante.' }
+      'sordoceg': { type: 'NEEP', period: 5, note: 'Reevaluación cada 3 a 5 años según evolución del estudiante.' }
     };
 
     // Ids guardados por versiones antiguas del editor PACI; se normalizan al
@@ -2693,7 +2817,7 @@
         localStorage.removeItem('paci_token');
         localStorage.removeItem('paci_user');
         window.location.href = '/login.html';
-        return { ok: false, error: 'Sesion expirada.' };
+        return { ok: false, error: 'Sesión expirada.' };
       }
       return res.json();
     }
@@ -4062,7 +4186,7 @@
             <input type="text" value="${esc(s.school || '')}" onchange="saveField(${id},'school',this.value)">
           </div>
 
-          <div class="profile-section"><i class="fa-solid fa-graduation-cap"></i> Datos Academicos <span class="auto-tag">Auto</span></div>
+          <div class="profile-section"><i class="fa-solid fa-graduation-cap"></i> Datos Académicos <span class="auto-tag">Auto</span></div>
 
           <div class="profile-field">
             <label>Curso / Nivel Real <span class="auto-tag">Auto</span></label>
@@ -4075,8 +4199,8 @@
             </select>
           </div>
           <div class="profile-field">
-            <label>Curso / Sección <span class="manual-tag">Manual</span></label>
-            <input type="text" id="prof-curso-${id}" value="${esc(s.curso || '')}" placeholder="Ej: 3° Básico A" onchange="saveField(${id},'curso',this.value)">
+            <label>Curso / Sección (sección opcional) <span class="manual-tag">Manual</span></label>
+            <input type="text" id="prof-curso-${id}" value="${esc(s.curso || '')}" placeholder="Ej: 3° Básico (sección A, B… opcional)" onchange="saveField(${id},'curso',this.value)">
           </div>
 
           <div class="profile-field profile-full">
@@ -4093,10 +4217,10 @@
             <div id="work-levels-${id}" class="work-levels-list"></div>
           </div>
 
-          <div class="profile-section"><i class="fa-solid fa-stethoscope"></i> Diagnostico y Reevaluacion</div>
+          <div class="profile-section"><i class="fa-solid fa-stethoscope"></i> Diagnóstico y Reevaluación</div>
 
           <div class="profile-field">
-            <label>Diagnostico <span class="auto-tag">Auto</span></label>
+            <label>Diagnóstico <span class="auto-tag">Auto</span></label>
             <input type="text" value="${esc(s.diagnosis || '')}" onchange="saveField(${id},'diagnosis',this.value)">
           </div>
           <div class="profile-field">
@@ -4108,24 +4232,24 @@
             </select>
           </div>
           <div class="profile-field">
-            <label>Fecha Ultimo Diagnostico <span class="manual-tag">Manual</span></label>
+            <label>Fecha Último Diagnóstico <span class="manual-tag">Manual</span></label>
             <input type="date" id="diag-date-${id}" value="${esc(s.diagnosis_date || '')}" onchange="onDiagDateChange(${id}, '${esc(s.diagnosis_id || '')}', this.value)">
           </div>
           <div class="profile-field">
-            <label>Fecha Ultima Reevaluacion <span class="manual-tag">Manual</span></label>
+            <label>Fecha Última Reevaluación <span class="manual-tag">Manual</span></label>
             <input type="date" id="reeval-date-${id}" value="${esc(s.last_evaluation_date || '')}" onchange="onReevalDateChange(${id}, '${esc(s.diagnosis_id || '')}', this.value)">
           </div>
           <div class="profile-field">
-            <label>Fecha Proxima Reevaluacion <span style="background:#d1fae5;color:#065f46;font-size:0.55rem;font-weight:700;padding:1px 5px;border-radius:4px;margin-left:4px;">Auto-sugerida</span></label>
+            <label>Fecha Próxima Reevaluación <span style="background:#d1fae5;color:#065f46;font-size:0.55rem;font-weight:700;padding:1px 5px;border-radius:4px;margin-left:4px;">Auto-sugerida</span></label>
             <input type="date" id="next-reeval-${id}" value="${esc(s.next_evaluation_date || '')}" onchange="saveField(${id},'next_evaluation_date',this.value)">
           </div>
           <div class="profile-field">
-            <label>Periodicidad de Reevaluacion <span style="background:#d1fae5;color:#065f46;font-size:0.55rem;font-weight:700;padding:1px 5px;border-radius:4px;margin-left:4px;">Auto</span></label>
+            <label>Periodicidad de Reevaluación <span style="background:#d1fae5;color:#065f46;font-size:0.55rem;font-weight:700;padding:1px 5px;border-radius:4px;margin-left:4px;">Auto</span></label>
             <select id="period-${id}" onchange="saveField(${id},'evaluation_periodicity',this.value)">
-              <option value="" ${!s.evaluation_periodicity ? 'selected' : ''}>Segun diagnostico</option>
-              <option value="2 anos" ${s.evaluation_periodicity === '2 anos' ? 'selected' : ''}>Cada 2 anos</option>
-              <option value="3 anos" ${s.evaluation_periodicity === '3 anos' ? 'selected' : ''}>Cada 3 anos</option>
-              <option value="5 anos" ${s.evaluation_periodicity === '5 anos' ? 'selected' : ''}>Cada 5 anos</option>
+              <option value="" ${!s.evaluation_periodicity ? 'selected' : ''}>Según diagnóstico</option>
+              <option value="2 anos" ${s.evaluation_periodicity === '2 anos' ? 'selected' : ''}>Cada 2 años</option>
+              <option value="3 anos" ${s.evaluation_periodicity === '3 anos' ? 'selected' : ''}>Cada 3 años</option>
+              <option value="5 anos" ${s.evaluation_periodicity === '5 anos' ? 'selected' : ''}>Cada 5 años</option>
             </select>
           </div>
 
@@ -4692,6 +4816,7 @@
           const st = p ? p.status : 'no_evaluado';
           const sc = STATUS_META[st];
           const text = oa.oa_text.replace(oa.oa_code + ': ', '').substring(0, 200);
+          const nivelLabel = (NIVELES_OPTS.find(n => n.value === oa.level) || { label: oa.level || '—' }).label;
           const actions = CAN_MANAGE_STUDENTS
             ? `<div style="display:flex;gap:0.3rem;flex-wrap:wrap;margin-top:0.55rem;">
                 ${['logrado', 'en_desarrollo', 'no_logrado', 'no_evaluado'].map(k => {
@@ -4709,6 +4834,8 @@
               <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.5rem;margin-bottom:0.3rem;">
                 <div style="display:flex;gap:0.45rem;align-items:center;flex-wrap:wrap;">
                   <span style="background:${color}25;color:${color};font-size:0.65rem;font-weight:800;padding:0.18rem 0.55rem;border-radius:0.4rem;">${esc(oa.oa_code)}</span>
+                  <span style="background:${color}18;color:${color};font-size:0.6rem;font-weight:700;padding:0.15rem 0.5rem;border-radius:0.4rem;"><i class="fa-solid fa-book-open" style="font-size:0.55rem;"></i> ${esc(oa.subject || data.name)}</span>
+                  <span style="background:rgba(167,139,250,0.14);color:#a78bfa;font-size:0.6rem;font-weight:700;padding:0.15rem 0.5rem;border-radius:0.4rem;"><i class="fa-solid fa-graduation-cap" style="font-size:0.55rem;"></i> ${esc(nivelLabel)}</span>
                   <span style="background:rgba(56,189,248,0.12);color:#38bdf8;font-size:0.6rem;font-weight:700;padding:0.15rem 0.5rem;border-radius:0.4rem;">${esc(oa.trimester || '—')}</span>
                 </div>
                 <span style="background:${sc.bg};color:${sc.color};font-size:0.6rem;font-weight:800;padding:0.2rem 0.55rem;border-radius:1rem;white-space:nowrap;">
@@ -5107,20 +5234,20 @@
       overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,0.4);backdrop-filter:blur(4px);z-index:10000;display:flex;align-items:center;justify-content:center;';
       overlay.innerHTML = `
         <div style="background:#fff;border-radius:1.25rem;padding:2rem;width:90%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,0.2);">
-          <h3 style="font-size:1rem;font-weight:800;color:#0f172a;margin-bottom:0.25rem;"><i class="fa-solid fa-key" style="color:#f59e0b;margin-right:0.375rem;"></i>Cambiar Contrasena</h3>
-          <p style="font-size:0.7rem;color:#64748b;margin-bottom:1rem;">Min 8 caracteres, 1 mayuscula, 1 numero</p>
+          <h3 style="font-size:1rem;font-weight:800;color:#0f172a;margin-bottom:0.25rem;"><i class="fa-solid fa-key" style="color:#f59e0b;margin-right:0.375rem;"></i>Cambiar Contraseña</h3>
+          <p style="font-size:0.7rem;color:#64748b;margin-bottom:1rem;">Mín. 8 caracteres, 1 mayúscula, 1 número</p>
           <div id="pw-msg" style="display:none;padding:0.5rem;border-radius:0.5rem;font-size:0.75rem;margin-bottom:0.75rem;"></div>
           <div style="margin-bottom:0.75rem;">
-            <label style="font-size:0.65rem;font-weight:700;color:#475569;text-transform:uppercase;display:block;margin-bottom:0.25rem;">Contrasena actual</label>
-            <input type="password" id="pw-current" style="width:100%;border:1.5px solid #e2e8f0;border-radius:0.5rem;padding:0.5rem 0.75rem;font-size:0.85rem;outline:none;" placeholder="Tu contrasena actual">
+            <label style="font-size:0.65rem;font-weight:700;color:#475569;text-transform:uppercase;display:block;margin-bottom:0.25rem;">Contraseña actual</label>
+            <input type="password" id="pw-current" style="width:100%;border:1.5px solid #e2e8f0;border-radius:0.5rem;padding:0.5rem 0.75rem;font-size:0.85rem;outline:none;" placeholder="Tu contraseña actual">
           </div>
           <div style="margin-bottom:0.75rem;">
-            <label style="font-size:0.65rem;font-weight:700;color:#475569;text-transform:uppercase;display:block;margin-bottom:0.25rem;">Nueva contrasena</label>
-            <input type="password" id="pw-new" style="width:100%;border:1.5px solid #e2e8f0;border-radius:0.5rem;padding:0.5rem 0.75rem;font-size:0.85rem;outline:none;" placeholder="Min 8 chars, 1 mayuscula, 1 numero">
+            <label style="font-size:0.65rem;font-weight:700;color:#475569;text-transform:uppercase;display:block;margin-bottom:0.25rem;">Nueva contraseña</label>
+            <input type="password" id="pw-new" style="width:100%;border:1.5px solid #e2e8f0;border-radius:0.5rem;padding:0.5rem 0.75rem;font-size:0.85rem;outline:none;" placeholder="Mín. 8 caracteres, 1 mayúscula, 1 número">
           </div>
           <div style="margin-bottom:1rem;">
             <label style="font-size:0.65rem;font-weight:700;color:#475569;text-transform:uppercase;display:block;margin-bottom:0.25rem;">Confirmar nueva</label>
-            <input type="password" id="pw-confirm" style="width:100%;border:1.5px solid #e2e8f0;border-radius:0.5rem;padding:0.5rem 0.75rem;font-size:0.85rem;outline:none;" placeholder="Repite la nueva contrasena">
+            <input type="password" id="pw-confirm" style="width:100%;border:1.5px solid #e2e8f0;border-radius:0.5rem;padding:0.5rem 0.75rem;font-size:0.85rem;outline:none;" placeholder="Repite la nueva contraseña">
           </div>
           <div style="display:flex;gap:0.5rem;">
             <button onclick="executeChangePassword()" class="btn btn-primary" style="flex:1;justify-content:center;" id="pw-submit">
@@ -5152,8 +5279,8 @@
 
       if (!current || !newPw || !confirm) { showPwMsg('Completa todos los campos.', 'error'); return; }
       if (newPw.length < 8) { showPwMsg('Minimo 8 caracteres.', 'error'); return; }
-      if (!/[A-Z]/.test(newPw) || !/[0-9]/.test(newPw)) { showPwMsg('Necesitas 1 mayuscula y 1 numero.', 'error'); return; }
-      if (newPw !== confirm) { showPwMsg('Las contrasenas no coinciden.', 'error'); return; }
+      if (!/[A-Z]/.test(newPw) || !/[0-9]/.test(newPw)) { showPwMsg('Necesitas 1 mayúscula y 1 número.', 'error'); return; }
+      if (newPw !== confirm) { showPwMsg('Las contraseñas no coinciden.', 'error'); return; }
 
       btn.disabled = true;
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Cambiando...';
@@ -5161,13 +5288,13 @@
       var res = await api('/api/change-password', { currentPassword: current, newPassword: newPw });
 
       if (res.ok) {
-        showPwMsg('Contrasena actualizada correctamente!', 'success');
+        showPwMsg('¡Contraseña actualizada correctamente!', 'success');
         document.getElementById('pw-current').value = '';
         document.getElementById('pw-new').value = '';
         document.getElementById('pw-confirm').value = '';
         setTimeout(function() { document.getElementById('password-modal').style.display = 'none'; }, 1500);
       } else {
-        showPwMsg(res.error || 'Error al cambiar contrasena.', 'error');
+        showPwMsg(res.error || 'Error al cambiar la contraseña.', 'error');
       }
 
       btn.disabled = false;
@@ -5225,12 +5352,15 @@
       }
 
       listEl.innerHTML = comments.map(c => `
-        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:0.5rem;padding:0.5rem 0.75rem;margin-bottom:0.375rem;">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.25rem;">
-            <span style="font-size:0.65rem;font-weight:700;color:#1e3a8a;">${esc(c.user_email)}</span>
-            <span style="font-size:0.55rem;color:#94a3b8;"><span style="background:#e2e8f0;padding:0.1rem 0.375rem;border-radius:0.25rem;font-weight:600;">${esc(c.user_role)}</span> &middot; ${formatDate(c.created_at)}</span>
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:0.5rem;padding:0.5rem 0.75rem;margin-bottom:0.375rem;display:flex;gap:0.5rem;align-items:flex-start;">
+          ${avatarHtml(c.user_email, c.user_email, 26)}
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.25rem;gap:0.5rem;">
+              <span style="font-size:0.65rem;font-weight:700;color:#1e3a8a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(c.user_email)}</span>
+              <span style="font-size:0.55rem;color:#94a3b8;white-space:nowrap;"><span style="background:#e2e8f0;padding:0.1rem 0.375rem;border-radius:0.25rem;font-weight:600;">${esc(c.user_role)}</span> &middot; ${formatDate(c.created_at)}</span>
+            </div>
+            <p style="font-size:0.75rem;color:#334155;margin:0;">${esc(c.comment_text)}</p>
           </div>
-          <p style="font-size:0.75rem;color:#334155;margin:0;">${esc(c.comment_text)}</p>
         </div>
       `).join('');
     }
@@ -5255,6 +5385,119 @@
     function renderProfileRoleGuards() {
       if (!CAN_CREATE) {
         document.querySelectorAll('a[href^="/app.html?student="]').forEach(el => el.style.display = 'none');
+      }
+    }
+
+    // ==========================================
+    // AGREGAR ESTUDIANTE (ficha rapida, sin documento previo)
+    // ==========================================
+    function abrirAgregarEstudiante() {
+      let overlay = document.getElementById('nuevo-est-overlay');
+      if (overlay) { overlay.style.display = 'flex'; return; }
+
+      overlay = document.createElement('div');
+      overlay.id = 'nuevo-est-overlay';
+      overlay.className = 'csv-overlay';
+      overlay.innerHTML = `
+        <div class="csv-modal" style="max-width:560px;">
+          <div class="csv-header">
+            <h3 style="font-size:1.05rem;font-weight:800;color:#f1f5f9;">
+              <i class="fa-solid fa-user-plus" style="color:#34d399;margin-right:0.45rem;"></i>Agregar estudiante
+            </h3>
+            <button class="picker-close" onclick="cerrarAgregarEstudiante()" aria-label="Cerrar"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+          <div class="csv-body">
+            <div class="ne-form">
+              <div class="ne-field ne-full">
+                <label>Nombre completo <span style="color:#f87171;">*</span></label>
+                <input type="text" id="ne-name" placeholder="Ej: Juan Pérez González" autocomplete="off">
+              </div>
+              <div class="ne-field">
+                <label>Curso / Sección (sección opcional)</label>
+                <input type="text" id="ne-curso" placeholder="Ej: 3° Básico (sección A, B… opcional)" autocomplete="off">
+              </div>
+              <div class="ne-field">
+                <label>RUT</label>
+                <input type="text" id="ne-rut" placeholder="12.345.678-9" autocomplete="off">
+              </div>
+              <div class="ne-field ne-full">
+                <label>Diagnóstico</label>
+                <input type="text" id="ne-diagnosis" placeholder="Ej: TEL Mixto" autocomplete="off">
+              </div>
+              <div class="ne-field">
+                <label>Fecha de diagnóstico</label>
+                <input type="date" id="ne-diagdate">
+              </div>
+              <div class="ne-field">
+                <label>Nivel general (de trabajo)</label>
+                <select id="ne-worklevel">${renderNivelOptions('')}</select>
+              </div>
+            </div>
+            <p style="font-size:0.75rem;color:#94a3b8;margin-top:0.85rem;">
+              <i class="fa-solid fa-circle-info"></i> Solo el nombre es obligatorio. Los demás datos los puedes completar después en la ficha del estudiante.
+            </p>
+          </div>
+          <div class="csv-footer">
+            <div class="csv-summary" id="ne-status"></div>
+            <div style="display:flex;gap:0.5rem;">
+              <button onclick="cerrarAgregarEstudiante()" class="btn btn-slate btn-sm">Cancelar</button>
+              <button id="ne-save-btn" onclick="guardarNuevoEstudiante()" class="btn btn-primary btn-sm">
+                <i class="fa-solid fa-floppy-disk"></i> Crear ficha
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+      overlay.addEventListener('click', (ev) => { if (ev.target === overlay) cerrarAgregarEstudiante(); });
+      document.body.appendChild(overlay);
+      setTimeout(() => { const n = document.getElementById('ne-name'); if (n) n.focus(); }, 50);
+    }
+
+    function cerrarAgregarEstudiante() {
+      const o = document.getElementById('nuevo-est-overlay');
+      if (o) o.remove();
+    }
+
+    async function guardarNuevoEstudiante(force) {
+      const name = (document.getElementById('ne-name').value || '').trim();
+      const status = document.getElementById('ne-status');
+      if (name.length < 2) {
+        if (status) status.innerHTML = '<span style="color:#f87171;">El nombre es obligatorio.</span>';
+        document.getElementById('ne-name').focus();
+        return;
+      }
+      const data = {
+        name,
+        curso: (document.getElementById('ne-curso').value || '').trim(),
+        rut: (document.getElementById('ne-rut').value || '').trim(),
+        diagnosis: (document.getElementById('ne-diagnosis').value || '').trim(),
+        diagnosis_date: (document.getElementById('ne-diagdate').value || '').trim(),
+        work_level: document.getElementById('ne-worklevel').value || ''
+      };
+
+      const btn = document.getElementById('ne-save-btn');
+      const orig = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
+
+      try {
+        const res = await api('/api/students/create', { data, force: force === true });
+        if (res.duplicate) {
+          btn.disabled = false; btn.innerHTML = orig;
+          const seguir = confirm(res.error + '\n\n¿Crear la ficha de todas formas?');
+          if (seguir) return guardarNuevoEstudiante(true);
+          return;
+        }
+        if (res.ok) {
+          cerrarAgregarEstudiante();
+          await loadDashboard();
+        } else {
+          if (status) status.innerHTML = '<span style="color:#f87171;">' + esc(res.error || 'No se pudo crear.') + '</span>';
+          btn.disabled = false; btn.innerHTML = orig;
+        }
+      } catch (e) {
+        if (status) status.innerHTML = '<span style="color:#f87171;">Error de conexión.</span>';
+        btn.disabled = false; btn.innerHTML = orig;
       }
     }
 

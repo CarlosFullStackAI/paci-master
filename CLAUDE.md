@@ -37,10 +37,14 @@ npm run deploy
 ## Estructura del Proyecto
 ```
 /
-├── app.html                          # Aplicacion principal (crear/editar PACI)
-├── login.html                        # Pagina de login
-├── dashboard.html                    # Dashboard de gestion
+├── app.html                          # Editor PACI (crear/editar)
+├── pai.html                          # Editor PAI (vista dividida como app.html)
+├── docs.html                         # Editor generico de documentos PIE (usa docs-registry.js)
+├── dashboard.html                    # Dashboard de gestion (estudiantes, checklist, OAs, calendario)
+├── admin.html                        # Administracion de colegios y usuarios (solo admin)
+├── login.html                        # Pagina de login/registro
 ├── index.html                        # Pagina de entrada/redirect
+├── docs-registry.js                  # Registro central de los 13 documentos PIE (schemas + reglas)
 ├── nee-templates.js                  # Templates de Necesidades Educativas Especiales
 ├── favicon.{png,svg}                 # Branding global
 │
@@ -50,9 +54,11 @@ npm run deploy
 │   ├── login.js, register.js, logout.js, verify.js
 │   ├── change-password.js, forgot-password.js
 │   ├── generate-pdf.js               # PDF server-side via Browser Rendering
-│   ├── students/                     # CRUD de estudiantes
-│   ├── documents/                    # CRUD de documentos PACI
-│   └── admin/
+│   ├── students/                     # CRUD de estudiantes (create, list, get, update, delete, bulk-create, oas, oa-progress)
+│   ├── documents/                    # CRUD de documentos PIE (save, list, get, upload, approve, comments)
+│   ├── users/                        # profile.js (RUT/registro) + photo.js (foto de perfil en KV PACI_FILES)
+│   ├── ai/                           # IA via OpenRouter (chatbot, fill-document, adapt-oa, etc.)
+│   └── admin/                        # tenants, users, set-role, audit-logs (solo admin/maestra)
 │
 ├── data/                             # Datos categorizados (multi-tenant ready)
 │   ├── mineduc/                      # GENERICO (cualquier colegio chileno)

@@ -6767,15 +6767,15 @@
                 .footer { text-align: center; font-size: 8pt; color: #94a3b8; margin-top: 24pt; border-top: 1px solid #e2e8f0; padding-top: 8pt; }
               </style></head><body>
 
-              <h1>PLAN DE ADECUACION CURRICULAR INDIVIDUAL (PACI)</h1>
+              <h1>PLAN DE ADECUACIÓN CURRICULAR INDIVIDUAL (PACI)</h1>
               <p style="text-align:center;font-size:9pt;color:#64748b;font-weight:bold;">Decreto N° 83/2015 - Decreto N° 170/2009</p>
 
-              <h2>1. Identificacion del Estudiante</h2>
+              <h2>1. Identificación del Estudiante</h2>
               <table>
                 <tr><td class="info-label">Nombre Completo</td><td>${nombre}</td></tr>
                 <tr><td class="info-label">Establecimiento</td><td>${escuela}</td></tr>
-                <tr><td class="info-label">Fecha Nacimiento</td><td>${fnac}</td><td class="info-label">Edad</td><td>${edad} anos</td></tr>
-                <tr><td class="info-label">Diagnostico</td><td colspan="3">${diagnostico}</td></tr>
+                <tr><td class="info-label">Fecha Nacimiento</td><td>${fnac}</td><td class="info-label">Edad</td><td>${edad} años</td></tr>
+                <tr><td class="info-label">Diagnóstico</td><td colspan="3">${diagnostico}</td></tr>
                 <tr><td class="info-label">Curso / Nivel Real</td><td>${nivelReal}</td></tr>
                 <tr><td class="info-label">Nivel de Trabajo PACI</td><td>${nivelTrabajo}</td></tr>
                 <tr><td class="info-label">Periodo</td><td>${trimestre}</td></tr>
@@ -6797,7 +6797,7 @@
 
             // Modulos de planificacion
             if (state.modulos.length) {
-              html += '<h2>3. Planificacion Curricular Adaptada</h2>';
+              html += '<h2>3. Planificación Curricular Adaptada</h2>';
 
               state.modulos.forEach((mod, i) => {
                 html += '<h3>' + (i + 1) + '. ' + (mod.asig || 'Sin asignatura') + ' - ' + (mod.nivelTrabajo || '') + '</h3>';

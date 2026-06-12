@@ -16,14 +16,14 @@ window.DOC_PHASES = [
   {
     key: 'ingreso',
     label: 'Ingreso',
-    sublabel: 'Evaluacion diagnostica integral',
+    sublabel: 'Evaluación diagnóstica integral',
     icon: 'fa-door-open',
     color: '#38bdf8',
     hint: 'Documentos que se generan UNA vez al ingreso del estudiante al PIE.'
   },
   {
     key: 'planificacion',
-    label: 'Planificacion y Gestion',
+    label: 'Planificación y Gestión',
     sublabel: 'Ciclo escolar continuo',
     icon: 'fa-calendar-day',
     color: '#34d399',
@@ -31,7 +31,7 @@ window.DOC_PHASES = [
   },
   {
     key: 'seguimiento',
-    label: 'Seguimiento y Reevaluacion',
+    label: 'Seguimiento y Reevaluación',
     sublabel: 'Hitos semestrales/anuales',
     icon: 'fa-chart-line',
     color: '#a78bfa',
@@ -51,7 +51,7 @@ const APODERADO_BLOCK = [
   { id: 'apoderado_nombre', label: 'Nombre del apoderado/a', type: 'text' },
   { id: 'apoderado_rut',    label: 'RUT del apoderado/a', type: 'text' },
   { id: 'apoderado_rel',    label: 'Relacion con el estudiante', type: 'text', placeholder: 'Madre / Padre / Tutor legal' },
-  { id: 'apoderado_tel',    label: 'Telefono de contacto', type: 'text' }
+  { id: 'apoderado_tel',    label: 'Teléfono de contacto', type: 'text' }
 ];
 
 window.DOC_TYPES = {
@@ -79,7 +79,7 @@ window.DOC_TYPES = {
     },
     schema: {
       sections: [
-        { key: 'identificacion', label: '1. Identificacion del estudiante', icon: 'fa-user',
+        { key: 'identificacion', label: '1. Identificación del estudiante', icon: 'fa-user',
           fields: STUDENT_BLOCK },
         { key: 'apoderado', label: '2. Antecedentes del apoderado', icon: 'fa-people-roof',
           fields: APODERADO_BLOCK },
@@ -128,11 +128,11 @@ window.DOC_TYPES = {
     sublabel: 'Formato MINEDUC 2025 (obligatorio 2026)',
     icon: 'fa-file-pen',
     route: '/docs.html?type=informe_psicopedagogico',
-    decree: 'Decreto 170/2009 + Cartilla 5 MINEDUC 2025',
+    decree: 'Decreto 170/2009 + Cartilla 4 MINEDUC 2025',
     officialUrl: 'https://especial.mineduc.cl/wp-content/uploads/sites/31/2025/11/Formato_Informe_EvaluaciOn_Psicopedagogica-2025.docx',
     officialUrlPdf: 'https://especial.mineduc.cl/wp-content/uploads/sites/31/2025/11/Formato_Informe_EvaluaciOn_Psicopedagogica-2025.pdf',
     officialLabel: 'Formato MINEDUC 2025 (OBLIGATORIO desde ingresos 2026)',
-    description: 'Documento tecnico que respalda fortalezas, dificultades y diagnostico pedagogico. Formato oficial obligatorio desde 2026 (Cartilla 5 MINEDUC).',
+    description: 'Documento tecnico que respalda fortalezas, dificultades y diagnostico pedagogico. El formato oficial 2025 incluye DOS instrumentos: el Informe de Evaluación Psicopedagogica (lo firma el profesional) y la Pauta de Evaluación y Observacion Pedagogica en el contexto escolar (la firma el docente de aula regular). Obligatorio desde ingresos 2026 (Cartilla 4 MINEDUC).',
     requiresMineduc: true,
     ministerial: true,
     docTitle: 'INFORME DE EVALUACIÓN PSICOPEDAGÓGICA',
@@ -187,9 +187,49 @@ window.DOC_TYPES = {
             { id: 'sug_familia',         label: '4. A la familia', type: 'textarea', rows: 2 },
             { id: 'sug_otros',           label: '5. Otros', type: 'textarea', rows: 2 }
           ]},
-        { key: 'pauta', label: '8. Pauta de observación pedagógica (opcional)', icon: 'fa-list-check',
+        // ===== SEGUNDO INSTRUMENTO MINISTERIAL (formato oficial 2025) =====
+        // "Pauta de Evaluación y Observación Pedagógica del estudiante en el contexto
+        // escolar": acompaña al informe psicopedagógico y la firma el DOCENTE DE AULA
+        // REGULAR (no el profesional que firma el informe). Escala: En inicio /
+        // En desarrollo / Logrado / No observado.
+        { key: 'pauta_identificacion', label: '8. Pauta de Observación Pedagógica — Identificación', icon: 'fa-list-check',
           fields: [
-            { id: 'pauta_observacion', label: 'Observaciones según pauta (escala: en inicio / en desarrollo / logrado / no observado)', type: 'textarea', rows: 4, placeholder: 'Comprensión de instrucciones, disposición para el aprendizaje, atención sostenida, organización de tiempo y materiales, uso de estrategias y apoyos...' }
+            { id: 'pauta_curso',  label: 'Curso', type: 'text' },
+            { id: 'pauta_fecha',  label: 'Fecha de aplicación de la pauta', type: 'date' },
+            { id: 'pauta_escala_nota', label: 'Escala de logro', type: 'textarea', rows: 3,
+              placeholder: '1 En inicio: requiere apoyo permanente · 2 En desarrollo: apoyo frecuente · 3 Logrado: de manera constante y autónoma (o con los apoyos necesarios) · N/O No observado.' }
+          ]},
+        { key: 'pauta_pedagogicos', label: '9. Pauta — Antecedentes pedagógicos', icon: 'fa-chalkboard-user',
+          fields: [
+            { id: 'pauta_ped_1',  label: 'Comprende instrucciones (orales, escritas o en lengua de señas) usando los apoyos necesarios', type: 'select', options: ['En inicio', 'En desarrollo', 'Logrado', 'No observado'] },
+            { id: 'pauta_ped_2',  label: 'Manifiesta disposición para el aprendizaje e interés por las tareas', type: 'select', options: ['En inicio', 'En desarrollo', 'Logrado', 'No observado'] },
+            { id: 'pauta_ped_3',  label: 'Mantiene la atención en las actividades por períodos adecuados a su edad y necesidades', type: 'select', options: ['En inicio', 'En desarrollo', 'Logrado', 'No observado'] },
+            { id: 'pauta_ped_4',  label: 'Organiza su tiempo y materiales para iniciar, desarrollar y concluir una actividad', type: 'select', options: ['En inicio', 'En desarrollo', 'Logrado', 'No observado'] },
+            { id: 'pauta_ped_5',  label: 'Usa estrategias o apoyos para resolver dificultades y pide ayuda cuando lo necesita', type: 'select', options: ['En inicio', 'En desarrollo', 'Logrado', 'No observado'] },
+            { id: 'pauta_ped_6',  label: 'Participa en actividades grupales, respetando turnos e interactuando con sus pares', type: 'select', options: ['En inicio', 'En desarrollo', 'Logrado', 'No observado'] },
+            { id: 'pauta_ped_7',  label: 'Muestra iniciativa proponiendo ideas o formas propias de realizar una actividad', type: 'select', options: ['En inicio', 'En desarrollo', 'Logrado', 'No observado'] },
+            { id: 'pauta_ped_8',  label: 'Expresa ideas, emociones o experiencias mediante diversos lenguajes y apoyos comunicativos', type: 'select', options: ['En inicio', 'En desarrollo', 'Logrado', 'No observado'] },
+            { id: 'pauta_ped_9',  label: 'Evidencia avances en tareas escolares mostrando esfuerzo, persistencia y sentido de logro', type: 'select', options: ['En inicio', 'En desarrollo', 'Logrado', 'No observado'] },
+            { id: 'pauta_ped_10', label: 'Reflexiona sobre su propio aprendizaje, reconociendo logros y desafíos con apoyo', type: 'select', options: ['En inicio', 'En desarrollo', 'Logrado', 'No observado'] }
+          ]},
+        { key: 'pauta_sociales', label: '10. Pauta — Antecedentes sociales y comunicativos', icon: 'fa-people-group',
+          fields: [
+            { id: 'pauta_soc_1',  label: 'Atiende y muestra interés ante las interacciones comunicativas', type: 'select', options: ['En inicio', 'En desarrollo', 'Logrado', 'No observado'] },
+            { id: 'pauta_soc_2',  label: 'Participa en intercambios comunicativos respetando turnos (oral, señas, apoyos, SAAC)', type: 'select', options: ['En inicio', 'En desarrollo', 'Logrado', 'No observado'] },
+            { id: 'pauta_soc_3',  label: 'Colabora y participa en actividades grupales o de juego colectivo', type: 'select', options: ['En inicio', 'En desarrollo', 'Logrado', 'No observado'] },
+            { id: 'pauta_soc_4',  label: 'Inicia interacciones sociales y propone ideas o acciones en actividades compartidas', type: 'select', options: ['En inicio', 'En desarrollo', 'Logrado', 'No observado'] },
+            { id: 'pauta_soc_5',  label: 'Participa en la organización de juegos o tareas, escuchando a otros y negociando acuerdos', type: 'select', options: ['En inicio', 'En desarrollo', 'Logrado', 'No observado'] },
+            { id: 'pauta_soc_6',  label: 'Recibe y responde a comentarios o sugerencias de pares o adultos de forma respetuosa', type: 'select', options: ['En inicio', 'En desarrollo', 'Logrado', 'No observado'] },
+            { id: 'pauta_soc_7',  label: 'Solicita ayuda o colaboración cuando la necesita, con las formas de comunicación disponibles', type: 'select', options: ['En inicio', 'En desarrollo', 'Logrado', 'No observado'] },
+            { id: 'pauta_soc_8',  label: 'Acepta ayuda o acompañamiento de pares o adultos, con disposición al trabajo colaborativo', type: 'select', options: ['En inicio', 'En desarrollo', 'Logrado', 'No observado'] },
+            { id: 'pauta_soc_9',  label: 'Establece y mantiene vínculos positivos con sus compañeros y sentido de pertenencia', type: 'select', options: ['En inicio', 'En desarrollo', 'Logrado', 'No observado'] },
+            { id: 'pauta_soc_10', label: 'Reconoce y expresa emociones propias y de otros, mostrando empatía', type: 'select', options: ['En inicio', 'En desarrollo', 'Logrado', 'No observado'] }
+          ]},
+        { key: 'pauta_docente', label: '11. Docente de aula regular que emite la Pauta', icon: 'fa-user-pen',
+          fields: [
+            { id: 'pauta_doc_nombre',  label: 'Nombre completo', type: 'text' },
+            { id: 'pauta_doc_rut',     label: 'RUT', type: 'text' },
+            { id: 'pauta_doc_profesion', label: 'Profesión', type: 'text' }
           ]}
       ]
     }
@@ -199,7 +239,7 @@ window.DOC_TYPES = {
     key: 'fudei',
     phase: 'ingreso',
     label: 'FUDEI',
-    sublabel: 'Formulario Unico de Evaluacion Integral',
+    sublabel: 'Formulario Único de Evaluación Integral',
     icon: 'fa-file-shield',
     route: '/docs.html?type=fudei',
     decree: 'DS 170/2009 + Instructivo FUDEI-PIE 2026',
@@ -217,21 +257,21 @@ window.DOC_TYPES = {
     },
     schema: {
       sections: [
-        { key: 'identificacion', label: '1. Identificacion del estudiante', icon: 'fa-user', fields: STUDENT_BLOCK },
+        { key: 'identificacion', label: '1. Identificación del estudiante', icon: 'fa-user', fields: STUDENT_BLOCK },
         { key: 'folio', label: '2. Datos del FUDEI online', icon: 'fa-hashtag',
           fields: [
-            { id: 'fudei_folio',         label: 'Numero de folio FUDEI', type: 'text', placeholder: 'Ej: FU-2026-0123', required: true },
+            { id: 'fudei_folio',         label: 'Número de folio FUDEI', type: 'text', placeholder: 'Ej: FU-2026-0123', required: true },
             { id: 'fudei_estado',        label: 'Estado del FUDEI', type: 'select',
               options: ['En proceso', 'Finalizado', 'Rechazado por SIGE', 'Pendiente firma especialista'] },
             { id: 'fudei_fecha_inicio',  label: 'Fecha de inicio del FUDEI', type: 'date' },
             { id: 'fudei_fecha_final',   label: 'Fecha de finalizacion', type: 'date' }
           ]},
-        { key: 'diagnostico', label: '3. Sintesis diagnostica', icon: 'fa-stethoscope',
+        { key: 'diagnostico', label: '3. Síntesis diagnóstica', icon: 'fa-stethoscope',
           fields: [
             { id: 'categoria_nee', label: 'Categoria NEE', type: 'select',
               options: ['NEET (Transitoria)', 'NEEP (Permanente)', 'No aplica'] },
-            { id: 'diagnostico_principal', label: 'Diagnostico principal', type: 'text', placeholder: 'Ej: TEL Mixto, TEA, FIL, etc.' },
-            { id: 'diagnostico_secundario', label: 'Diagnosticos secundarios (si aplica)', type: 'textarea', rows: 2 }
+            { id: 'diagnostico_principal', label: 'Diagnóstico principal', type: 'text', placeholder: 'Ej: TEL Mixto, TEA, FIL, etc.' },
+            { id: 'diagnostico_secundario', label: 'Diagnósticos secundarios (si aplica)', type: 'textarea', rows: 2 }
           ]},
         { key: 'apoyos', label: '4. Necesidades de apoyo identificadas', icon: 'fa-people-arrows',
           fields: [
@@ -264,14 +304,14 @@ window.DOC_TYPES = {
     },
     schema: {
       sections: [
-        { key: 'identificacion', label: '1. Identificacion del estudiante', icon: 'fa-user', fields: STUDENT_BLOCK },
+        { key: 'identificacion', label: '1. Identificación del estudiante', icon: 'fa-user', fields: STUDENT_BLOCK },
         { key: 'profesional', label: '2. Datos del profesional evaluador', icon: 'fa-user-doctor',
           fields: [
             { id: 'prof_nombre',    label: 'Nombre completo', type: 'text', required: true },
             { id: 'prof_rut',       label: 'RUT', type: 'text', required: true },
             { id: 'prof_especialidad', label: 'Especialidad', type: 'select',
               options: ['Psicologo/a', 'Fonoaudiologo/a', 'Neurologo/a', 'Kinesiologo/a', 'Terapeuta Ocupacional', 'Asistente Social', 'Otro'] },
-            { id: 'prof_registro',  label: 'Numero de Registro MINEDUC', type: 'text', required: true },
+            { id: 'prof_registro',  label: 'Número de Registro MINEDUC', type: 'text', required: true },
             { id: 'prof_lugar',     label: 'Centro / Institucion donde ejerce', type: 'text' }
           ]},
         { key: 'derivacion', label: '3. Motivo de la derivacion', icon: 'fa-arrow-down-up-across-line',
@@ -287,9 +327,9 @@ window.DOC_TYPES = {
             { id: 'instrumentos', label: 'Pruebas aplicadas', type: 'textarea', rows: 3 },
             { id: 'resultados',   label: 'Resultados obtenidos', type: 'textarea', rows: 3 }
           ]},
-        { key: 'diagnostico', label: '6. Diagnostico', icon: 'fa-stethoscope',
+        { key: 'diagnostico', label: '6. Diagnóstico', icon: 'fa-stethoscope',
           fields: [
-            { id: 'diagnostico',     label: 'Diagnostico', type: 'textarea', rows: 2 },
+            { id: 'diagnostico',     label: 'Diagnóstico', type: 'textarea', rows: 2 },
             { id: 'codigo_cie10',    label: 'Codigo CIE-10 (si corresponde)', type: 'text', placeholder: 'Ej: F80.2' }
           ]},
         { key: 'sugerencias', label: '7. Sugerencias y orientaciones', icon: 'fa-lightbulb',
@@ -303,7 +343,7 @@ window.DOC_TYPES = {
   autorizacion_familia: {
     key: 'autorizacion_familia',
     phase: 'ingreso',
-    label: 'Autorizacion de la Familia',
+    label: 'Autorización de la Familia',
     sublabel: 'Consentimiento informado',
     icon: 'fa-file-signature',
     route: '/docs.html?type=autorizacion_familia',
@@ -406,7 +446,7 @@ window.DOC_TYPES = {
     },
     schema: {
       sections: [
-        { key: 'identificacion', label: '1. Identificacion del estudiante', icon: 'fa-user', fields: STUDENT_BLOCK },
+        { key: 'identificacion', label: '1. Identificación del estudiante', icon: 'fa-user', fields: STUDENT_BLOCK },
         { key: 'antec_morbidos', label: '2. Antecedentes morbidos', icon: 'fa-notes-medical',
           fields: [
             { id: 'antec_personales', label: 'Antecedentes morbidos personales', type: 'textarea', rows: 3 },
@@ -419,9 +459,9 @@ window.DOC_TYPES = {
             { id: 'agudeza_visual',     label: 'Agudeza visual', type: 'text' },
             { id: 'agudeza_auditiva',   label: 'Agudeza auditiva', type: 'text' }
           ]},
-        { key: 'diagnostico', label: '4. Diagnostico clinico', icon: 'fa-stethoscope',
+        { key: 'diagnostico', label: '4. Diagnóstico clínico', icon: 'fa-stethoscope',
           fields: [
-            { id: 'diagnostico', label: 'Diagnostico', type: 'textarea', rows: 3 }
+            { id: 'diagnostico', label: 'Diagnóstico', type: 'textarea', rows: 3 }
           ]},
         { key: 'tratamiento', label: '5. Tratamientos en curso', icon: 'fa-pills',
           fields: [
@@ -431,12 +471,12 @@ window.DOC_TYPES = {
           fields: [
             { id: 'sugerencias', label: 'Sugerencias', type: 'textarea', rows: 3 }
           ]},
-        { key: 'medico', label: '7. Identificacion del medico', icon: 'fa-user-doctor',
+        { key: 'medico', label: '7. Identificación del médico', icon: 'fa-user-doctor',
           fields: [
             { id: 'medico_nombre', label: 'Nombre completo', type: 'text', required: true },
             { id: 'medico_rut',    label: 'RUT', type: 'text', required: true },
             { id: 'medico_esp',    label: 'Especialidad', type: 'text' },
-            { id: 'medico_reg_super', label: 'Numero de Registro Superintendencia', type: 'text', required: true }
+            { id: 'medico_reg_super', label: 'Número de Registro Superintendencia', type: 'text', required: true }
           ]}
       ]
     }
@@ -568,7 +608,7 @@ window.DOC_TYPES = {
     },
     schema: {
       sections: [
-        { key: 'identificacion', label: '1. Identificacion del estudiante', icon: 'fa-user', fields: STUDENT_BLOCK },
+        { key: 'identificacion', label: '1. Identificación del estudiante', icon: 'fa-user', fields: STUDENT_BLOCK },
         { key: 'sesion', label: '2. Datos de la sesion', icon: 'fa-clock',
           fields: [
             { id: 'fecha_sesion',  label: 'Fecha', type: 'date' },
@@ -614,7 +654,7 @@ window.DOC_TYPES = {
     officialUrl: 'https://especial.mineduc.cl/wp-content/uploads/sites/31/2025/02/INFORME_PARA_LA_FAMILIA_2025.doc',
     officialUrlPdf: 'https://especial.mineduc.cl/wp-content/uploads/sites/31/2025/02/INFORME_PARA_LA_FAMILIA_2025.pdf',
     officialLabel: 'Formato MINEDUC 2025 (obligatorio)',
-    description: 'Sintesis de avances pedagogicos escrita en lenguaje accesible para padres/apoderados. Semestral o anual obligatorio.',
+    description: 'Síntesis de avances pedagogicos escrita en lenguaje accesible para padres/apoderados. Semestral o anual obligatorio.',
     requiresMineduc: true,
     ministerial: true,
     docTitle: 'INFORME PARA LA FAMILIA',
@@ -675,7 +715,7 @@ window.DOC_TYPES = {
     key: 'fur',
     phase: 'seguimiento',
     label: 'FUR',
-    sublabel: 'Formulario Unico de Reevaluacion',
+    sublabel: 'Formulario Único de Reevaluación',
     icon: 'fa-arrows-rotate',
     route: '/docs.html?type=fur',
     decree: 'DS 170/2009 art. 11',
@@ -727,8 +767,8 @@ window.DOC_TYPES = {
     },
     schema: {
       sections: [
-        { key: 'identificacion', label: '1. Identificacion del estudiante', icon: 'fa-user', fields: STUDENT_BLOCK },
-        { key: 'diagnostico_actual', label: '2. Diagnostico vigente', icon: 'fa-stethoscope',
+        { key: 'identificacion', label: '1. Identificación del estudiante', icon: 'fa-user', fields: STUDENT_BLOCK },
+        { key: 'diagnostico_actual', label: '2. Diagnóstico vigente', icon: 'fa-stethoscope',
           fields: [
             { id: 'diag_categoria', label: 'Categoria NEE', type: 'select', options: ['NEET (Transitoria)', 'NEEP (Permanente)'] },
             { id: 'diag_codigo',    label: 'Codigo diagnostico', type: 'select',
@@ -739,7 +779,7 @@ window.DOC_TYPES = {
           fields: [
             { id: 'apoyos_entregados', label: 'Detalle de apoyos (profesionales, frecuencia, modalidad)', type: 'textarea', rows: 4 }
           ]},
-        { key: 'progreso', label: '4. Evaluacion de progreso', icon: 'fa-arrow-trend-up',
+        { key: 'progreso', label: '4. Evaluación de progreso', icon: 'fa-arrow-trend-up',
           fields: [
             { id: 'progreso_cualitativo', label: 'Progreso cualitativo', type: 'textarea', rows: 3 },
             { id: 'progreso_cuantitativo', label: 'Progreso cuantitativo (instrumentos)', type: 'textarea', rows: 3 }
@@ -751,7 +791,7 @@ window.DOC_TYPES = {
           ]},
         { key: 'decision', label: '6. Decision', icon: 'fa-scale-balanced',
           fields: [
-            { id: 'decision', label: 'Decision', type: 'select',
+            { id: 'decision', label: 'Decisión', type: 'select',
               options: ['Continuidad en el PIE con misma categoria', 'Continuidad con cambio de categoria diagnostica', 'Egreso del PIE', 'Derivacion a otro programa'] },
             { id: 'justificacion', label: 'Justificacion', type: 'textarea', rows: 3 }
           ]},
@@ -880,7 +920,7 @@ window.DOC_TYPES = {
     },
     schema: {
       sections: [
-        { key: 'identificacion', label: '1. Identificacion del estudiante y periodo', icon: 'fa-user',
+        { key: 'identificacion', label: '1. Identificación del estudiante y periodo', icon: 'fa-user',
           fields: [
             ...STUDENT_BLOCK,
             { id: 'periodo', label: 'Periodo', type: 'select',
