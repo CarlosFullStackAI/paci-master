@@ -20,8 +20,9 @@ y que toda la app (planificacion de clases, datepicker, widget del calendario) l
 - [x] Los feriados nacionales de Chile siguen siendo genericos (no del colegio).
 
 ## Fuera de alcance
-- Editor de eventos del colegio (actos, hitos) en admin.html — se conservan al guardar
-  pero solo se editan via wrangler por ahora.
+- ~~Editor de eventos del colegio en admin.html~~ AGREGADO el 2026-06-13: textarea
+  "AAAA-MM-DD | Titulo | tipo" (tipo: pie/feriado/efemeride); el backend valida y
+  conserva el icono de los eventos que no cambian.
 - Calendarios de anos futuros (2027+): se cargaran cuando exista la calendarizacion oficial.
 
 ## Plan tecnico (como se hizo)

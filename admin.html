@@ -4,227 +4,371 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Administración de Colegios — PIE MASTER</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- CSS propio autocontenido: esta página NO usa el CDN de Tailwind.
+       (Antes dependía de cdn.tailwindcss.com y si el script no cargaba,
+       la página quedaba sin estilos. Corregido 2026-06-13.) -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
-    body { background: radial-gradient(1100px 600px at 85% -10%, #13234a 0%, #0a0f1f 55%); color: #e2e8f0; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
-    input, select { background: #111a30; border: 1px solid #2a3a5e; color: #e2e8f0; border-radius: 0.6rem; transition: border-color .15s, box-shadow .15s; }
-    input:focus, select:focus { outline: none; border-color: #38bdf8; box-shadow: 0 0 0 3px rgba(56,189,248,0.18); }
-    input[type="color"] { padding: 2px; cursor: pointer; }
-    .card { background: #0e1730; border: 1px solid rgba(56,189,248,0.15); box-shadow: 0 10px 30px rgba(2,6,23,0.35); }
-    .hero { background: linear-gradient(135deg, #091845 0%, #1240c4 100%); box-shadow: 0 14px 40px rgba(18,64,196,0.28); }
-    .code-pill { font-family: ui-monospace, 'Courier New', monospace; background: rgba(16,185,129,0.12); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.32); padding: 2px 9px; border-radius: 6px; letter-spacing: 1.5px; font-size: 0.8rem; }
-    table tbody tr { transition: background .12s; }
-    table tbody tr:hover { background: rgba(56,189,248,0.05); }
-    .avatar { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 50%; overflow: hidden; background: linear-gradient(135deg, #2563eb, #818cf8); color: #fff; font-weight: 800; font-size: 13px; flex-shrink: 0; line-height: 1; }
-    .avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-    .btn-primary { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
-    .btn-primary:hover { filter: brightness(1.08); }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      background: radial-gradient(1100px 600px at 85% -10%, #13234a 0%, #0a0f1f 55%);
+      color: #e2e8f0;
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      padding: 1.5rem 1rem 3rem;
+    }
+    .page-wrap { max-width: 1000px; margin: 0 auto; }
+    .hidden { display: none !important; }
+    .muted { color: #64748b; }
 
-    /* Acordeón */
+    /* ===== Hero ===== */
+    .hero {
+      background: linear-gradient(135deg, #091845 0%, #1240c4 100%);
+      box-shadow: 0 14px 40px rgba(18,64,196,0.28);
+      border-radius: 1.25rem;
+      padding: 1.5rem;
+      margin-bottom: 1.75rem;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 0.85rem;
+    }
+    .hero-brand { display: flex; align-items: center; gap: 1rem; }
+    .hero-icon {
+      width: 3rem; height: 3rem; border-radius: 0.85rem;
+      background: rgba(255,255,255,0.15);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.4rem; color: #fff; flex-shrink: 0;
+    }
+    .hero h1 { color: #fff; font-size: 1.45rem; font-weight: 800; line-height: 1.2; }
+    .hero p { color: rgba(207,227,255,0.8); font-size: 0.78rem; margin-top: 0.2rem; }
+    .hero-back {
+      background: rgba(255,255,255,0.15); color: #fff; text-decoration: none;
+      font-size: 0.75rem; font-weight: 700; padding: 0.55rem 0.95rem;
+      border-radius: 0.6rem; transition: background .15s; white-space: nowrap;
+    }
+    .hero-back:hover { background: rgba(255,255,255,0.25); }
+
+    /* ===== Mensajes ===== */
+    .msg { margin-bottom: 1rem; padding: 0.8rem 1rem; border-radius: 0.6rem; font-size: 0.85rem; font-weight: 600; }
+    .msg-ok { background: rgba(6,78,59,0.45); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.3); }
+    .msg-err { background: rgba(127,29,29,0.45); color: #fca5a5; border: 1px solid rgba(239,68,68,0.3); }
+
+    /* ===== Tarjetas y acordeón ===== */
+    .card {
+      background: #0e1730; border: 1px solid rgba(56,189,248,0.15);
+      box-shadow: 0 10px 30px rgba(2,6,23,0.35);
+      border-radius: 1rem; margin-bottom: 1.4rem; overflow: hidden;
+    }
     .acc-header {
       width: 100%; display: flex; align-items: center; justify-content: space-between;
       padding: 1rem 1.25rem; cursor: pointer; background: transparent; border: none;
-      color: #7dd3fc; font-size: 0.78rem; font-weight: 800;
+      color: #7dd3fc; font-size: 0.78rem; font-weight: 800; font-family: inherit;
       text-transform: uppercase; letter-spacing: .5px; text-align: left;
     }
     .acc-header:hover { color: #bae6fd; }
+    .acc-header .acc-title { display: flex; align-items: center; gap: 0.5rem; }
     .acc-chevron { transition: transform .3s ease; font-size: .75rem; color: #64748b; }
     .acc.open > .acc-header .acc-chevron { transform: rotate(180deg); }
-    /* Animación de altura sin tope fijo (grid 0fr -> 1fr) */
     .acc-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .35s ease; }
     .acc.open > .acc-body { grid-template-rows: 1fr; }
     .acc-body > .acc-inner { min-height: 0; overflow: hidden; }
-    /* Grupos de campos dentro del formulario */
-    .form-group { padding: 0.9rem 0; border-top: 1px solid rgba(56,189,248,0.08); }
+    .acc-pad { padding: 0 1.25rem 1.25rem; }
+
+    /* ===== Formulario ===== */
+    .form-group { padding: 1rem 0; border-top: 1px solid rgba(56,189,248,0.08); }
     .form-group:first-child { border-top: none; padding-top: 0.2rem; }
-    .form-group-title { font-size: 0.68rem; font-weight: 800; text-transform: uppercase; letter-spacing: .6px; color: #64748b; margin-bottom: 0.6rem; }
+    .form-group-title {
+      font-size: 0.68rem; font-weight: 800; text-transform: uppercase;
+      letter-spacing: .6px; color: #64748b; margin-bottom: 0.7rem;
+    }
+    .form-group-title i { color: #38bdf8; margin-right: 0.3rem; }
+    .fgrid { display: grid; gap: 0.85rem; }
+    .fgrid-2 { grid-template-columns: 1fr 1fr; }
+    .fgrid-3 { grid-template-columns: 1fr 1fr 1fr; }
+    @media (max-width: 720px) { .fgrid-2, .fgrid-3 { grid-template-columns: 1fr; } }
+    .field label {
+      display: block; font-size: 0.66rem; font-weight: 800;
+      text-transform: uppercase; letter-spacing: .4px;
+      color: #94a3b8; margin-bottom: 0.3rem;
+    }
+    .field .hint { font-size: 0.66rem; color: #64748b; margin-top: 0.3rem; line-height: 1.4; }
+    input, select, textarea {
+      width: 100%; background: #111a30; border: 1px solid #2a3a5e; color: #e2e8f0;
+      border-radius: 0.6rem; padding: 0.6rem 0.75rem; font-size: 0.85rem;
+      font-family: inherit; transition: border-color .15s, box-shadow .15s;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none; border-color: #38bdf8; box-shadow: 0 0 0 3px rgba(56,189,248,0.18);
+    }
+    input:disabled { opacity: 0.55; cursor: not-allowed; }
+    textarea { resize: vertical; font-family: ui-monospace, Consolas, monospace; font-size: 0.78rem; line-height: 1.6; }
+    input[type="date"] { font-size: 0.78rem; padding: 0.5rem 0.6rem; color-scheme: dark; }
+    input[type="color"] { width: 4rem; height: 2.5rem; padding: 3px; cursor: pointer; }
+    .date-pair { display: flex; gap: 0.5rem; }
+    .inline-fields { display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end; }
+    .inline-fields .field { min-width: 0; }
+    .inline-fields select { width: auto; min-width: 6rem; }
+    .form-note { font-size: 0.68rem; color: #64748b; margin-top: 0.7rem; line-height: 1.5; }
+
+    /* ===== Botones ===== */
+    .btn {
+      display: inline-flex; align-items: center; gap: 0.45rem;
+      border: none; cursor: pointer; font-family: inherit;
+      color: #fff; font-size: 0.82rem; font-weight: 700;
+      padding: 0.6rem 1.1rem; border-radius: 0.6rem; transition: filter .15s, background .15s;
+    }
+    .btn:disabled { opacity: 0.6; cursor: wait; }
+    .btn-primary { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
+    .btn-primary:hover { filter: brightness(1.12); }
+    .btn-slate { background: #334155; }
+    .btn-slate:hover { background: #475569; }
+    .btn-violet { background: #7c3aed; }
+    .btn-violet:hover { background: #6d28d9; }
+    .form-actions { display: flex; gap: 0.6rem; margin-top: 1.1rem; }
+
+    /* ===== Tablas ===== */
+    .tbl-wrap { overflow-x: auto; }
+    .tbl-wrap.bordered { border: 1px solid #1e293b; border-radius: 0.7rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+    thead { background: #111a30; }
+    th {
+      text-align: left; padding: 0.75rem 0.9rem; color: #94a3b8;
+      font-size: 0.66rem; font-weight: 800; text-transform: uppercase; letter-spacing: .4px;
+    }
+    th.right, td.right { text-align: right; }
+    td { padding: 0.75rem 0.9rem; border-top: 1px solid #1e293b; vertical-align: middle; }
+    tbody tr { transition: background .12s; }
+    tbody tr:hover { background: rgba(56,189,248,0.05); }
+    td .empty { text-align: center; color: #64748b; }
+    td.center { text-align: center; color: #64748b; padding: 1.5rem; }
+    .t-strong { font-weight: 700; }
+    .t-sky { color: #38bdf8; }
+    .t-dim { color: #94a3b8; }
+    .t-ok { color: #34d399; }
+    .t-warn { color: #fbbf24; }
+    .sub { font-size: 0.7rem; color: #64748b; }
+    .tbl-link {
+      background: none; border: none; cursor: pointer; font-family: inherit;
+      font-size: 0.72rem; font-weight: 800; color: #38bdf8; padding: 0.2rem 0.3rem;
+      white-space: nowrap;
+    }
+    .tbl-link:hover { color: #7dd3fc; }
+    .tbl-link.amber { color: #fbbf24; }
+    .tbl-link.amber:hover { color: #fcd34d; }
+    .code-pill {
+      font-family: ui-monospace, 'Courier New', monospace;
+      background: rgba(16,185,129,0.12); color: #6ee7b7;
+      border: 1px solid rgba(16,185,129,0.32);
+      padding: 2px 9px; border-radius: 6px; letter-spacing: 1.5px; font-size: 0.8rem;
+    }
+    .user-cell { display: flex; align-items: center; gap: 0.65rem; }
+    .users-toolbar {
+      background: #111a30; border: 1px solid #1e293b; border-radius: 0.7rem;
+      padding: 1rem; margin-bottom: 1rem;
+      display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.85rem;
+    }
+    .users-toolbar .field { flex: 0 1 auto; }
+    .users-toolbar .full-note { flex-basis: 100%; font-size: 0.66rem; color: #64748b; }
+
+    /* ===== Avatar ===== */
+    .avatar {
+      position: relative; display: inline-flex; align-items: center; justify-content: center;
+      width: 34px; height: 34px; border-radius: 50%; overflow: hidden;
+      background: linear-gradient(135deg, #2563eb, #818cf8);
+      color: #fff; font-weight: 800; font-size: 13px; flex-shrink: 0; line-height: 1;
+    }
+    .avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
   </style>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
-<body class="min-h-screen p-4 md:p-8">
-  <div class="max-w-5xl mx-auto">
-    <header class="hero rounded-2xl p-6 mb-7 flex items-center justify-between flex-wrap gap-3">
-      <div class="flex items-center gap-4">
-        <div class="w-12 h-12 rounded-xl bg-white/15 flex items-center justify-center text-2xl text-white"><i class="fa-solid fa-school"></i></div>
+<body>
+  <div class="page-wrap">
+    <header class="hero">
+      <div class="hero-brand">
+        <div class="hero-icon"><i class="fa-solid fa-school"></i></div>
         <div>
-          <h1 class="text-2xl font-extrabold text-white leading-tight">Administración de Colegios</h1>
-          <p class="text-xs text-blue-100/80 mt-0.5">Crea y edita los establecimientos del sistema (multi-colegio). Solo administradores.</p>
+          <h1>Administración de Colegios</h1>
+          <p>Crea y edita los establecimientos del sistema (multi-colegio). Solo administradores.</p>
         </div>
       </div>
-      <a href="/dashboard.html" class="bg-white/15 hover:bg-white/25 transition text-white text-xs font-bold px-3.5 py-2 rounded-lg"><i class="fa-solid fa-arrow-left"></i> Volver al panel</a>
+      <a href="/dashboard.html" class="hero-back"><i class="fa-solid fa-arrow-left"></i> Volver al panel</a>
     </header>
 
-    <div id="msg" class="hidden mb-4 p-3 rounded-lg text-sm"></div>
+    <div id="msg" class="hidden"></div>
 
     <!-- Acordeón: crear / editar establecimiento -->
-    <div class="acc card rounded-xl mb-6 open" id="acc-form">
+    <div class="acc card open" id="acc-form">
       <button type="button" class="acc-header" onclick="toggleAcc(this)" aria-label="Mostrar u ocultar el formulario">
-        <span id="form-title" class="flex items-center gap-2"><i class="fa-solid fa-plus"></i> Nuevo establecimiento</span>
+        <span id="form-title" class="acc-title"><i class="fa-solid fa-plus"></i> Nuevo establecimiento</span>
         <i class="fa-solid fa-chevron-down acc-chevron"></i>
       </button>
       <div class="acc-body"><div class="acc-inner">
-        <div class="px-5 pb-5">
+        <div class="acc-pad">
           <input type="hidden" id="f-id">
 
           <div class="form-group">
-            <div class="form-group-title"><i class="fa-solid fa-id-card-clip mr-1"></i> Identificación</div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">Identificador / subdominio</label>
-                <input type="text" id="f-slug" placeholder="ej. lcm-pulebu" class="w-full p-2.5 rounded-lg text-sm">
-                <p class="text-[10px] text-slate-500 mt-1">Solo minúsculas, números y guiones. No se puede cambiar después.</p>
+            <div class="form-group-title"><i class="fa-solid fa-id-card-clip"></i> Identificación</div>
+            <div class="fgrid fgrid-2">
+              <div class="field">
+                <label>Identificador / subdominio</label>
+                <input type="text" id="f-slug" placeholder="ej. lcm-pulebu">
+                <p class="hint">Solo minúsculas, números y guiones. No se puede cambiar después.</p>
               </div>
-              <div>
-                <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">Nombre del establecimiento</label>
-                <input type="text" id="f-nombre" placeholder="Escuela ..." class="w-full p-2.5 rounded-lg text-sm">
+              <div class="field">
+                <label>Nombre del establecimiento</label>
+                <input type="text" id="f-nombre" placeholder="Escuela ...">
               </div>
-              <div>
-                <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">Nombre corto</label>
-                <input type="text" id="f-nombre-corto" placeholder="ej. LCM Pulebu" class="w-full p-2.5 rounded-lg text-sm">
+              <div class="field">
+                <label>Nombre corto</label>
+                <input type="text" id="f-nombre-corto" placeholder="ej. LCM Pulebu">
               </div>
-              <div>
-                <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">RBD</label>
-                <input type="text" id="f-rbd" placeholder="ej. 12345-6" class="w-full p-2.5 rounded-lg text-sm">
-              </div>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <div class="form-group-title"><i class="fa-solid fa-location-dot mr-1"></i> Ubicación</div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div>
-                <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">Comuna</label>
-                <input type="text" id="f-comuna" class="w-full p-2.5 rounded-lg text-sm">
-              </div>
-              <div>
-                <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">Localidad</label>
-                <input type="text" id="f-localidad" class="w-full p-2.5 rounded-lg text-sm">
-              </div>
-              <div>
-                <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">Región</label>
-                <input type="text" id="f-region" class="w-full p-2.5 rounded-lg text-sm">
+              <div class="field">
+                <label>RBD</label>
+                <input type="text" id="f-rbd" placeholder="ej. 12345-6">
               </div>
             </div>
           </div>
 
           <div class="form-group">
-            <div class="form-group-title"><i class="fa-solid fa-calendar-days mr-1"></i> Calendario escolar</div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
-              <div>
-                <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">1° Trimestre</label>
-                <div class="flex gap-2">
-                  <input type="date" id="f-t1i" class="w-full p-2 rounded-lg text-xs" title="Inicio">
-                  <input type="date" id="f-t1f" class="w-full p-2 rounded-lg text-xs" title="Fin">
-                </div>
+            <div class="form-group-title"><i class="fa-solid fa-location-dot"></i> Ubicación</div>
+            <div class="fgrid fgrid-3">
+              <div class="field">
+                <label>Comuna</label>
+                <input type="text" id="f-comuna">
               </div>
-              <div>
-                <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">2° Trimestre</label>
-                <div class="flex gap-2">
-                  <input type="date" id="f-t2i" class="w-full p-2 rounded-lg text-xs" title="Inicio">
-                  <input type="date" id="f-t2f" class="w-full p-2 rounded-lg text-xs" title="Fin">
-                </div>
+              <div class="field">
+                <label>Localidad</label>
+                <input type="text" id="f-localidad">
               </div>
-              <div>
-                <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">3° Trimestre</label>
-                <div class="flex gap-2">
-                  <input type="date" id="f-t3i" class="w-full p-2 rounded-lg text-xs" title="Inicio">
-                  <input type="date" id="f-t3f" class="w-full p-2 rounded-lg text-xs" title="Fin">
-                </div>
+              <div class="field">
+                <label>Región</label>
+                <input type="text" id="f-region">
               </div>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">Vacaciones / recesos (uno por línea)</label>
-                <textarea id="f-vacaciones" rows="3" class="w-full p-2.5 rounded-lg text-xs font-mono" placeholder="2026-06-22 a 2026-07-03 | Receso escolar de invierno"></textarea>
-              </div>
-              <div>
-                <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">Días sin clases del colegio (uno por línea)</label>
-                <textarea id="f-diassc" rows="3" class="w-full p-2.5 rounded-lg text-xs font-mono" placeholder="2026-07-17 | Interferiado (sin clases)"></textarea>
-              </div>
-            </div>
-            <p class="text-[10px] text-slate-500 mt-2">Formato de fechas: AAAA-MM-DD. Las clases nunca se agendan en vacaciones ni en días sin clases. Los eventos del calendario (actos, hitos) se conservan al guardar.</p>
           </div>
 
           <div class="form-group">
-            <div class="form-group-title"><i class="fa-solid fa-palette mr-1"></i> Apariencia y estado</div>
-            <div class="flex flex-wrap gap-4 items-end">
-              <div>
-                <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">Color primario</label>
-                <input type="color" id="f-color1" value="#091845" class="h-10 w-16 rounded-lg p-1">
+            <div class="form-group-title"><i class="fa-solid fa-calendar-days"></i> Calendario escolar</div>
+            <div class="fgrid fgrid-3" style="margin-bottom: 0.85rem;">
+              <div class="field">
+                <label>1° Trimestre (inicio / fin)</label>
+                <div class="date-pair">
+                  <input type="date" id="f-t1i" title="Inicio">
+                  <input type="date" id="f-t1f" title="Fin">
+                </div>
               </div>
-              <div>
-                <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">Color secundario</label>
-                <input type="color" id="f-color2" value="#1240c4" class="h-10 w-16 rounded-lg p-1">
+              <div class="field">
+                <label>2° Trimestre (inicio / fin)</label>
+                <div class="date-pair">
+                  <input type="date" id="f-t2i" title="Inicio">
+                  <input type="date" id="f-t2f" title="Fin">
+                </div>
               </div>
-              <div id="activo-wrap" class="hidden">
-                <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">Activo</label>
-                <select id="f-activo" class="h-10 p-2 rounded-lg text-sm"><option value="1">Sí</option><option value="0">No</option></select>
+              <div class="field">
+                <label>3° Trimestre (inicio / fin)</label>
+                <div class="date-pair">
+                  <input type="date" id="f-t3i" title="Inicio">
+                  <input type="date" id="f-t3f" title="Fin">
+                </div>
+              </div>
+            </div>
+            <div class="fgrid fgrid-2" style="margin-bottom: 0.85rem;">
+              <div class="field">
+                <label>Vacaciones / recesos (uno por línea)</label>
+                <textarea id="f-vacaciones" rows="3" placeholder="2026-06-22 a 2026-07-03 | Receso escolar de invierno"></textarea>
+                <p class="hint">Formato: <b>AAAA-MM-DD a AAAA-MM-DD | Nombre</b>. Las clases nunca se agendan dentro de un receso.</p>
+              </div>
+              <div class="field">
+                <label>Días sin clases del colegio (uno por línea)</label>
+                <textarea id="f-diassc" rows="3" placeholder="2026-07-17 | Interferiado (sin clases)"></textarea>
+                <p class="hint">Formato: <b>AAAA-MM-DD | Motivo</b>. Interferiados, jornadas docentes, etc.</p>
+              </div>
+            </div>
+            <div class="field">
+              <label>Eventos del colegio (uno por línea)</label>
+              <textarea id="f-eventos" rows="5" placeholder="2026-06-18 | Acto Wetripantü (14:45 hrs) | efemeride&#10;2026-09-10 | Término de clases 2° Trimestre | pie"></textarea>
+              <p class="hint">Formato: <b>AAAA-MM-DD | Título | tipo</b> (tipo opcional: <b>pie</b>, <b>feriado</b> o <b>efemeride</b>; si se omite, queda como hito PIE). Aparecen en el calendario del dashboard de todo el equipo.</p>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <div class="form-group-title"><i class="fa-solid fa-palette"></i> Apariencia y estado</div>
+            <div class="inline-fields">
+              <div class="field">
+                <label>Color primario</label>
+                <input type="color" id="f-color1" value="#091845">
+              </div>
+              <div class="field">
+                <label>Color secundario</label>
+                <input type="color" id="f-color2" value="#1240c4">
+              </div>
+              <div id="activo-wrap" class="field hidden">
+                <label>Activo</label>
+                <select id="f-activo"><option value="1">Sí</option><option value="0">No</option></select>
               </div>
             </div>
           </div>
 
-          <div class="flex gap-2 mt-4">
-            <button id="btn-save" onclick="saveTenant()" class="btn-primary text-white px-4 py-2 rounded-lg text-sm font-bold"><i class="fa-solid fa-floppy-disk"></i> Guardar</button>
-            <button id="btn-cancel" onclick="resetForm()" class="hidden bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm font-bold">Cancelar edición</button>
+          <div class="form-actions">
+            <button id="btn-save" onclick="saveTenant()" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Guardar</button>
+            <button id="btn-cancel" onclick="resetForm()" class="btn btn-slate hidden">Cancelar edición</button>
           </div>
         </div>
       </div></div>
     </div>
 
     <!-- Acordeón: colegios registrados -->
-    <div class="acc card rounded-xl mb-6 open" id="acc-list">
+    <div class="acc card open" id="acc-list">
       <button type="button" class="acc-header" onclick="toggleAcc(this)" aria-label="Mostrar u ocultar la lista de colegios">
-        <span class="flex items-center gap-2"><i class="fa-solid fa-school"></i> Colegios registrados</span>
+        <span class="acc-title"><i class="fa-solid fa-school"></i> Colegios registrados</span>
         <i class="fa-solid fa-chevron-down acc-chevron"></i>
       </button>
       <div class="acc-body"><div class="acc-inner">
-        <div class="overflow-x-auto">
-          <table class="w-full text-sm">
-            <thead class="bg-[#111a30] text-slate-400 text-[11px] uppercase">
+        <div class="tbl-wrap">
+          <table>
+            <thead>
               <tr>
-                <th class="text-left p-3">Nombre</th>
-                <th class="text-left p-3">Subdominio</th>
-                <th class="text-left p-3">RBD</th>
-                <th class="text-left p-3">Comuna</th>
-                <th class="text-left p-3">Código</th>
-                <th class="text-left p-3">Activo</th>
-                <th class="text-right p-3"></th>
+                <th>Nombre</th>
+                <th>Subdominio</th>
+                <th>RBD</th>
+                <th>Comuna</th>
+                <th>Código</th>
+                <th>Activo</th>
+                <th class="right"></th>
               </tr>
             </thead>
-            <tbody id="tbody"><tr><td colspan="7" class="p-6 text-center text-slate-500">Cargando...</td></tr></tbody>
+            <tbody id="tbody"><tr><td colspan="7" class="center">Cargando...</td></tr></tbody>
           </table>
         </div>
       </div></div>
     </div>
 
     <!-- Acordeón: usuarios y su colegio -->
-    <div class="acc card rounded-xl mb-6 open" id="acc-users">
+    <div class="acc card open" id="acc-users">
       <button type="button" class="acc-header" onclick="toggleAcc(this)" aria-label="Mostrar u ocultar los usuarios">
-        <span class="flex items-center gap-2"><i class="fa-solid fa-users"></i> Usuarios y su colegio</span>
+        <span class="acc-title"><i class="fa-solid fa-users"></i> Usuarios y su colegio</span>
         <i class="fa-solid fa-chevron-down acc-chevron"></i>
       </button>
       <div class="acc-body"><div class="acc-inner">
-        <div class="px-5 pb-5">
-          <div class="bg-[#111a30] border border-slate-800 rounded-lg p-4 mb-4 flex flex-wrap items-end gap-3">
-            <div>
-              <label class="text-[11px] font-bold text-slate-400 uppercase block mb-1">Colegio a asignar a usuarios SIN colegio</label>
-              <select id="bulk-tenant" class="p-2.5 rounded-lg text-sm"></select>
+        <div class="acc-pad">
+          <div class="users-toolbar">
+            <div class="field">
+              <label>Colegio a asignar a usuarios SIN colegio</label>
+              <select id="bulk-tenant"></select>
             </div>
-            <button onclick="assignMissing()" class="bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-lg text-sm font-bold"><i class="fa-solid fa-users-gear"></i> Asignar a todos los sin colegio</button>
-            <p class="text-[10px] text-slate-500 basis-full">Útil al sumar un 2º colegio: deja a los usuarios actuales en el colegio correcto para que sigan viendo sus datos.</p>
+            <button onclick="assignMissing()" class="btn btn-violet"><i class="fa-solid fa-users-gear"></i> Asignar a todos los sin colegio</button>
+            <p class="full-note">Útil al sumar un 2º colegio: deja a los usuarios actuales en el colegio correcto para que sigan viendo sus datos.</p>
           </div>
-          <div class="overflow-x-auto border border-slate-800 rounded-lg">
-            <table class="w-full text-sm">
-              <thead class="bg-[#111a30] text-slate-400 text-[11px] uppercase">
+          <div class="tbl-wrap bordered">
+            <table>
+              <thead>
                 <tr>
-                  <th class="text-left p-3">Usuario</th>
-                  <th class="text-left p-3">Rol</th>
-                  <th class="text-left p-3">Colegio</th>
-                  <th class="text-right p-3"></th>
+                  <th>Usuario</th>
+                  <th>Rol</th>
+                  <th>Colegio</th>
+                  <th class="right"></th>
                 </tr>
               </thead>
-              <tbody id="users-tbody"><tr><td colspan="4" class="p-6 text-center text-slate-500">Cargando...</td></tr></tbody>
+              <tbody id="users-tbody"><tr><td colspan="4" class="center">Cargando...</td></tr></tbody>
             </table>
           </div>
         </div>
@@ -240,8 +384,7 @@
     function showMsg(text, ok) {
       const el = document.getElementById('msg');
       el.textContent = text;
-      el.className = 'mb-4 p-3 rounded-lg text-sm ' + (ok ? 'bg-emerald-900/40 text-emerald-300' : 'bg-red-900/40 text-red-300');
-      el.classList.remove('hidden');
+      el.className = 'msg ' + (ok ? 'msg-ok' : 'msg-err');
       setTimeout(() => el.classList.add('hidden'), 4000);
     }
 
@@ -279,6 +422,13 @@
       });
       return out;
     }
+    // Eventos: "AAAA-MM-DD | Título | tipo" (tipo opcional: pie/feriado/efemeride)
+    function parseEventosText(txt) {
+      return String(txt || '').split('\n').map(l => l.trim()).filter(Boolean).map(l => {
+        const m = /^(\d{4}-\d{2}-\d{2})\s*\|\s*([^|]+?)\s*(?:\|\s*(pie|feriado|efemeride))?$/i.exec(l);
+        return m ? { fecha: m[1], titulo: m[2].trim(), tipo: (m[3] || 'pie').toLowerCase() } : null;
+      }).filter(Boolean);
+    }
     // Lee el bloque de calendario del formulario -> objeto para la API
     function leerCalendarioForm() {
       const g = id => (document.getElementById(id).value || '').trim();
@@ -289,7 +439,8 @@
           '3er': { inicio: g('f-t3i'), fin: g('f-t3f') }
         },
         vacaciones: parseVacacionesText(g('f-vacaciones')),
-        diasSinClases: parseDiasSinClasesText(g('f-diassc'))
+        diasSinClases: parseDiasSinClasesText(g('f-diassc')),
+        eventos: parseEventosText(g('f-eventos'))
       };
     }
     // Llena el bloque de calendario desde calendario_json del tenant
@@ -303,6 +454,7 @@
       set('f-t3i', tr['3er'] && tr['3er'].inicio); set('f-t3f', tr['3er'] && tr['3er'].fin);
       set('f-vacaciones', (cal.vacaciones || []).map(v => v.inicio + ' a ' + v.fin + (v.nombre ? ' | ' + v.nombre : '')).join('\n'));
       set('f-diassc', Object.keys(cal.diasSinClases || {}).sort().map(d => d + ' | ' + cal.diasSinClases[d]).join('\n'));
+      set('f-eventos', (cal.eventos || []).map(e => e.fecha + ' | ' + e.titulo + (e.tipo ? ' | ' + e.tipo : '')).join('\n'));
     }
 
     function copyText(t) {
@@ -318,7 +470,7 @@
         const res = await fetch('/api/admin/tenants', { method: 'GET', headers: { 'Content-Type': 'application/json' } });
         if (res.status === 401) { window.location.href = '/login.html'; return; }
         if (res.status === 403) {
-          document.getElementById('tbody').innerHTML = '<tr><td colspan="7" class="p-6 text-center text-amber-400">Solo los administradores pueden gestionar colegios.</td></tr>';
+          document.getElementById('tbody').innerHTML = '<tr><td colspan="7" class="center t-warn">Solo los administradores pueden gestionar colegios.</td></tr>';
           document.querySelector('.card').style.opacity = '0.4';
           return;
         }
@@ -342,7 +494,7 @@
     async function loadUsers() {
       try {
         const res = await fetch('/api/admin/users', { method: 'GET', headers: { 'Content-Type': 'application/json' } });
-        if (!res.ok) { document.getElementById('users-tbody').innerHTML = '<tr><td colspan="4" class="p-6 text-center text-amber-400">No disponible.</td></tr>'; return; }
+        if (!res.ok) { document.getElementById('users-tbody').innerHTML = '<tr><td colspan="4" class="center t-warn">No disponible.</td></tr>'; return; }
         const data = await res.json();
         USERS = (data && data.users) || [];
         renderUsers();
@@ -353,13 +505,13 @@
       const bulk = document.getElementById('bulk-tenant');
       if (bulk) bulk.innerHTML = TENANTS.map(t => '<option value="' + esc(t.slug) + '">' + esc(t.nombre) + '</option>').join('');
       const tb = document.getElementById('users-tbody');
-      if (!USERS.length) { tb.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-slate-500">Sin usuarios.</td></tr>'; return; }
+      if (!USERS.length) { tb.innerHTML = '<tr><td colspan="4" class="center">Sin usuarios.</td></tr>'; return; }
       tb.innerHTML = USERS.map((u, i) =>
-        '<tr class="border-t border-slate-800">' +
-          '<td class="p-3"><div class="flex items-center gap-2.5">' + userAvatar(u.email, u.name) + '<div><div class="font-semibold">' + esc(u.name || '(sin nombre)') + '</div><div class="text-[11px] text-slate-500">' + esc(u.email) + '</div></div></div></td>' +
-          '<td class="p-3 text-slate-400">' + esc(u.role) + '</td>' +
-          '<td class="p-3"><select id="u-tenant-' + i + '" class="p-2 rounded-lg text-sm">' + tenantOptions(u.tenantSlug) + '</select></td>' +
-          '<td class="p-3 text-right"><button onclick="saveUserTenant(' + i + ')" class="text-sky-400 hover:text-sky-300 text-xs font-bold"><i class="fa-solid fa-floppy-disk"></i> Guardar</button></td>' +
+        '<tr>' +
+          '<td><div class="user-cell">' + userAvatar(u.email, u.name) + '<div><div class="t-strong">' + esc(u.name || '(sin nombre)') + '</div><div class="sub">' + esc(u.email) + '</div></div></div></td>' +
+          '<td class="t-dim">' + esc(u.role) + '</td>' +
+          '<td><select id="u-tenant-' + i + '">' + tenantOptions(u.tenantSlug) + '</select></td>' +
+          '<td class="right"><button onclick="saveUserTenant(' + i + ')" class="tbl-link"><i class="fa-solid fa-floppy-disk"></i> Guardar</button></td>' +
         '</tr>'
       ).join('');
     }
@@ -398,18 +550,18 @@
     function renderTable() {
       const tb = document.getElementById('tbody');
       if (!TENANTS.length) {
-        tb.innerHTML = '<tr><td colspan="7" class="p-6 text-center text-slate-500">Aún no hay colegios. Crea el primero arriba.</td></tr>';
+        tb.innerHTML = '<tr><td colspan="7" class="center">Aún no hay colegios. Crea el primero arriba.</td></tr>';
         return;
       }
       tb.innerHTML = TENANTS.map(t =>
-        '<tr class="border-t border-slate-800">' +
-          '<td class="p-3 font-semibold">' + esc(t.nombre) + '</td>' +
-          '<td class="p-3 text-sky-400">' + esc(t.slug) + '</td>' +
-          '<td class="p-3 text-slate-400">' + esc(t.rbd || '—') + '</td>' +
-          '<td class="p-3 text-slate-400">' + esc(t.comuna || '—') + '</td>' +
-          '<td class="p-3"><span class="code-pill">' + esc(t.join_code || '—') + '</span>' + (t.join_code ? ' <button onclick="copyText(\'' + esc(t.join_code) + '\')" class="text-slate-400 hover:text-sky-300 ml-1" title="Copiar código"><i class="fa-regular fa-copy"></i></button>' : '') + '</td>' +
-          '<td class="p-3">' + (t.activo ? '<span class="text-emerald-400">Sí</span>' : '<span class="text-slate-500">No</span>') + '</td>' +
-          '<td class="p-3 text-right whitespace-nowrap"><button onclick="regenerateCode(' + t.id + ')" class="text-amber-400 hover:text-amber-300 text-xs font-bold mr-3" title="Generar nuevo código de unión"><i class="fa-solid fa-rotate"></i> Código</button><button onclick="editTenant(' + t.id + ')" class="text-sky-400 hover:text-sky-300 text-xs font-bold"><i class="fa-solid fa-pen"></i> Editar</button></td>' +
+        '<tr>' +
+          '<td class="t-strong">' + esc(t.nombre) + '</td>' +
+          '<td class="t-sky">' + esc(t.slug) + '</td>' +
+          '<td class="t-dim">' + esc(t.rbd || '—') + '</td>' +
+          '<td class="t-dim">' + esc(t.comuna || '—') + '</td>' +
+          '<td><span class="code-pill">' + esc(t.join_code || '—') + '</span>' + (t.join_code ? ' <button onclick="copyText(\'' + esc(t.join_code) + '\')" class="tbl-link" title="Copiar código"><i class="fa-regular fa-copy"></i></button>' : '') + '</td>' +
+          '<td>' + (t.activo ? '<span class="t-ok">Sí</span>' : '<span class="muted">No</span>') + '</td>' +
+          '<td class="right"><button onclick="regenerateCode(' + t.id + ')" class="tbl-link amber" title="Generar nuevo código de unión"><i class="fa-solid fa-rotate"></i> Código</button> <button onclick="editTenant(' + t.id + ')" class="tbl-link"><i class="fa-solid fa-pen"></i> Editar</button></td>' +
         '</tr>'
       ).join('');
     }
@@ -454,7 +606,7 @@
 
     function resetForm() {
       ['f-id','f-slug','f-nombre','f-nombre-corto','f-rbd','f-comuna','f-localidad','f-region',
-       'f-t1i','f-t1f','f-t2i','f-t2f','f-t3i','f-t3f','f-vacaciones','f-diassc'].forEach(id => document.getElementById(id).value = '');
+       'f-t1i','f-t1f','f-t2i','f-t2f','f-t3i','f-t3f','f-vacaciones','f-diassc','f-eventos'].forEach(id => document.getElementById(id).value = '');
       document.getElementById('f-slug').disabled = false;
       document.getElementById('f-color1').value = '#091845';
       document.getElementById('f-color2').value = '#1240c4';

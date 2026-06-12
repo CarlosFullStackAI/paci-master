@@ -166,6 +166,31 @@ function buildCalendario(body, existingJson) {
     out.diasSinClases = Object.fromEntries(dsEntries);
   }
 
+  // Eventos del colegio: tipo desde allowlist; si un evento ya existia con la
+  // misma fecha+titulo, conserva su icono (los nuevos reciben uno por tipo).
+  if (Array.isArray(c.eventos)) {
+    const ICONO_TIPO = new Map([
+      ['pie', 'fa-clipboard-list'],
+      ['feriado', 'fa-flag'],
+      ['efemeride', 'fa-ribbon']
+    ]);
+    const previos = Array.isArray(out.eventos) ? out.eventos : [];
+    out.eventos = c.eventos
+      .filter((e) => e && DATE_RE.test(String(e.fecha || '')) && String(e.titulo || '').trim())
+      .slice(0, 100)
+      .map((e) => {
+        const titulo = clip(String(e.titulo).trim(), 160);
+        const tipo = ICONO_TIPO.has(e.tipo) ? e.tipo : 'pie';
+        const previo = previos.find((p) => p && p.fecha === e.fecha && p.titulo === titulo);
+        return {
+          fecha: e.fecha,
+          titulo,
+          tipo,
+          icon: (previo && previo.icon) ? previo.icon : ICONO_TIPO.get(tipo)
+        };
+      });
+  }
+
   return JSON.stringify(out);
 }
 

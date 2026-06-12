@@ -273,6 +273,8 @@ npx wrangler d1 execute paci-db --remote --file migrations/0XX.sql   # migrar AN
     <div class="fecha">2026-06-13</div>
     <ul>
       <li>Esta página ahora es accesible desde el dashboard (ítem "Documentación técnica", visible solo para admin); el middleware la sirve únicamente a sesiones con rol admin o la cuenta maestra — para el resto sigue siendo 404.</li>
+      <li><strong>admin.html rediseñada con CSS propio autocontenido</strong> — eliminada la dependencia del CDN de Tailwind (cuando el script externo no cargaba, la página quedaba sin estilos). Misma lógica, mejor visual.</li>
+      <li><strong>Editor de eventos del colegio</strong> en el calendario de admin.html (formato <code>AAAA-MM-DD | Título | tipo</code>, tipos pie/feriado/efemeride) — cierra el pendiente de la spec del calendario.</li>
     </ul>
   </div>
 
