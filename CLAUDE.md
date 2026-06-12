@@ -80,6 +80,7 @@ npm run deploy
 │   ├── parse-oas.js
 │   └── extract-oas.js                # Extrae texto desde PDFs
 │
+├── specs/                            # Specs de features grandes (escribir ANTES de codificar; ver specs/README.md)
 ├── migrations/                       # D1 schema migrations
 ├── archive/                          # Versiones legacy (revisar antes de borrar)
 ├── backups/                          # Snapshots locales (gitignored)
@@ -98,6 +99,7 @@ npm run deploy
 - UI/UX: textos en espanol
 
 ## Reglas Especificas
+- Features grandes: escribir primero la spec en `specs/<feature>.md` (plantilla en specs/_plantilla.md), resolver los [FALTA ACLARAR] con Carlos y recien despues codificar. Cambios chicos van directo, sin spec.
 - NUNCA hardcodear tokens, API keys o credenciales en el codigo
 - Usar bindings de Cloudflare (env.DB, env.PACI_USERS) para acceder a servicios
 - Toda entrada de usuario debe sanitizarse contra XSS y SQL injection
