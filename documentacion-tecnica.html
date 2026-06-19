@@ -87,7 +87,7 @@
 <header class="hero">
   <h1>PIE MASTER — Documentación técnica</h1>
   <p>Plataforma de gestión documental para Educadores Diferenciales chilenos (Decreto 83/2015 y Decreto 170/2009).</p>
-  <span class="badge">Última actualización: 2026-06-13</span>
+  <span class="badge">Última actualización: 2026-06-19</span>
   <span class="badge">Interna — solo admins (link en el dashboard)</span>
 </header>
 
@@ -268,6 +268,14 @@ npx wrangler d1 execute paci-db --remote --file migrations/0XX.sql   # migrar AN
 
 <section id="historial">
   <h2>11. Historial de cambios</h2>
+
+  <div class="chg">
+    <div class="fecha">2026-06-19</div>
+    <ul>
+      <li><span class="crit">Integridad de datos (editor PACI):</span> corregido un fallback en el guardado (<code>recolectarDatosPACI</code> en <code>app.html</code>) que, cuando un módulo no traía su clave de asignatura, le asignaba la <strong>primera asignatura del catálogo</strong> (<code>MINEDUC_DB.curriculum</code>). Eso ponía la misma <code>asigKey</code> a asignaturas distintas y <strong>cruzaba sus OAs en la base de datos</strong>. Ahora cada módulo lleva su <code>asigKey</code> desde que se crea (<code>addModulo</code>, <code>generateClassesWithAI</code> y la carga de documentos); los módulos antiguos sin clave se resuelven por nombre contra el selector de asignaturas, y se eliminó el fallback que inventaba la clave.</li>
+      <li><span class="crit">IDs de módulo únicos:</span> los módulos usaban <code>Date.now() + segIdx</code> / <code>Date.now() + Math.random()</code> como id. Dos módulos creados en el mismo milisegundo (plan <strong>Anual</strong> = 3 trimestres, o al adjuntar varias asignaturas) podían recibir el <strong>mismo id</strong>, de modo que borrar o editar uno afectaba al otro. Reemplazado por <code>nextModId()</code> (contador estrictamente creciente) + <code>bumpModIdFloor()</code>, que eleva el contador por encima de los ids ya presentes al cargar/restaurar un PACI guardado.</li>
+    </ul>
+  </div>
 
   <div class="chg">
     <div class="fecha">2026-06-13</div>

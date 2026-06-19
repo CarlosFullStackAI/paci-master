@@ -837,28 +837,22 @@
             if (!state.modulos.length) { alert('Agrega al menos un modulo de planificacion antes de guardar.'); return null; }
 
             const modules = state.modulos.map(m => {
-                // Buscar subject_key
-                let asigKey = '';
-                const asigSelect = document.getElementById('in-asig');
-                if (asigSelect) {
-                    for (const opt of asigSelect.options) {
-                        if (MINEDUC_DB.curriculum[opt.value]) {
-                            const currData = MINEDUC_DB.curriculum[opt.value];
-                            const anyLevel = Object.keys(currData)[0];
-                            // Match by asig name
-                            if (m.asig && opt.textContent.trim() === m.asig) {
+                // subject_key de la asignatura. El modulo ya lo trae (asigKey) desde que se
+                // creo en addModulo / generateClassesWithAI. Para modulos antiguos sin
+                // asigKey, se resuelve por NOMBRE contra el select de asignaturas.
+                // No se usa un fallback "primera asignatura del catalogo": asignaba la misma
+                // key a asignaturas distintas y cruzaba sus OAs en la base de datos.
+                let asigKey = (m.asigKey || '').trim();
+                if (!asigKey) {
+                    const asigSelect = document.getElementById('in-asig');
+                    if (asigSelect) {
+                        for (const opt of asigSelect.options) {
+                            if (opt.value && MINEDUC_DB.curriculum[opt.value] &&
+                                m.asig && opt.textContent.trim() === m.asig) {
                                 asigKey = opt.value;
                                 break;
                             }
                         }
-                    }
-                }
-                // Fallback: try to find key from ASIG_COLORS name match
-                if (!asigKey) {
-                    for (const [key, val] of Object.entries(MINEDUC_DB.curriculum || {})) {
-                        // key is the asig code
-                        asigKey = asigKey || key;
-                        break;
                     }
                 }
 
@@ -3066,6 +3060,24 @@
             metas: {}
         };
 
+        // Genera un id de modulo UNICO y creciente. Antes se usaba `Date.now() + segIdx`,
+        // que podia repetir id entre modulos creados en el mismo milisegundo (al adjuntar
+        // varias asignaturas o un plan anual). Dos modulos con el mismo id hacian que
+        // borrar/editar uno afectara al otro. Este contador garantiza unicidad.
+        let _lastModId = 0;
+        function nextModId() {
+            _lastModId = Math.max(_lastModId + 1, Date.now());
+            return _lastModId;
+        }
+        // Eleva el contador por encima de los ids ya presentes (al cargar/restaurar un
+        // PACI guardado), para que los modulos nuevos no colisionen con los existentes.
+        function bumpModIdFloor(modulos) {
+            (modulos || []).forEach(m => {
+                const n = Number(m && m.id);
+                if (!isNaN(n) && n > _lastModId) _lastModId = n;
+            });
+        }
+
         // ==========================================
         // SISTEMA DE AUTOGUARDADO
         // ==========================================
@@ -3218,6 +3230,8 @@
                 ...m,
                 oas: (m.oas || []).map(normalizeOA)
               }));
+              // Evita que los modulos nuevos colisionen con los ids restaurados.
+              bumpModIdFloor(state.modulos);
             }
             if (data.team && data.team.length) {
               data.team.forEach((t, i) => {
@@ -3680,8 +3694,9 @@
 
                     for (const mod of mods) {
                         state.modulos.push({
-                            id: mod.id || Date.now() + Math.random(),
+                            id: mod.id || nextModId(),
                             asig: mod.asig || '',
+                            asigKey: mod.asigKey || '',
                             unit: mod.unit || '',
                             nivelTrabajo: mod.nivelTrabajo || doc.work_level || '',
                             oas: (mod.oas || []).map(normalizeOA),
@@ -3690,6 +3705,8 @@
                         });
                     }
                 }
+                // Evita que los modulos nuevos colisionen con los ids ya cargados.
+                bumpModIdFloor(state.modulos);
 
                 // Renderizar todo
                 renderModulos();
@@ -5353,8 +5370,9 @@
                             });
                         }
                         nuevosModulos.push({
-                            id: Date.now() + segIdx,
+                            id: nextModId(),
                             asig: aE.options[aE.selectedIndex].text,
+                            asigKey: asigValue,
                             unit: combinedUnitName,
                             nivelTrabajo: ntE.options[ntE.selectedIndex].text,
                             // Copia independiente de los OAs por bloque para que se puedan
@@ -5805,8 +5823,9 @@
                     }
 
                     state.modulos.push({
-                        id: Date.now() + segIdx,
+                        id: nextModId(),
                         asig: asigName,
+                        asigKey: aE.value,
                         unit: combinedUnitName,
                         nivelTrabajo: targetLevel,
                         // Copia independiente de los OAs por bloque (editables por trimestre).
