@@ -1463,12 +1463,12 @@
     function construirHtmlImpresion() {
       const data = collectSchemaData();
       const tenant = window.TENANT_CONFIG || { nombre: 'Establecimiento' };
-      // Tamaño de letra del documento elegido por el usuario (font-size-controls.js)
-      const zoomDoc = (typeof window.docZoomActual === 'function') ? window.docZoomActual() : 1;
+      // Nota: el tamano de letra del documento (control A-/A+) NO se inyecta aqui:
+      // este HTML tambien alimenta la descarga Word (donde el zoom CSS no aplica).
+      // El PDF server-side lo recibe via page.pdf({scale}) en descargarPDF.
       const css =
         "*{box-sizing:border-box;margin:0;padding:0;font-family:'Merriweather','Georgia','Times New Roman',serif;}" +
         'body{font-size:11pt;line-height:1.45;color:#1a1a2e;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}' +
-        (zoomDoc !== 1 ? 'body{zoom:' + zoomDoc + ';}' : '') +
         '@page{size:letter;margin:1.8cm;}';
       return '<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">' +
         '<title>' + esc(docType.label) + '_' + esc(data.student_name || 'Estudiante') + '</title>' +
@@ -1717,7 +1717,11 @@
         const resp = await fetch('/api/generate-pdf', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ html, filename })
+          body: JSON.stringify({
+            html,
+            filename,
+            scale: (typeof window.docZoomActual === 'function') ? window.docZoomActual() : 1
+          })
         });
         if (!resp.ok) {
           let err = 'Error generando PDF.';

@@ -1162,11 +1162,14 @@
     }
 
     // ====== Construir HTML imprimible del PAI (mismo cuerpo que la previa) ======
-    function construirHtmlImpresion() {
+    // incluirZoom: true SOLO para la ventana de imprimir (el navegador respeta el
+    // zoom CSS). El PDF server-side NO lo incluye: usa page.pdf({scale}) nativo,
+    // que es mas confiable (ver descargarPDF).
+    function construirHtmlImpresion(incluirZoom) {
       const d = recolectar();
       const cfg = window.TENANT_CONFIG || { nombre: 'Establecimiento' };
       // Tamaño de letra del documento elegido por el usuario (font-size-controls.js)
-      const zoomDoc = (typeof window.docZoomActual === 'function') ? window.docZoomActual() : 1;
+      const zoomDoc = (incluirZoom && typeof window.docZoomActual === 'function') ? window.docZoomActual() : 1;
       const css =
         "body{font-family:'Merriweather','Georgia','Times New Roman',serif;color:#1a1a2e;font-size:12px;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}" +
         (zoomDoc !== 1 ? 'body{zoom:' + zoomDoc + ';}' : '') +
@@ -1195,7 +1198,11 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'same-origin',
-          body: JSON.stringify({ html: construirHtmlImpresion(), filename: filename })
+          body: JSON.stringify({
+            html: construirHtmlImpresion(),
+            filename: filename,
+            scale: (typeof window.docZoomActual === 'function') ? window.docZoomActual() : 1
+          })
         });
         if (!resp.ok) {
           let err = '';
@@ -1222,7 +1229,7 @@
     function imprimir() {
       const win = window.open('', '_blank');
       if (!win) { toast('Permite las ventanas emergentes para imprimir.', true); return; }
-      win.document.write(construirHtmlImpresion());
+      win.document.write(construirHtmlImpresion(true));
       win.document.close();
       win.focus();
       setTimeout(() => { win.print(); }, 400);

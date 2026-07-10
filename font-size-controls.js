@@ -14,7 +14,7 @@
   var UI_KEY = 'paci_ui_font';
   var DOC_KEY = 'paci_doc_zoom';
   var UI_STEPS = [100, 110, 120, 130];   // % tipografia base de la interfaz
-  var DOC_STEPS = [85, 100, 115, 130];   // % zoom del documento
+  var DOC_STEPS = [85, 100, 115, 130, 145];   // % zoom del documento (PDF via page.pdf scale)
 
   function leer(key, def) {
     var v = parseFloat(localStorage.getItem(key));

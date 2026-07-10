@@ -56,7 +56,15 @@ export async function onRequest(context) {
     });
   }
 
-  const { html, filename } = body;
+  const { html, filename, scale } = body;
+  // Escala del PDF (control "Documento A-/A+" de font-size-controls.js).
+  // page.pdf({scale}) es la via NATIVA de Chromium para agrandar la letra del PDF:
+  // mas confiable que CSS zoom, que no siempre se aplica en el render de impresion.
+  // Puppeteer acepta 0.1-2; clampeamos a un rango sano.
+  let pdfScale = parseFloat(scale);
+  if (isNaN(pdfScale)) pdfScale = 1;
+  pdfScale = Math.min(2, Math.max(0.5, pdfScale));
+
   if (!html || typeof html !== 'string') {
     return new Response(JSON.stringify({ error: 'HTML requerido' }), {
       status: 400,
@@ -117,7 +125,8 @@ export async function onRequest(context) {
       margin: { top: '1cm', right: '1cm', bottom: '1cm', left: '1cm' },
       printBackground: true,
       preferCSSPageSize: true,
-      displayHeaderFooter: false
+      displayHeaderFooter: false,
+      scale: pdfScale
     });
 
     return new Response(pdfBuffer, {
