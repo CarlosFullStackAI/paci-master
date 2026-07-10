@@ -43,6 +43,7 @@
   <link rel="stylesheet" href="/paci.css">
   <link href="/assets/theme/paci-theme-v2.css?v=1" rel="stylesheet">
   <link rel="stylesheet" href="/tailwind-utils.css">
+  <script src="/estudiante-picker.js"></script>
   <style>
     /* El editor PAI usa layout horizontal con scroll interno (igual que el editor PACI). */
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -249,6 +250,10 @@
         </button>
         <div id="acc-1" class="accordion-content open">
           <div class="acc-body">
+            <button type="button" class="btn btn-primary btn-sm" style="width:100%;justify-content:center;" onclick="seleccionarEstudianteGuardadoPAI()">
+              <i class="fa-solid fa-user-graduate"></i> Seleccionar estudiante guardado
+            </button>
+            <p class="hint" style="margin:0.35rem 0 0.85rem;">Autocompleta los datos con un estudiante de tu base, o escribe a mano.</p>
             <div class="grid grid-2">
               <div>
                 <label for="in-nombre">Nombre completo <span class="req" aria-hidden="true">*</span></label>
@@ -646,6 +651,26 @@
     }
 
     // ====== Equipo ======
+    // Profesionales del colegio (tenants.staff_json via /api/tenant-config).
+    // Se ofrecen como sugerencias (datalist): elegir de la lista O escribir a mano.
+    function staffDelColegio() {
+      const st = window.TENANT_CONFIG && window.TENANT_CONFIG.staff;
+      return (st && typeof st === 'object' && !Array.isArray(st)) ? st : null;
+    }
+    function nombresParaCargo(cargo) {
+      const staff = staffDelColegio();
+      if (!staff) return [];
+      const buscado = String(cargo || '').toLowerCase().trim();
+      const key = Object.keys(staff).find((k) => k.toLowerCase() === buscado);
+      const lista = key ? staff[key] : null;
+      if (lista && lista.length) return lista;
+      // Sin cargo (o cargo sin lista): todos los nombres únicos del colegio.
+      return [...new Set(Object.keys(staff).reduce((acc, k) => acc.concat(staff[k] || []), []))];
+    }
+    function datalistOptions(nombres) {
+      return (nombres || []).map((n) => '<option value="' + escapeHtml(n) + '"></option>').join('');
+    }
+
     function agregarMiembro(data) {
       const m = data || {};
       state.equipo.push({ _id: ++miembroSeq, nombre: m.nombre || '', cargo: m.cargo || '' });
@@ -664,11 +689,16 @@
         updatePreviewPAI();
         return;
       }
-      cont.innerHTML = state.equipo.map((m) =>
+      const staff = staffDelColegio();
+      const dlCargos = staff
+        ? '<datalist id="dl-cargos-pai">' + datalistOptions(Object.keys(staff)) + '</datalist>'
+        : '';
+      cont.innerHTML = dlCargos + state.equipo.map((m) =>
         '<div class="grid grid-2" style="margin-bottom:0.6rem;align-items:end;">' +
-          '<div><label>Nombre</label><input type="text" value="' + escapeHtml(m.nombre) + '" oninput="setMiembro(' + m._id + ',\'nombre\',this.value)"></div>' +
+          '<div><label>Nombre</label><input type="text" list="dl-nom-' + m._id + '" autocomplete="off" value="' + escapeHtml(m.nombre) + '" oninput="setMiembro(' + m._id + ',\'nombre\',this.value)">' +
+            '<datalist id="dl-nom-' + m._id + '">' + datalistOptions(nombresParaCargo(m.cargo)) + '</datalist></div>' +
           '<div style="display:flex;gap:0.5rem;align-items:end;">' +
-            '<div style="flex:1;"><label>Cargo</label><input type="text" placeholder="Ej: Coordinadora PIE" value="' + escapeHtml(m.cargo) + '" oninput="setMiembro(' + m._id + ',\'cargo\',this.value)"></div>' +
+            '<div style="flex:1;"><label>Cargo</label><input type="text" placeholder="Ej: Coordinadora PIE"' + (staff ? ' list="dl-cargos-pai" autocomplete="off"' : '') + ' value="' + escapeHtml(m.cargo) + '" oninput="setMiembro(' + m._id + ',\'cargo\',this.value)"></div>' +
             '<button class="btn btn-danger btn-sm" aria-label="Eliminar profesional" onclick="eliminarMiembro(' + m._id + ')"><i class="fa-solid fa-trash"></i></button>' +
           '</div>' +
         '</div>'
@@ -679,6 +709,12 @@
     function setMiembro(id, campo, valor) {
       const m = state.equipo.find((x) => x._id === id);
       if (m) m[campo] = valor;
+      // Al cambiar el cargo, refrescar las sugerencias de nombre de esa fila
+      // (sin re-render completo, para no perder el foco del input).
+      if (campo === 'cargo') {
+        const dl = document.getElementById('dl-nom-' + id);
+        if (dl) dl.innerHTML = datalistOptions(nombresParaCargo(valor));
+      }
       updatePreviewPAI();
     }
 
@@ -735,8 +771,9 @@
             '<label for="prof-aula-' + i + '" style="margin:0;flex:1;cursor:pointer;">' + escapeHtml(p.rol) + '</label>' +
           '</div>' +
           (p.incluido
-            ? '<div style="margin-top:0.5rem;"><input type="text" placeholder="Nombre completo" value="' +
-              escapeHtml(p.nombre) + '" oninput="setProfesionalNombre(' + i + ',this.value)"></div>'
+            ? '<div style="margin-top:0.5rem;"><input type="text" placeholder="Nombre completo" list="dl-aula-' + i + '" autocomplete="off" value="' +
+              escapeHtml(p.nombre) + '" oninput="setProfesionalNombre(' + i + ',this.value)">' +
+              '<datalist id="dl-aula-' + i + '">' + datalistOptions(nombresParaCargo(p.rol)) + '</datalist></div>'
             : '') +
         '</div>'
       ).join('');
@@ -1188,6 +1225,25 @@
     }
 
     // ====== Cargar datos existentes / prefill ======
+    // Abre el picker compartido (estudiante-picker.js) y rellena SOLO los datos
+    // de identificación. No abre documentos anteriores del estudiante.
+    function seleccionarEstudianteGuardadoPAI() {
+      if (typeof abrirSelectorEstudiante !== 'function') {
+        toast('El selector de estudiantes no está disponible. Recarga la página.', true);
+        return;
+      }
+      abrirSelectorEstudiante({ onSelect: (st) => {
+        state.studentId = st.id; // vincula el PAI al estudiante al guardar
+        if (st.name) $('in-nombre').value = st.name;
+        if (st.rut && $('in-rut')) $('in-rut').value = st.rut;
+        if (st.birth_date && $('in-fnac')) $('in-fnac').value = st.birth_date;
+        if ($('in-curso')) $('in-curso').value = st.curso || st.work_level || st.real_level || $('in-curso').value;
+        if (st.diagnosis && $('in-diagnostico')) $('in-diagnostico').value = st.diagnosis;
+        updatePreviewPAI();
+        toast('Datos del estudiante cargados.');
+      }});
+    }
+
     async function prefillEstudiante(studentId) {
       try {
         const res = await fetch('/api/students/get', {

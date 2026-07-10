@@ -21,7 +21,7 @@ export async function onRequest(context) {
 
     if (request.method === 'GET') {
       const res = await env.DB.prepare(
-        `SELECT id, slug, nombre, nombre_corto, rbd, comuna, localidad, region, branding_json, calendario_json, join_code, activo, created_at, updated_at
+        `SELECT id, slug, nombre, nombre_corto, rbd, comuna, localidad, region, branding_json, calendario_json, staff_json, join_code, activo, created_at, updated_at
          FROM tenants ORDER BY nombre`
       ).all();
       return new Response(JSON.stringify({ ok: true, tenants: res.results || [] }), { headers });
@@ -42,13 +42,14 @@ export async function onRequest(context) {
 
         const branding = buildBranding(body);
         const calendario = buildCalendario(body, '');
+        const staff = buildStaff(body, '');
         const joinCode = genCode();
         await env.DB.prepare(
-          `INSERT INTO tenants (slug, nombre, nombre_corto, rbd, comuna, localidad, region, branding_json, calendario_json, join_code, activo)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`
+          `INSERT INTO tenants (slug, nombre, nombre_corto, rbd, comuna, localidad, region, branding_json, calendario_json, staff_json, join_code, activo)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`
         ).bind(
           slug, nombre, clip(body.nombre_corto, 80), clip(body.rbd, 20),
-          clip(body.comuna, 80), clip(body.localidad, 80), clip(body.region, 80), branding, calendario, joinCode
+          clip(body.comuna, 80), clip(body.localidad, 80), clip(body.region, 80), branding, calendario, staff, joinCode
         ).run();
 
         return new Response(JSON.stringify({ ok: true, message: `Establecimiento "${nombre}" creado. Codigo de union: ${joinCode}`, joinCode }), { status: 201, headers });
@@ -60,7 +61,7 @@ export async function onRequest(context) {
         const nombre = clip(body.nombre, 160).trim();
         if (!nombre) return bad('El nombre del establecimiento es obligatorio.');
 
-        const existing = await env.DB.prepare('SELECT id, calendario_json FROM tenants WHERE id = ?').bind(id).first();
+        const existing = await env.DB.prepare('SELECT id, calendario_json, staff_json FROM tenants WHERE id = ?').bind(id).first();
         if (!existing) return bad('Establecimiento no encontrado.', 404);
 
         // El slug (subdominio) NO se edita: cambiarlo desvincularia a los usuarios.
@@ -68,15 +69,16 @@ export async function onRequest(context) {
         // Merge sobre el calendario existente: preserva claves que el editor simple
         // no maneja (eventos, ano).
         const calendario = buildCalendario(body, existing.calendario_json || '');
+        const staff = buildStaff(body, existing.staff_json || '');
         const activo = body.activo === false || body.activo === 0 ? 0 : 1;
         await env.DB.prepare(
           `UPDATE tenants SET nombre = ?, nombre_corto = ?, rbd = ?, comuna = ?, localidad = ?,
-             region = ?, branding_json = ?, calendario_json = ?, activo = ?, updated_at = datetime('now')
+             region = ?, branding_json = ?, calendario_json = ?, staff_json = ?, activo = ?, updated_at = datetime('now')
            WHERE id = ?`
         ).bind(
           nombre, clip(body.nombre_corto, 80), clip(body.rbd, 20),
           clip(body.comuna, 80), clip(body.localidad, 80), clip(body.region, 80),
-          branding, calendario, activo, id
+          branding, calendario, staff, activo, id
         ).run();
 
         return new Response(JSON.stringify({ ok: true, message: `Establecimiento "${nombre}" actualizado.` }), { headers });
@@ -192,6 +194,32 @@ function buildCalendario(body, existingJson) {
   }
 
   return JSON.stringify(out);
+}
+
+// Construye el JSON de profesionales por cargo desde body.staff.
+// Estructura aceptada: { "Cargo": ["Nombre 1", ...], ... } (lista vacia = el
+// cargo se ofrece pero el nombre se escribe a mano). Si body.staff no viene,
+// se conserva el JSON existente (sin cambios).
+function buildStaff(body, existingJson) {
+  const s = body && body.staff;
+  if (s === undefined || s === null) return existingJson || ''; // sin cambios
+  if (typeof s !== 'object' || Array.isArray(s)) return existingJson || '';
+
+  // Reflect.get + Object.fromEntries: mismo patron anti object-injection que buildCalendario.
+  const entries = Object.keys(s)
+    .slice(0, 60)
+    .map((cargo) => {
+      const nombre = clip(String(cargo).trim(), 120);
+      if (!nombre) return null;
+      const lista = Reflect.get(s, cargo);
+      const nombres = Array.isArray(lista)
+        ? lista.map((n) => clip(String(n || '').trim(), 120)).filter(Boolean).slice(0, 40)
+        : [];
+      return [nombre, nombres];
+    })
+    .filter(Boolean);
+
+  return JSON.stringify(Object.fromEntries(entries));
 }
 
 // Construye el JSON de branding desde los campos de color/logos del body.

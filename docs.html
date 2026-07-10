@@ -22,6 +22,7 @@
     })();
   </script>
   <script src="/docs-registry.js"></script>
+  <script src="/estudiante-picker.js"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Merriweather:wght@300;400;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/paci.css">
@@ -394,94 +395,7 @@
     }
     [data-theme="light"] .resumen-hint { background: #faf5ff; color: #4c1d95; }
 
-    /* Modal del picker */
-    .picker-overlay {
-      position: fixed; inset: 0;
-      background: rgba(2, 6, 23, 0.65);
-      backdrop-filter: blur(6px);
-      z-index: 500;
-      display: flex; align-items: center; justify-content: center;
-      padding: 1.5rem;
-    }
-    .picker-modal {
-      background: #0f172a;
-      border: 1px solid rgba(56, 189, 248, 0.25);
-      border-radius: 1.25rem;
-      width: 100%; max-width: 620px;
-      max-height: 85vh;
-      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
-      display: flex; flex-direction: column;
-      overflow: hidden;
-    }
-    [data-theme="light"] .picker-modal { background: #ffffff; border-color: #e2e8f0; box-shadow: 0 30px 80px rgba(15, 23, 42, 0.2); }
-    .picker-header {
-      padding: 1.25rem 1.5rem;
-      border-bottom: 1px solid rgba(56, 189, 248, 0.15);
-      display: flex; justify-content: space-between; align-items: center;
-    }
-    [data-theme="light"] .picker-header { border-bottom-color: #e2e8f0; }
-    .picker-header h3 { font-size: 1.05rem; font-weight: 800; color: #f1f5f9; }
-    [data-theme="light"] .picker-header h3 { color: #0f172a; }
-    .picker-close { background: none; border: none; color: #94a3b8; font-size: 1.1rem; cursor: pointer; padding: 0.3rem; }
-    .picker-close:hover { color: #f1f5f9; }
-    [data-theme="light"] .picker-close:hover { color: #0f172a; }
-    .picker-filters {
-      padding: 1rem 1.5rem 0.75rem;
-      display: grid; gap: 0.65rem;
-    }
-    .picker-list {
-      flex: 1;
-      overflow-y: auto;
-      padding: 0.5rem 1.5rem 1.5rem;
-    }
-    .picker-group {
-      margin-bottom: 1rem;
-    }
-    .picker-group-label {
-      font-size: 0.7rem; font-weight: 800;
-      color: #38bdf8; text-transform: uppercase; letter-spacing: 0.06em;
-      padding: 0.5rem 0; margin-bottom: 0.35rem;
-      border-bottom: 1px dashed rgba(56, 189, 248, 0.25);
-    }
-    [data-theme="light"] .picker-group-label { color: #1d4ed8; border-bottom-color: #cbd5e1; }
-    .picker-item {
-      display: flex; align-items: center; gap: 0.75rem;
-      padding: 0.7rem 0.8rem;
-      border-radius: 0.7rem;
-      cursor: pointer;
-      background: rgba(15, 23, 42, 0.4);
-      border: 1px solid rgba(56, 189, 248, 0.08);
-      transition: all 0.2s;
-      margin-bottom: 0.35rem;
-    }
-    .picker-item:hover {
-      background: rgba(56, 189, 248, 0.12);
-      border-color: rgba(56, 189, 248, 0.4);
-      transform: translateX(3px);
-    }
-    [data-theme="light"] .picker-item { background: #f8fafc; border-color: #e2e8f0; }
-    [data-theme="light"] .picker-item:hover { background: #dbeafe; border-color: #93c5fd; }
-    .picker-item .avatar {
-      width: 38px; height: 38px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #38bdf8, #818cf8);
-      color: #020617;
-      font-weight: 800;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 0.85rem;
-      flex-shrink: 0;
-    }
-    .picker-item .info { flex: 1; min-width: 0; }
-    .picker-item .info .name { font-weight: 800; font-size: 0.88rem; color: #f1f5f9; }
-    [data-theme="light"] .picker-item .info .name { color: #0f172a; }
-    .picker-item .info .meta { font-size: 0.72rem; color: #94a3b8; }
-    [data-theme="light"] .picker-item .info .meta { color: #475569; }
-    .picker-empty {
-      text-align: center;
-      padding: 2rem;
-      color: #94a3b8;
-      font-size: 0.85rem;
-    }
+    /* El modal del picker de estudiantes vive en /estudiante-picker.js (compartido con PACI y PAI). */
 
     .card {
       background: rgba(15,23,42,0.5);
@@ -1237,151 +1151,18 @@
     }
 
     // ====== Student picker: base de datos curso → estudiante ======
-    let _allStudents = [];
-
-    async function abrirPicker() {
-      // Crear overlay
-      let overlay = document.getElementById('picker-overlay');
-      if (overlay) { overlay.style.display = 'flex'; cargarYRenderPicker(); return; }
-
-      overlay = document.createElement('div');
-      overlay.id = 'picker-overlay';
-      overlay.className = 'picker-overlay';
-      overlay.innerHTML = `
-        <div class="picker-modal">
-          <div class="picker-header">
-            <h3><i class="fa-solid fa-database" style="color:#34d399;margin-right:0.45rem;"></i>Mis estudiantes</h3>
-            <button class="picker-close" onclick="cerrarPicker()" aria-label="Cerrar">
-              <i class="fa-solid fa-xmark"></i>
-            </button>
-          </div>
-          <div class="picker-filters">
-            <input type="text" id="picker-search" placeholder="Buscar por nombre, RUT, diagnóstico o curso...">
-            <select id="picker-curso-filter">
-              <option value="">Todos los cursos</option>
-            </select>
-          </div>
-          <div class="picker-list" id="picker-list">
-            <div class="picker-empty"><i class="fa-solid fa-spinner fa-spin"></i> Cargando estudiantes…</div>
-          </div>
-        </div>
-      `;
-      // Click en backdrop cierra
-      overlay.addEventListener('click', (ev) => { if (ev.target === overlay) cerrarPicker(); });
-      document.body.appendChild(overlay);
-
-      // Hooks de filtros (debouncing simple)
-      document.getElementById('picker-search').addEventListener('input', renderPickerList);
-      document.getElementById('picker-curso-filter').addEventListener('change', renderPickerList);
-
-      await cargarYRenderPicker();
-    }
-
-    function cerrarPicker() {
-      const o = document.getElementById('picker-overlay');
-      if (o) o.style.display = 'none';
-    }
-
-    async function cargarYRenderPicker() {
-      try {
-        const res = await fetch('/api/students/list', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ _token: token })
-        });
-        const data = await res.json();
-        _allStudents = data.ok ? (data.students || []) : [];
-
-        // Llenar dropdown de cursos
-        const cursos = [...new Set(_allStudents
-          .map(s => (s.curso || '').trim() || '— sin curso —')
-        )].sort();
-        const sel = document.getElementById('picker-curso-filter');
-        if (sel) {
-          sel.innerHTML = '<option value="">Todos los cursos (' + _allStudents.length + ')</option>' +
-            cursos.map(c => {
-              const count = _allStudents.filter(s => ((s.curso || '').trim() || '— sin curso —') === c).length;
-              return '<option value="' + esc(c) + '">' + esc(c) + ' (' + count + ')</option>';
-            }).join('');
-        }
-
-        renderPickerList();
-      } catch (e) {
-        const list = document.getElementById('picker-list');
-        if (list) list.innerHTML = '<div class="picker-empty">Error de conexión al cargar la base.</div>';
-      }
-    }
-
-    function renderPickerList() {
-      const list = document.getElementById('picker-list');
-      if (!list) return;
-      const q = (document.getElementById('picker-search')?.value || '').trim().toLowerCase();
-      const cursoFilter = document.getElementById('picker-curso-filter')?.value || '';
-
-      let pool = _allStudents.slice();
-      if (cursoFilter) {
-        pool = pool.filter(s => ((s.curso || '').trim() || '— sin curso —') === cursoFilter);
-      }
-      if (q) {
-        pool = pool.filter(s =>
-          (s.name || '').toLowerCase().includes(q) ||
-          (s.rut || '').toLowerCase().includes(q) ||
-          (s.diagnosis || '').toLowerCase().includes(q) ||
-          (s.curso || '').toLowerCase().includes(q)
-        );
-      }
-
-      if (!pool.length) {
-        list.innerHTML = '<div class="picker-empty"><i class="fa-solid fa-magnifying-glass" style="opacity:0.5;display:block;margin-bottom:0.5rem;"></i>Sin coincidencias. Crea estudiantes desde el editor PACI o PAI.</div>';
+    // El modal vive en /estudiante-picker.js (compartido con los editores PACI y PAI).
+    function abrirPicker() {
+      if (typeof abrirSelectorEstudiante !== 'function') {
+        toast('El selector de estudiantes no está disponible. Recarga la página.');
         return;
       }
-
-      // Agrupar por curso
-      const groups = {};
-      pool.forEach(s => {
-        const c = (s.curso || '').trim() || '— sin curso —';
-        if (!groups[c]) groups[c] = [];
-        groups[c].push(s);
-      });
-
-      const html = Object.keys(groups).sort().map(curso => {
-        const items = groups[curso].map(s => {
-          const initial = (s.name || '?').charAt(0).toUpperCase();
-          const metaParts = [];
-          if (s.rut)        metaParts.push(s.rut);
-          if (s.diagnosis)  metaParts.push(s.diagnosis);
-          if (s.work_level) metaParts.push('Nivel ' + s.work_level);
-          return '<div class="picker-item" onclick="elegirEstudiante(' + s.id + ')">' +
-            '<div class="avatar">' + esc(initial) + '</div>' +
-            '<div class="info">' +
-              '<div class="name">' + esc(s.name || '—') + '</div>' +
-              '<div class="meta">' + esc(metaParts.join(' · ')) + '</div>' +
-            '</div>' +
-            '<i class="fa-solid fa-chevron-right" style="opacity:0.4;font-size:0.75rem;"></i>' +
-            '</div>';
-        }).join('');
-        return '<div class="picker-group">' +
-          '<div class="picker-group-label"><i class="fa-solid fa-school"></i> ' + esc(curso) + ' (' + groups[curso].length + ')</div>' +
-          items +
-          '</div>';
-      }).join('');
-
-      list.innerHTML = html;
-    }
-
-    async function elegirEstudiante(sid) {
-      cerrarPicker();
-      const s = _allStudents.find(st => st.id === sid);
-      if (s) {
+      abrirSelectorEstudiante({ onSelect: async (s) => {
         aplicarPrefillEstudiante(s);
         toast('Datos del estudiante cargados.');
-      } else {
-        // Fallback al endpoint /get para datos completos
-        await prefillEstudiante(sid);
-        toast('Datos del estudiante cargados.');
-      }
-      // Despues del estudiante, intentar auto-derivar campos desde sus docs anteriores
-      await derivarDeDocumentosPrevios(sid);
+        // Despues del estudiante, intentar auto-derivar campos desde sus docs anteriores
+        await derivarDeDocumentosPrevios(s.id);
+      }});
     }
 
     // ====== Auto-derivacion entre documentos del mismo estudiante ======

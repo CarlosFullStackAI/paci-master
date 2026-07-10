@@ -49,6 +49,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="/nee-templates.js"></script>
     <script src="/establecimientos-autocomplete.js"></script>
+    <script src="/estudiante-picker.js"></script>
     <script src="/paci-state.js"></script>
     <script src="/paci-persistence.js"></script>
     <link rel="stylesheet" href="/paci.css">
@@ -235,6 +236,12 @@
                     <i class="fa-solid fa-id-card text-blue-600"></i>
                 </button>
                 <div id="acc-id" class="accordion-content px-4 space-y-4 open">
+                    <div>
+                        <button type="button" onclick="seleccionarEstudianteGuardado()" class="w-full border border-emerald-300 bg-emerald-50 text-emerald-700 p-2.5 rounded-lg text-xs font-bold hover:bg-emerald-100 transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-user-graduate"></i> Seleccionar estudiante guardado
+                        </button>
+                        <p class="text-[9px] text-slate-400 leading-tight mt-1">Autocompleta la identificación con un estudiante de tu base, o escribe los datos a mano.</p>
+                    </div>
                     <input type="text" id="in-nombre" class="w-full border p-2.5 rounded-lg text-sm" placeholder="Nombre completo del estudiante" oninput="updatePreview()">
                     <input type="text" id="in-escuela" class="w-full border p-2.5 rounded-lg text-sm" placeholder="Cargando establecimiento..." oninput="updatePreview()">
 
@@ -3535,6 +3542,54 @@
         // INICIALIZACIÓN
         // ==========================================
         // ==========================================
+        // SELECCIONAR ESTUDIANTE GUARDADO (autocompletar identificación)
+        // ==========================================
+        // Abre el picker compartido (estudiante-picker.js) y rellena SOLO los
+        // campos de identificación de un documento nuevo. No abre ni mezcla
+        // documentos anteriores del estudiante. Escribir a mano sigue disponible.
+        function seleccionarEstudianteGuardado() {
+            if (typeof abrirSelectorEstudiante !== 'function') {
+                alert('El selector de estudiantes no está disponible. Recarga la página.');
+                return;
+            }
+            abrirSelectorEstudiante({ onSelect: function(st) {
+                const setVal = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
+                const setSelect = (id, val) => {
+                    const el = document.getElementById(id);
+                    if (el && val) {
+                        for (const opt of el.options) {
+                            if (opt.value === val || opt.text === val || opt.textContent.includes(val)) {
+                                el.value = opt.value;
+                                break;
+                            }
+                        }
+                    }
+                };
+
+                setVal('in-nombre', st.name);
+                setVal('in-fnac', st.birth_date);
+                if (st.birth_date && typeof calcularEdad === 'function') calcularEdad();
+
+                // Diagnóstico (normalizando ids legados, igual que loadSavedPACI)
+                if (st.diagnosis_id) {
+                    setVal('in-diag', (MINEDUC_DB.diagIdLegacy && MINEDUC_DB.diagIdLegacy[st.diagnosis_id]) || st.diagnosis_id);
+                } else if (st.diagnosis) {
+                    setSelect('in-diag', st.diagnosis);
+                }
+                if (typeof showNEEStrategies === 'function') showNEEStrategies();
+
+                // Niveles + habilidades reales
+                if (st.real_level) setSelect('in-nivel-real', st.real_level);
+                if (st.work_level) setSelect('in-nivel-trabajo', st.work_level);
+                setVal('in-habilidades-reales', st.real_skills);
+                if (st.work_level && typeof onNivelTrabajoChange === 'function') onNivelTrabajoChange();
+
+                if (typeof validarEdad === 'function') validarEdad();
+                if (typeof updatePreview === 'function') updatePreview();
+            }});
+        }
+
+        // ==========================================
         // CARGAR PACI GUARDADO DESDE LA NUBE
         // ==========================================
         async function loadSavedPACI() {
@@ -3773,6 +3828,9 @@
                             inEscuela.value = cfg.nombre || '';
                             if (typeof updatePreview === 'function') updatePreview();
                         }
+                        // Re-dibujar el equipo con los profesionales del colegio
+                        // (si ya se dibujó con el fallback antes de llegar la config).
+                        if (cfg && cfg.staff && typeof renderEquipoForm === 'function') renderEquipoForm();
                     });
                 }
 
@@ -4278,7 +4336,10 @@
         function renderEquipoForm() {
             const c = document.getElementById('equipo-container');
             if(!c) return;
-            const profesionalesPorCargo = {
+            // Fuente real: tenants.staff_json via /api/tenant-config (editable por el
+            // admin en admin.html). La lista hardcodeada de abajo queda SOLO como
+            // fallback de red para lcm-pulebu (igual que el calendario escolar).
+            const PROFESIONALES_FALLBACK = {
                 'Profesor/a de Educación Diferencial': ['Carlos Molina Salgado', 'Victoria Irazoqui Alarcón', 'Trinidad Aguilera Pincheira', 'Yoselyn Melita Pascal'],
                 'Psicólogo': ['Marcos Paine Paillao'],
                 'Fonoaudiólogo/a': ['Fernanda Duhart Fernandez'],
@@ -4298,6 +4359,15 @@
                 'Apoderado/a o Familia': [],
                 'Jefe/a UTP / Coordinador/a PIE': [],
             };
+            const cfg = window.TENANT_CONFIG;
+            const cfgStaff = cfg && cfg.staff;
+            const staffValido = cfgStaff && typeof cfgStaff === 'object' && !Array.isArray(cfgStaff) && Object.keys(cfgStaff).length;
+            // El fallback hardcodeado es de lcm-pulebu: usarlo SOLO si la config aun
+            // no cargo (red) o si el colegio es Pulebu sin staff definido. Otro colegio
+            // sin staff ve la lista vacia (la define su admin), no los nombres de Pulebu.
+            const profesionalesPorCargo = staffValido
+                ? cfgStaff
+                : ((!cfg || !cfg.id || cfg.id === 'lcm-pulebu') ? PROFESIONALES_FALLBACK : {});
             const listaCargos = Object.keys(profesionalesPorCargo);
             c.innerHTML = '';
             state.equipo.forEach(m => {

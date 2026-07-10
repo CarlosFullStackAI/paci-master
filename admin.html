@@ -300,6 +300,13 @@
           </div>
 
           <div class="form-group">
+            <div class="form-group-title"><i class="fa-solid fa-user-tie"></i> Profesionales del colegio</div>
+            <p class="hint" style="margin-bottom: 0.85rem;">Nombres que se ofrecen para autocompletar el equipo en los editores PACI y PAI. Varios nombres se separan con punto y coma (<b>;</b>). Un cargo sin nombres se ofrece igual, pero el nombre se escribe a mano.</p>
+            <div id="staff-rows"></div>
+            <button type="button" class="btn btn-slate" onclick="agregarStaffRow()"><i class="fa-solid fa-plus"></i> Agregar cargo</button>
+          </div>
+
+          <div class="form-group">
             <div class="form-group-title"><i class="fa-solid fa-palette"></i> Apariencia y estado</div>
             <div class="inline-fields">
               <div class="field">
@@ -466,6 +473,42 @@
       set('f-eventos', (cal.eventos || []).map(e => e.fecha + ' | ' + e.titulo + (e.tipo ? ' | ' + e.tipo : '')).join('\n'));
     }
 
+    // ===== Profesionales del colegio (staff_json) =====
+    // Filas cargo + nombres (separados por ";"). Se leen del DOM al guardar.
+    function staffRowHtml(cargo, nombres) {
+      return '<div class="staff-row" style="display:flex;gap:0.5rem;margin-bottom:0.5rem;align-items:center;">' +
+        '<input type="text" class="staff-cargo" placeholder="Cargo (ej: Fonoaudiólogo/a)" value="' + esc(cargo || '') + '" style="flex:1;min-width:0;">' +
+        '<input type="text" class="staff-nombres" placeholder="Nombres separados por ; (vacío = se escribe a mano)" value="' + esc(nombres || '') + '" style="flex:2;min-width:0;">' +
+        '<button type="button" class="tbl-link" style="color:#f87171;flex-shrink:0;" title="Quitar cargo" onclick="this.closest(\'.staff-row\').remove()"><i class="fa-solid fa-trash-can"></i></button>' +
+        '</div>';
+    }
+    function agregarStaffRow(cargo, nombres) {
+      const cont = document.getElementById('staff-rows');
+      cont.insertAdjacentHTML('beforeend', staffRowHtml(cargo, nombres));
+    }
+    // Llena las filas desde staff_json del tenant
+    function llenarStaffForm(staffJson) {
+      let staff = {};
+      try { staff = staffJson ? JSON.parse(staffJson) : {}; } catch (e) { staff = {}; }
+      const cont = document.getElementById('staff-rows');
+      cont.innerHTML = '';
+      Object.keys(staff).forEach(cargo => {
+        const lista = Array.isArray(staff[cargo]) ? staff[cargo] : [];
+        agregarStaffRow(cargo, lista.join('; '));
+      });
+    }
+    // Lee las filas del formulario -> objeto { cargo: [nombres] } para la API
+    function leerStaffForm() {
+      const out = {};
+      document.querySelectorAll('#staff-rows .staff-row').forEach(row => {
+        const cargo = (row.querySelector('.staff-cargo').value || '').trim();
+        if (!cargo) return;
+        out[cargo] = (row.querySelector('.staff-nombres').value || '')
+          .split(';').map(s => s.trim()).filter(Boolean);
+      });
+      return out;
+    }
+
     function copyText(t) {
       if (navigator.clipboard) {
         navigator.clipboard.writeText(t).then(() => showMsg('Código copiado: ' + t, true)).catch(() => showMsg('No se pudo copiar.', false));
@@ -605,6 +648,7 @@
       document.getElementById('f-color1').value = branding.color_primario || '#091845';
       document.getElementById('f-color2').value = branding.color_secundario || '#1240c4';
       llenarCalendarioForm(t.calendario_json);
+      llenarStaffForm(t.staff_json);
       document.getElementById('f-activo').value = t.activo ? '1' : '0';
       document.getElementById('activo-wrap').classList.remove('hidden');
       document.getElementById('btn-cancel').classList.remove('hidden');
@@ -616,6 +660,7 @@
     function resetForm() {
       ['f-id','f-slug','f-nombre','f-nombre-corto','f-rbd','f-comuna','f-localidad','f-region',
        'f-t1i','f-t1f','f-t2i','f-t2f','f-t3i','f-t3f','f-vacaciones','f-diassc','f-eventos'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('staff-rows').innerHTML = '';
       document.getElementById('f-slug').disabled = false;
       document.getElementById('f-color1').value = '#091845';
       document.getElementById('f-color2').value = '#1240c4';
@@ -640,6 +685,7 @@
         color_primario: document.getElementById('f-color1').value,
         color_secundario: document.getElementById('f-color2').value,
         calendario: leerCalendarioForm(),
+        staff: leerStaffForm(),
         activo: document.getElementById('f-activo').value === '1'
       };
       const btn = document.getElementById('btn-save');

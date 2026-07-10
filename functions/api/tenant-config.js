@@ -17,7 +17,7 @@ export async function onRequestGet(context) {
     // Fallback final: primer establecimiento activo.
     if (!tenant && env.DB) {
       tenant = await env.DB.prepare(
-        'SELECT id, slug, nombre, nombre_corto, rbd, comuna, localidad, region, branding_json, calendario_json FROM tenants WHERE activo = 1 ORDER BY id LIMIT 1'
+        'SELECT id, slug, nombre, nombre_corto, rbd, comuna, localidad, region, branding_json, calendario_json, staff_json FROM tenants WHERE activo = 1 ORDER BY id LIMIT 1'
       ).first();
     }
 
@@ -35,6 +35,11 @@ export async function onRequestGet(context) {
     let calendario = null;
     try { calendario = tenant.calendario_json ? JSON.parse(tenant.calendario_json) : null; } catch (e) { calendario = null; }
 
+    // Profesionales del establecimiento por cargo (migracion 017): reemplaza la
+    // lista hardcodeada de app.html. null si el colegio no la definio.
+    let staff = null;
+    try { staff = tenant.staff_json ? JSON.parse(tenant.staff_json) : null; } catch (e) { staff = null; }
+
     return new Response(JSON.stringify({
       id: tenant.slug,
       nombre: tenant.nombre,
@@ -42,7 +47,8 @@ export async function onRequestGet(context) {
       localidad: tenant.localidad || '',
       region: tenant.region || '',
       branding,
-      calendario
+      calendario,
+      staff
     }), { headers });
   } catch (e) {
     return new Response(JSON.stringify({ error: 'Error al cargar la configuracion del establecimiento.' }), { status: 500, headers });

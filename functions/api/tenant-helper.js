@@ -30,7 +30,7 @@ export async function getTenantBySlug(env, slug) {
   if (!slug || !env || !env.DB) return null;
   try {
     return await env.DB.prepare(
-      'SELECT id, slug, nombre, nombre_corto, rbd, comuna, localidad, region, branding_json, calendario_json FROM tenants WHERE slug = ? AND activo = 1'
+      'SELECT id, slug, nombre, nombre_corto, rbd, comuna, localidad, region, branding_json, calendario_json, staff_json FROM tenants WHERE slug = ? AND activo = 1'
     ).bind(slug).first();
   } catch (e) {
     return null;
@@ -63,7 +63,7 @@ export async function resolveTenant(request, env, user) {
   // Con varios colegios este fallback no aplica (LIMIT 2 detecta "exactamente uno").
   try {
     const all = await env.DB.prepare(
-      'SELECT id, slug, nombre, nombre_corto, rbd, comuna, localidad, region, branding_json, calendario_json FROM tenants WHERE activo = 1 LIMIT 2'
+      'SELECT id, slug, nombre, nombre_corto, rbd, comuna, localidad, region, branding_json, calendario_json, staff_json FROM tenants WHERE activo = 1 LIMIT 2'
     ).all();
     const list = (all && all.results) || [];
     if (list.length === 1) return list[0];
