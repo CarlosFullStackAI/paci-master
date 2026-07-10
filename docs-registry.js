@@ -757,7 +757,12 @@ window.DOC_TYPES = {
     diagToFurCode: {
       'tel_e':    'TEL',
       'tel_m':    'TEL',
-      'dea':      'DEA',
+      'dea':         'DEA',
+      // Subtipos DEA (lectura / lectura-escritura / matematicas): mismo FU oficial DEA,
+      // consignando el subtipo especifico en el detalle del diagnostico.
+      'dea_lectura': 'DEA',
+      'dea_lect_esc': 'DEA',
+      'dea_mat':     'DEA',
       'tda':      'TDA',
       'fil':      'FIL',
       'di_l':     'DI',

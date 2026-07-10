@@ -127,6 +127,123 @@ const NEE_TEMPLATES = {
     ]
   },
 
+  dea_lectura: {
+    nombre: 'DEA: Dificultad específica de la Lectura (asociada comúnmente a dislexia)',
+    tipo: 'NEET',
+    decreto: 'D. 170',
+    descripcion: 'Dificultad persistente y específica en la precisión, fluidez y/o comprensión lectora, no explicada por discapacidad intelectual ni falta de oportunidades.',
+    estrategias_dua: {
+      representacion: [
+        'Textos con fuente clara (14pt+), interlineado amplio y párrafos cortos',
+        'Acompañar los textos con audio (docente lee en voz alta o audiolibro)',
+        'Destacar palabras clave y usar apoyos visuales que anticipen el contenido',
+        'Segmentar los textos largos en partes con subtítulos y preguntas guía'
+      ],
+      accion_expresion: [
+        'Permitir demostrar comprensión por vías no lectoras (oral, dibujo, dramatización)',
+        'Permitir el seguimiento de la lectura con regla, dedo o ventana lectora',
+        'No exigir lectura en voz alta frente al curso sin preparación previa',
+        'Ofrecer organizadores gráficos para registrar lo comprendido'
+      ],
+      implicacion: [
+        'Usar textos vinculados a los intereses del estudiante',
+        'Asegurar experiencias de éxito lector con textos de dificultad ajustada',
+        'Valorar el progreso individual en fluidez, no la comparación con el curso',
+        'Momentos de lectura compartida en parejas o grupos pequeños'
+      ]
+    },
+    adecuaciones_acceso: [
+      'Material fotocopiado con letra ampliada (no copiar del pizarrón)',
+      'Acceso a versiones en audio de los textos de estudio',
+      'Tiempo adicional para toda tarea que implique leer',
+      'Ubicación preferencial para recibir apoyo lector del docente'
+    ],
+    adecuaciones_evaluacion: [
+      'Lectura en voz alta de enunciados e instrucciones por parte del docente',
+      'No penalizar la velocidad lectora; evaluar comprensión por sobre decodificación',
+      'Evaluaciones orales complementarias a las escritas',
+      'Tiempo adicional (30-50% más)'
+    ]
+  },
+
+  dea_lect_esc: {
+    nombre: 'DEA: Dificultad específica de la Lectura y Escritura (asociada comúnmente a disgrafía o disortografía)',
+    tipo: 'NEET',
+    decreto: 'D. 170',
+    descripcion: 'Dificultad persistente en la lectura y en la producción escrita (grafía, ortografía y/o redacción), no explicada por discapacidad intelectual.',
+    estrategias_dua: {
+      representacion: [
+        'Textos con formato accesible: fuente clara (14pt+), interlineado amplio',
+        'Modelar la escritura con ejemplos resueltos y plantillas visibles',
+        'Ofrecer bancos de palabras y vocabulario clave con apoyo visual',
+        'Acompañar instrucciones escritas con explicación oral'
+      ],
+      accion_expresion: [
+        'Guías de escritura con estructura visible (inicio-desarrollo-cierre)',
+        'Permitir teclado, corrector ortográfico y herramientas digitales',
+        'Aceptar respuestas orales, esquemas o dibujos como alternativa a la escritura extensa',
+        'Dictados adaptados: más cortos, con palabras trabajadas previamente'
+      ],
+      implicacion: [
+        'Fragmentar las tareas de escritura en pasos manejables con checkpoints',
+        'Retroalimentar el contenido antes que la forma (una cosa a la vez)',
+        'Vincular la escritura con temas de interés personal del estudiante',
+        'Celebrar borradores y reescrituras como parte normal del proceso'
+      ]
+    },
+    adecuaciones_acceso: [
+      'Cuadernos con pauta ancha o cuadrícula grande',
+      'Guías con espacio amplio para escribir (no copiar del pizarrón)',
+      'Acceso a diccionario y tarjetas de apoyo ortográfico',
+      'Tiempo adicional para tareas de lectura y escritura'
+    ],
+    adecuaciones_evaluacion: [
+      'No penalizar ortografía ni caligrafía cuando no son el objetivo evaluado',
+      'Lectura en voz alta de enunciados por parte del docente',
+      'Evaluaciones orales o con formato de alternativas como complemento',
+      'Tiempo adicional (30-50% más)'
+    ]
+  },
+
+  dea_mat: {
+    nombre: 'DEA: Dificultad específica de las Matemáticas (asociada comúnmente a discalculia o cálculo)',
+    tipo: 'NEET',
+    decreto: 'D. 170',
+    descripcion: 'Dificultad persistente en el sentido numérico, el cálculo y/o el razonamiento matemático, no explicada por discapacidad intelectual.',
+    estrategias_dua: {
+      representacion: [
+        'Material concreto para toda noción nueva (regletas, ábaco, fichas, bloques)',
+        'Apoyos visuales de cantidad: rectas numéricas, tablas de 100, esquemas parte-todo',
+        'Mantener visibles tablas de multiplicar y pasos de los algoritmos',
+        'Presentar los problemas con apoyo gráfico y vocabulario matemático explicado'
+      ],
+      accion_expresion: [
+        'Permitir calculadora cuando el cálculo NO es el objetivo de la actividad',
+        'Hojas con cuadrícula para alinear números en las operaciones',
+        'Aceptar resolución con dibujos, esquemas o material concreto',
+        'Verbalizar los pasos antes de resolver por escrito'
+      ],
+      implicacion: [
+        'Contextualizar los problemas en situaciones cotidianas (dinero, compras, juegos)',
+        'Metas parciales y visibles: un paso del algoritmo a la vez',
+        'Juegos de mesa y dados para practicar el sentido numérico sin presión',
+        'Valorar el razonamiento y el procedimiento, no solo el resultado'
+      ]
+    },
+    adecuaciones_acceso: [
+      'Cuaderno de cuadrícula grande para alinear cifras',
+      'Tablas de apoyo (multiplicación, pasos de algoritmos) siempre disponibles',
+      'Material concreto de conteo a libre disposición',
+      'Tiempo adicional para tareas con cálculo'
+    ],
+    adecuaciones_evaluacion: [
+      'Menos ejercicios pero representativos (calidad sobre cantidad)',
+      'Valorar el procedimiento y el razonamiento por sobre el resultado final',
+      'Permitir material concreto o tablas de apoyo durante la evaluación',
+      'Tiempo adicional (30-50% más)'
+    ]
+  },
+
   tda: {
     nombre: 'Trastorno de Deficit Atencional (TDA/TDAH)',
     tipo: 'NEET',

@@ -2726,6 +2726,9 @@
       'tel_e': { type: 'NEET', period: 2, note: 'Si continua un 3er ano, se considera "Nuevo Ingreso" y requiere FUDEI completo.' },
       'tel_m': { type: 'NEET', period: 2, note: 'Si continua un 3er ano, se considera "Nuevo Ingreso" y requiere FUDEI completo.' },
       'dea': { type: 'NEET', period: 2, note: 'Si continua un 3er ano, se considera "Nuevo Ingreso" y requiere FUDEI completo.' },
+      'dea_lectura': { type: 'NEET', period: 2, note: 'Si continua un 3er ano, se considera "Nuevo Ingreso" y requiere FUDEI completo.' },
+      'dea_lect_esc': { type: 'NEET', period: 2, note: 'Si continua un 3er ano, se considera "Nuevo Ingreso" y requiere FUDEI completo.' },
+      'dea_mat': { type: 'NEET', period: 2, note: 'Si continua un 3er ano, se considera "Nuevo Ingreso" y requiere FUDEI completo.' },
       'tda': { type: 'NEET', period: 2, note: 'Si continua un 3er ano, se considera "Nuevo Ingreso" y requiere FUDEI completo.' },
       'fil': { type: 'NEET', period: 2, note: 'Si continua un 3er ano, se considera "Nuevo Ingreso" y requiere FUDEI completo.' },
       'di_l': { type: 'NEEP', period: 2, note: 'Aunque es NEEP, se rige por plazo de 2 anos para monitorear funcionamiento adaptativo.' },
@@ -2749,7 +2752,7 @@
     const REEVAL_PERIODICIDAD = [
       { grupo: 'NEE Transitorias — cada 2 años' },
       { label: 'TEL (específico y mixto)', tipo: 'Transitoria', periodo: 'Cada 2 años', ids: ['tel_e', 'tel_m'] },
-      { label: 'DEA (dificultad específica del aprendizaje)', tipo: 'Transitoria', periodo: 'Cada 2 años', ids: ['dea'] },
+      { label: 'DEA (lectura, lectura y escritura, o matemáticas)', tipo: 'Transitoria', periodo: 'Cada 2 años', ids: ['dea', 'dea_lectura', 'dea_lect_esc', 'dea_mat'] },
       { label: 'TDA / TDAH', tipo: 'Transitoria', periodo: 'Cada 2 años', ids: ['tda'] },
       { label: 'FIL (funcionamiento intelectual limítrofe)', tipo: 'Transitoria', periodo: 'Cada 2 años', ids: ['fil'] },
       { grupo: 'NEE Permanentes' },
