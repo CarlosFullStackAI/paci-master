@@ -44,6 +44,7 @@
   <link href="/assets/theme/paci-theme-v2.css?v=1" rel="stylesheet">
   <link rel="stylesheet" href="/tailwind-utils.css">
   <script src="/estudiante-picker.js"></script>
+  <script src="/font-size-controls.js"></script>
   <style>
     /* El editor PAI usa layout horizontal con scroll interno (igual que el editor PACI). */
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1164,8 +1165,11 @@
     function construirHtmlImpresion() {
       const d = recolectar();
       const cfg = window.TENANT_CONFIG || { nombre: 'Establecimiento' };
+      // Tamaño de letra del documento elegido por el usuario (font-size-controls.js)
+      const zoomDoc = (typeof window.docZoomActual === 'function') ? window.docZoomActual() : 1;
       const css =
         "body{font-family:'Merriweather','Georgia','Times New Roman',serif;color:#1a1a2e;font-size:12px;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}" +
+        (zoomDoc !== 1 ? 'body{zoom:' + zoomDoc + ';}' : '') +
         'h3{-webkit-print-color-adjust:exact;print-color-adjust:exact;}' +
         'table{page-break-inside:auto;}' +
         'tr{page-break-inside:avoid;}' +
