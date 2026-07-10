@@ -5819,6 +5819,21 @@
 
                 const aiCtx = getAIContextPayload();
 
+                // Estrategias sugeridas del diagnostico (nee-templates.js): la IA las
+                // usa como base de los "Apoyos para el estudiante" de cada clase.
+                let estrategiasNEE = '';
+                const neeT = (window.NEE_TEMPLATES && window.NEE_TEMPLATES[diagId]) || null;
+                if (neeT) {
+                    const pick = (arr, n) => Array.isArray(arr) ? arr.slice(0, n) : [];
+                    const dua = neeT.estrategias_dua || {};
+                    estrategiasNEE = []
+                        .concat(pick(dua.representacion, 3))
+                        .concat(pick(dua.accion_expresion, 3))
+                        .concat(pick(dua.implicacion, 2))
+                        .concat(pick(neeT.adecuaciones_acceso, 3))
+                        .map(l => '- ' + l).join('\n');
+                }
+
                 const uniqueUnits = [...new Set(state.bufferOAs.map(o => o.unit))];
                 const combinedUnitName = uniqueUnits.length > 1
                     ? 'Integración de Ejes: ' + uniqueUnits.map(u => u.replace('Eje: ', '').replace('Núcleo: ', '')).join(', ')
@@ -5852,6 +5867,7 @@
                             diagnosisName: diagName,
                             numClases: numClases,
                             esParvularia: esParvularia,
+                            estrategiasNEE: estrategiasNEE,
                             contextoFormateado: aiCtx.contextoFormateado
                         })
                     });

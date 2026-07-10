@@ -38,6 +38,9 @@ export async function onRequestPost(context) {
     const {
       oas, asignatura, nivel, diagnosisId, diagnosisName,
       studentLevel, realSkills, numClases, esParvularia,
+      // Estrategias sugeridas del diagnostico (nee-templates.js): base para que
+      // cada clase incluya apoyos especificos y visibles para ESTE estudiante.
+      estrategiasNEE,
       // contextoFormateado: bloque markdown consolidado con los 8 campos
       // (duracion, eval, contexto, conocimientos previos, intereses, recursos,
       // pautas DUA y detalle DUA). Si llega, se usa este en lugar de los
@@ -67,6 +70,7 @@ export async function onRequestPost(context) {
       diagnostico: sanitizeForPrompt(diagnosisName || diagnosisId || 'NEE no especificada'),
       studentLevel: sanitizeForPrompt(studentLevel || nivel || ''),
       realSkills: sanitizeForPrompt(realSkills || '', 600),
+      estrategiasNEE: sanitizeForPrompt(estrategiasNEE || '', 1500),
       ambitoLabel: esParvularia ? 'Nucleo de Aprendizaje' : 'Asignatura',
       oasFormateados,
       total: numClases,
@@ -205,6 +209,7 @@ Si el contexto es ANUAL, la progresion abarca los 3 trimestres (T1 fundacional, 
 - RECURSOS (CRITICO): Usa SOLO materiales y tecnologias coherentes con los recursos disponibles indicados en el contexto del docente. Si un recurso no fue mencionado, NO lo asumas (no inventes proyector, tablets, internet, impresiones a color, etc.). Ante la duda, prioriza materiales basicos y de bajo costo.
 - CONTEXTO DEL DOCENTE (CRITICO): Si el mensaje incluye un bloque <contexto_docente>, NO es opcional considerarlo: cada clase debe reflejar la duracion por clase, las estrategias de evaluacion preferidas, los conocimientos previos, los intereses del grupo, los recursos y las pautas DUA ahi descritos.
 - Adapta complejidad al diagnostico y nivel REAL del estudiante (no al nivel curricular nominal).
+- PERSONALIZACION VISIBLE (CRITICO): El PACI es un plan INDIVIDUAL. Cada clase se redacta para ESTE estudiante en particular, no para un curso. La actividad ("act") de CADA clase debe terminar con una linea "Apoyos para el estudiante: ..." con 2-3 apoyos CONCRETOS de esa clase especifica, coherentes con su diagnostico, su nivel real de habilidades y las estrategias sugeridas del diagnostico (si se entregan). Prohibido redactar clases genericas que servirian igual para cualquier estudiante, y prohibido repetir los mismos apoyos identicos en todas las clases (elige los pertinentes a cada actividad). No uses el nombre propio del estudiante: escribe "el/la estudiante".
 - Lenguaje tecnico chileno (NEE, DUA, Barreras, Apoyos), tono profesional, libre de etiquetas estigmatizantes.
 - Materiales concretos y especificos.
 - VARIAR actividades entre clases (no repetir estructura identica).
@@ -223,7 +228,10 @@ NIVEL REAL DE HABILIDADES: no especificado. Asume un punto de partida CONSERVADO
 
 Objetivos de Aprendizaje a trabajar:
 ${ctx.oasFormateados}
-${bloqueContextoDocente}
+${ctx.estrategiasNEE ? `
+ESTRATEGIAS SUGERIDAS PARA ESTE DIAGNOSTICO (base de los "Apoyos para el estudiante" de cada clase; elige en cada clase las pertinentes a esa actividad, adaptandolas, sin copiarlas identicas en todas):
+${ctx.estrategiasNEE}
+` : ''}${bloqueContextoDocente}
 
 ${contextoLote}${resumenPrevias}
 
@@ -232,7 +240,7 @@ Devuelve EXACTAMENTE este JSON (sin texto adicional fuera del JSON):
   "clases": [
     {
       "n": ${desde},
-      "act": "Actividad central completa: Inicio (~2 lineas) + Desarrollo (~4-5 lineas con modelado, practica guiada y autonoma) + Cierre (~2 lineas con sintesis y metacognicion).",
+      "act": "Actividad central completa: Inicio (~2 lineas) + Desarrollo (~4-5 lineas con modelado, practica guiada y autonoma) + Cierre (~2 lineas con sintesis y metacognicion) + linea final 'Apoyos para el estudiante: ...' (2-3 apoyos concretos de ESTA clase segun su diagnostico y nivel real).",
       "c": "Contenidos conceptuales especificos",
       "p": "Contenidos procedimentales especificos",
       "a": "Contenidos actitudinales",
@@ -245,8 +253,9 @@ Genera EXACTAMENTE ${cantidadLote} objetos en "clases", numerados de ${desde} a 
     }
   ];
 
-  // max_tokens dinamico para este lote: ~280 tokens por clase + 800 estructura.
-  const tokensEstimados = Math.max(1500, cantidadLote * 320 + 800);
+  // max_tokens dinamico para este lote: ~300 tokens por clase (act incluye la
+  // linea de apoyos personalizados) + 800 estructura.
+  const tokensEstimados = Math.max(1500, cantidadLote * 380 + 800);
 
   // Reintento del lote completo si la IA devuelve JSON degenerado o sin clases.
   // Cada intento ya recorre toda la cascada de proveedores (OpenRouter -> Groq -> Gemini),
