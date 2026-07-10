@@ -442,6 +442,24 @@
         </div>
       </div>
 
+      <!-- Tamaño de letra del documento (vista previa + PDF) -->
+      <div class="acc-card">
+        <button type="button" class="acc-btn" onclick="toggleAcc('acc-fs')">
+          <span><i class="fa-solid fa-text-height acc-ico"></i> Tamaño de letra del documento</span>
+          <i class="fa-solid fa-chevron-down acc-chev"></i>
+        </button>
+        <div id="acc-fs" class="accordion-content">
+          <div class="acc-body">
+            <div style="display:flex;align-items:center;gap:0.6rem;">
+              <button type="button" class="btn btn-slate btn-sm" onclick="docZoomStep(-1)" aria-label="Reducir letra del documento" style="min-width:44px;">A−</button>
+              <span class="fsc-doc-pct-out" style="flex:1;text-align:center;font-weight:800;font-size:0.95rem;">100%</span>
+              <button type="button" class="btn btn-slate btn-sm" onclick="docZoomStep(1)" aria-label="Aumentar letra del documento" style="min-width:44px;">A+</button>
+            </div>
+            <p class="hint" style="margin-top:0.5rem;">Agranda todo el documento por igual: vista previa, impresión y PDF salen con el mismo tamaño. Se recuerda en este navegador.</p>
+          </div>
+        </div>
+      </div>
+
     </div>
   </aside>
 

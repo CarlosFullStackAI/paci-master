@@ -710,6 +710,50 @@
                 </div>
             </div>
 
+            <!-- Tamaño de letra del documento (vista previa + PDF) -->
+            <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                <button class="w-full text-left p-4 bg-slate-50 font-bold text-xs uppercase flex justify-between items-center" onclick="toggleAcc('acc-fs')">
+                    <span>Tamaño de letra del documento</span>
+                    <i class="fa-solid fa-text-height text-blue-600"></i>
+                </button>
+                <div id="acc-fs" class="accordion-content px-4 space-y-4">
+                    <div>
+                        <label class="text-[10px] font-black text-slate-500 uppercase mb-1 block">Documento completo</label>
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="docZoomStep(-1)" class="w-10 h-9 rounded-lg border border-slate-300 bg-white font-black text-slate-700 hover:bg-slate-100 active:scale-95 transition text-sm" aria-label="Reducir letra del documento">A−</button>
+                            <span class="fsc-doc-pct-out flex-1 text-center text-sm font-black text-blue-800">100%</span>
+                            <button type="button" onclick="docZoomStep(1)" class="w-10 h-9 rounded-lg border border-slate-300 bg-white font-black text-slate-700 hover:bg-slate-100 active:scale-95 transition text-sm" aria-label="Aumentar letra del documento">A+</button>
+                        </div>
+                        <p class="text-[9px] text-slate-400 leading-tight mt-1">Agranda TODO el documento por igual. Lo que ves en la vista previa es lo que sale en el PDF y la impresión.</p>
+                    </div>
+                    <div class="border-t border-slate-100 pt-3 space-y-2">
+                        <label class="text-[10px] font-black text-slate-500 uppercase block">Ajuste fino por sección</label>
+                        <div class="flex items-center gap-2">
+                            <span class="flex-1 text-xs font-bold text-slate-600">Texto de los OA</span>
+                            <button type="button" onclick="fsSeccionStep('oa',-1)" class="w-7 h-7 rounded border border-slate-300 bg-white text-xs font-black text-slate-700 hover:bg-slate-100" aria-label="Reducir texto de los OA">−</button>
+                            <span id="fs-oa-out" class="w-12 text-center text-[11px] font-black text-blue-800">12.5px</span>
+                            <button type="button" onclick="fsSeccionStep('oa',1)" class="w-7 h-7 rounded border border-slate-300 bg-white text-xs font-black text-slate-700 hover:bg-slate-100" aria-label="Aumentar texto de los OA">+</button>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="flex-1 text-xs font-bold text-slate-600">Actividades de clase</span>
+                            <button type="button" onclick="fsSeccionStep('act',-1)" class="w-7 h-7 rounded border border-slate-300 bg-white text-xs font-black text-slate-700 hover:bg-slate-100" aria-label="Reducir actividades de clase">−</button>
+                            <span id="fs-act-out" class="w-12 text-center text-[11px] font-black text-blue-800">12px</span>
+                            <button type="button" onclick="fsSeccionStep('act',1)" class="w-7 h-7 rounded border border-slate-300 bg-white text-xs font-black text-slate-700 hover:bg-slate-100" aria-label="Aumentar actividades de clase">+</button>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="flex-1 text-xs font-bold text-slate-600">Contenidos C · P · A</span>
+                            <button type="button" onclick="fsSeccionStep('cpa',-1)" class="w-7 h-7 rounded border border-slate-300 bg-white text-xs font-black text-slate-700 hover:bg-slate-100" aria-label="Reducir contenidos C P A">−</button>
+                            <span id="fs-cpa-out" class="w-12 text-center text-[11px] font-black text-blue-800">10px</span>
+                            <button type="button" onclick="fsSeccionStep('cpa',1)" class="w-7 h-7 rounded border border-slate-300 bg-white text-xs font-black text-slate-700 hover:bg-slate-100" aria-label="Aumentar contenidos C P A">+</button>
+                        </div>
+                        <p class="text-[9px] text-slate-400 leading-tight">El cambio se ve al instante en la vista previa y sale igual en el PDF. Se recuerda en este navegador para todos tus documentos.</p>
+                    </div>
+                    <button type="button" onclick="fsRestablecerTamanos()" class="w-full border border-slate-300 text-slate-600 p-2 rounded-lg hover:bg-slate-50 transition text-[10px] font-bold uppercase">
+                        <i class="fa-solid fa-rotate-left mr-1"></i> Restablecer tamaños
+                    </button>
+                </div>
+            </div>
+
         </div>
     </aside>
 
@@ -3543,6 +3587,55 @@
         // INICIALIZACIÓN
         // ==========================================
         // ==========================================
+        // AJUSTE FINO DE TAMAÑOS POR SECCIÓN DEL DOCUMENTO
+        // ==========================================
+        // Cada sección usa una variable CSS en #documento (la plantilla usa
+        // var(--fs-*, default)). Como la variable queda en el style inline de
+        // #documento, viaja tal cual al PDF server-side (outerHTML): la vista
+        // previa y el PDF muestran siempre el mismo tamaño. Preferencia del
+        // usuario en este navegador (localStorage), aplica a todos sus documentos.
+        const FS_SECCIONES = {
+            oa:  { cssVar: '--fs-oa',  def: 12.5, min: 9, max: 18, out: 'fs-oa-out' },
+            act: { cssVar: '--fs-act', def: 12,   min: 9, max: 18, out: 'fs-act-out' },
+            cpa: { cssVar: '--fs-cpa', def: 10,   min: 8, max: 16, out: 'fs-cpa-out' }
+        };
+        function fsLeer(key) {
+            const cfg = FS_SECCIONES[key];
+            const v = parseFloat(localStorage.getItem('paci_fs_' + key));
+            return (isNaN(v) || v < cfg.min || v > cfg.max) ? cfg.def : v;
+        }
+        function aplicarFsSecciones() {
+            const doc = document.getElementById('documento');
+            if (!doc) return;
+            Object.keys(FS_SECCIONES).forEach(key => {
+                const cfg = FS_SECCIONES[key];
+                const val = fsLeer(key);
+                if (val === cfg.def) doc.style.removeProperty(cfg.cssVar);
+                else doc.style.setProperty(cfg.cssVar, val + 'px');
+                const out = document.getElementById(cfg.out);
+                if (out) out.textContent = val + 'px';
+            });
+            // Re-expandir los textareas del documento: al cambiar el tamaño de letra
+            // cambia la altura necesaria del texto.
+            if (typeof autoExpand === 'function') {
+                document.querySelectorAll('#documento textarea.auto-expand').forEach(t => autoExpand(t));
+            }
+        }
+        function fsSeccionStep(key, delta) {
+            const cfg = FS_SECCIONES[key];
+            if (!cfg) return;
+            let val = fsLeer(key) + delta * 0.5;
+            val = Math.min(cfg.max, Math.max(cfg.min, val));
+            localStorage.setItem('paci_fs_' + key, String(val));
+            aplicarFsSecciones();
+        }
+        function fsRestablecerTamanos() {
+            Object.keys(FS_SECCIONES).forEach(key => localStorage.removeItem('paci_fs_' + key));
+            aplicarFsSecciones();
+            if (typeof window.docZoomReset === 'function') window.docZoomReset();
+        }
+
+        // ==========================================
         // SELECCIONAR ESTUDIANTE GUARDADO (autocompletar identificación)
         // ==========================================
         // Abre el picker compartido (estudiante-picker.js) y rellena SOLO los
@@ -3818,6 +3911,9 @@
 
                 // Sincronizar el icono del toggle de tema (sol/luna) con el tema actual.
                 if (typeof syncThemeIcon === 'function') syncThemeIcon();
+
+                // Aplicar los tamaños de letra por sección guardados (panel "Tamaño de letra").
+                aplicarFsSecciones();
 
                 // Aplicar config del tenant al input #in-escuela cuando llegue.
                 // Solo setea si el input quedo vacio (caso documento nuevo). Si despues
@@ -6033,7 +6129,7 @@
                         const badge = adecuado
                             ? '<span style="background:#fef3c7;color:#92400e;font-size:8px;font-weight:800;padding:1px 6px;border-radius:10px;margin-left:4px;vertical-align:middle;">ADECUADO</span>'
                             : '';
-                        return `<div class="oa-row" style="margin-bottom:10px;display:flex;align-items:flex-start;gap:8px;page-break-inside:avoid;break-inside:avoid;"><span style="font-weight:900;font-size:13px;color:#1240c4;white-space:nowrap;padding-top:3px;min-width:42px;">${escapeHtml(o.code)}${badge}</span><textarea class="w-full h-auto min-h-[36px] border-0 bg-transparent resize-y font-medium overflow-hidden auto-expand" style="font-size:12.5px;line-height:1.5;color:#1e293b;padding:2px 4px;" onchange="updateOAText(${m.id}, '${o.code}', this.value)">${escapeHtml(stripCodePrefix(o.code, textoMostrado))}</textarea></div>`;
+                        return `<div class="oa-row" style="margin-bottom:10px;display:flex;align-items:flex-start;gap:8px;page-break-inside:avoid;break-inside:avoid;"><span style="font-weight:900;font-size:13px;color:#1240c4;white-space:nowrap;padding-top:3px;min-width:42px;">${escapeHtml(o.code)}${badge}</span><textarea class="w-full h-auto min-h-[36px] border-0 bg-transparent resize-y font-medium overflow-hidden auto-expand" style="font-size:var(--fs-oa, 12.5px);line-height:1.5;color:#1e293b;padding:2px 4px;" onchange="updateOAText(${m.id}, '${o.code}', this.value)">${escapeHtml(stripCodePrefix(o.code, textoMostrado))}</textarea></div>`;
                     }).join('');
                     let rows = '';
                     m.clases.forEach(cl => {
@@ -6047,9 +6143,9 @@
                             <td class="border-r border-slate-200 align-top" style="width:8%;padding:4px 2px;">
                                 <input type="date" class="w-full bg-transparent border-0 text-[10px] font-black text-blue-900 text-center outline-none cursor-pointer p-0" value="${cl.date}" onchange="updateCl(${m.id},${cl.n},'date',this.value); updateGantt();">
                             </td>
-                            <td class="border-r border-slate-200 align-top" style="width:55%;padding:5px 6px;"><textarea class="w-full text-[11px] border-0 bg-transparent font-medium auto-expand" style="font-size:12px;overflow:hidden;resize:none;min-height:28px;color:#000000;line-height:1.35;padding:1px 2px;" onchange="updateCl(${m.id},${cl.n},'act',this.value)" oninput="autoExpand(this)">${escapeHtml(cl.act)}</textarea></td>
+                            <td class="border-r border-slate-200 align-top" style="width:55%;padding:5px 6px;"><textarea class="w-full text-[11px] border-0 bg-transparent font-medium auto-expand" style="font-size:var(--fs-act, 12px);overflow:hidden;resize:none;min-height:28px;color:#000000;line-height:1.35;padding:1px 2px;" onchange="updateCl(${m.id},${cl.n},'act',this.value)" oninput="autoExpand(this)">${escapeHtml(cl.act)}</textarea></td>
                             <td class="align-top" style="padding:0;">
-                                <div style="display:flex;flex-direction:column;font-size:10px;page-break-inside:avoid;break-inside:avoid;">
+                                <div style="display:flex;flex-direction:column;font-size:var(--fs-cpa, 10px);page-break-inside:avoid;break-inside:avoid;">
                                     <div style="display:flex;align-items:flex-start;padding:3px 5px;background:#f0f5ff;border-bottom:1px solid #e2e8f0;"><span style="font-weight:900;color:#1d4ed8;width:18px;flex-shrink:0;">C:</span><textarea class="flex-1 border-0 bg-transparent font-medium auto-expand" style="overflow:hidden;resize:none;min-height:18px;color:#0f172a;line-height:1.3;background:transparent;" onchange="updateCl(${m.id},${cl.n},'c',this.value)" oninput="autoExpand(this)">${escapeHtml(cl.c)}</textarea>${evalCheckboxes('Conceptual')}</div>
                                     <div style="display:flex;align-items:flex-start;padding:3px 5px;background:#f0fdf4;border-bottom:1px solid #e2e8f0;"><span style="font-weight:900;color:#15803d;width:18px;flex-shrink:0;">P:</span><textarea class="flex-1 border-0 bg-transparent font-medium auto-expand" style="overflow:hidden;resize:none;min-height:18px;color:#0f172a;line-height:1.3;background:transparent;" onchange="updateCl(${m.id},${cl.n},'p',this.value)" oninput="autoExpand(this)">${escapeHtml(cl.p)}</textarea>${evalCheckboxes('Procedimental')}</div>
                                     <div style="display:flex;align-items:flex-start;padding:3px 5px;background:#faf5ff;"><span style="font-weight:900;color:#7e22ce;width:18px;flex-shrink:0;">A:</span><textarea class="flex-1 border-0 bg-transparent font-medium auto-expand" style="overflow:hidden;resize:none;min-height:18px;color:#0f172a;line-height:1.3;background:transparent;" onchange="updateCl(${m.id},${cl.n},'a',this.value)" oninput="autoExpand(this)">${escapeHtml(cl.a)}</textarea>${evalCheckboxes('Actitudinal')}</div>

@@ -47,8 +47,12 @@
   function refrescar() {
     var ui = document.getElementById('fsc-ui-pct');
     if (ui) ui.textContent = leer(UI_KEY, 100) + '%';
+    var docPct = leer(DOC_KEY, 100) + '%';
     var dc = document.getElementById('fsc-doc-pct');
-    if (dc) dc.textContent = leer(DOC_KEY, 100) + '%';
+    if (dc) dc.textContent = docPct;
+    // Contadores adicionales en los paneles de los editores (clase compartida).
+    var outs = document.querySelectorAll('.fsc-doc-pct-out');
+    for (var i = 0; i < outs.length; i++) outs[i].textContent = docPct;
   }
 
   // Factor de zoom actual del documento (1 = 100%). Lo usan los editores que
@@ -63,6 +67,13 @@
   window.uiFontStep = function (delta) {
     localStorage.setItem(UI_KEY, String(paso(UI_STEPS, leer(UI_KEY, 100), delta)));
     aplicarUI();
+    refrescar();
+  };
+
+  // Volver el zoom del documento a 100% (boton "Restablecer tamaños" de los editores).
+  window.docZoomReset = function () {
+    localStorage.setItem(DOC_KEY, '100');
+    aplicarDoc();
     refrescar();
   };
 
