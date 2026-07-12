@@ -252,6 +252,18 @@
                             <option value="2do Trimestre">2do Trimestre</option>
                             <option value="3er Trimestre">3er Trimestre</option>
                             <option value="Anual" selected>Anual</option>
+                            <optgroup label="Mes específico">
+                                <option value="Marzo">Marzo</option>
+                                <option value="Abril">Abril</option>
+                                <option value="Mayo">Mayo</option>
+                                <option value="Junio">Junio</option>
+                                <option value="Julio">Julio</option>
+                                <option value="Agosto">Agosto</option>
+                                <option value="Septiembre">Septiembre</option>
+                                <option value="Octubre">Octubre</option>
+                                <option value="Noviembre">Noviembre</option>
+                                <option value="Diciembre">Diciembre</option>
+                            </optgroup>
                         </select>
                         <input type="date" id="in-fnac" class="border p-2.5 rounded-lg text-sm outline-none" onchange="calcularEdad()" data-allow-weekend="true">
                     </div>
@@ -6497,23 +6509,45 @@
             }];
         }
 
+        // Meses planificables como período puntual (opción "Mes específico" de in-duracion).
+        const MESES_PLAN = {
+            'Marzo': 3, 'Abril': 4, 'Mayo': 5, 'Junio': 6, 'Julio': 7, 'Agosto': 8,
+            'Septiembre': 9, 'Octubre': 10, 'Noviembre': 11, 'Diciembre': 12
+        };
+
         function setFechasTrimestre() {
             const durEl = document.getElementById('in-duracion');
             const dateEl = document.getElementById('in-fecha-inicio');
             const dateFinEl = document.getElementById('in-fecha-fin');
             if(!durEl || !dateEl) return;
 
-            let tri = 'Anual';
-            if (durEl.value.includes('1er')) tri = '1er';
-            else if (durEl.value.includes('2do')) tri = '2do';
-            else if (durEl.value.includes('3er')) tri = '3er';
-
-            const newDate = FECHAS_TRIMESTRE[tri].inicio;
-            const newEnd = FECHAS_TRIMESTRE[tri].fin;
+            let newDate, newEnd;
+            const mesNum = MESES_PLAN[durEl.value];
+            if (mesNum) {
+                // Mes puntual: del 1 al último día del mes, en el año del calendario
+                // escolar vigente (tenant o fallback), recortado al año escolar
+                // (marzo parte con el 1er trimestre; diciembre termina con el 3ro).
+                // Feriados, interferiados y días sin clases del colegio los salta
+                // calcularFechasPlanificacion (esFeriado / enVacaciones).
+                const anio = parseInt(String(FECHAS_TRIMESTRE['1er'].inicio).slice(0, 4), 10) || new Date().getFullYear();
+                const mm = String(mesNum).padStart(2, '0');
+                const ultimoDia = new Date(anio, mesNum, 0).getDate();
+                newDate = anio + '-' + mm + '-01';
+                newEnd = anio + '-' + mm + '-' + String(ultimoDia).padStart(2, '0');
+                if (newDate < FECHAS_TRIMESTRE['1er'].inicio) newDate = FECHAS_TRIMESTRE['1er'].inicio;
+                if (newEnd > FECHAS_TRIMESTRE['3er'].fin) newEnd = FECHAS_TRIMESTRE['3er'].fin;
+            } else {
+                let tri = 'Anual';
+                if (durEl.value.includes('1er')) tri = '1er';
+                else if (durEl.value.includes('2do')) tri = '2do';
+                else if (durEl.value.includes('3er')) tri = '3er';
+                newDate = FECHAS_TRIMESTRE[tri].inicio;
+                newEnd = FECHAS_TRIMESTRE[tri].fin;
+            }
 
             // Si el usuario ya tenía una fecha manual distinta, preguntar
             if(dateEl.value && dateEl.value !== newDate) {
-                if(!confirm(`Ya tiene fechas definidas. ¿Desea reemplazarlas por las del trimestre seleccionado?`)) {
+                if(!confirm(`Ya tiene fechas definidas. ¿Desea reemplazarlas por las del período seleccionado?`)) {
                     return;
                 }
             }
