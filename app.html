@@ -1507,31 +1507,41 @@
             return {};
         }
 
+        // Activa las sugerencias de OAs previos de un estudiante: la marca verde
+        // "YA TRABAJADO" en el listado de OAs (siguen seleccionables, por si un OA
+        // no se logró y hay que retomarlo) y el mapa de niveles por asignatura.
+        // Se llama desde: URL ?student=, URL ?loadStudent= (loadSavedPACI) y el
+        // botón "Seleccionar estudiante guardado" (picker).
+        function activarSugerenciasOAs(studentId) {
+            const sid = parseInt(studentId, 10);
+            if (!sid) return;
+            window._paciStudentId = sid;
+            window._previousOAs = null;
+            loadPreviousOAs(sid).then(oas => {
+                window._previousOAs = oas;
+                // Si el listado de OAs ya está visible, re-dibujarlo con las marcas.
+                if (typeof loadOAs === 'function' && document.getElementById('in-unidad')?.value) loadOAs();
+            });
+            // Cargar el mapa de niveles por asignatura del estudiante (profile_json.workLevels)
+            window._paciStudentWorkLevels = {};
+            fetch('/api/students/get', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ _token: localStorage.getItem('paci_token'), studentId: sid, fullAccess: true })
+            }).then(r => r.json()).then(out => {
+                if (out && out.ok && out.student && out.student.profile_json) {
+                    let prof = out.student.profile_json;
+                    if (typeof prof === 'string') { try { prof = JSON.parse(prof); } catch(e) { prof = {}; } }
+                    window._paciStudentWorkLevels = (prof && prof.workLevels) || {};
+                }
+            }).catch(() => {});
+        }
+
         // Verificar si hay un studentId en la URL para cargar sugerencias
         (function() {
             const params = new URLSearchParams(window.location.search);
-            const sid = params.get('student');
-            if (sid) {
-                window._paciStudentId = parseInt(sid);
-                // Cargar OAs previos cuando se carguen los OAs de la asignatura
-                window._previousOAs = null;
-                loadPreviousOAs(sid).then(oas => {
-                    window._previousOAs = oas;
-                });
-                // Cargar el mapa de niveles por asignatura del estudiante (profile_json.workLevels)
-                window._paciStudentWorkLevels = {};
-                fetch('/api/students/get', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ _token: localStorage.getItem('paci_token'), studentId: parseInt(sid), fullAccess: true })
-                }).then(r => r.json()).then(out => {
-                    if (out && out.ok && out.student && out.student.profile_json) {
-                        let prof = out.student.profile_json;
-                        if (typeof prof === 'string') { try { prof = JSON.parse(prof); } catch(e) { prof = {}; } }
-                        window._paciStudentWorkLevels = (prof && prof.workLevels) || {};
-                    }
-                }).catch(() => {});
-            }
+            const sid = params.get('student') || params.get('loadStudent');
+            if (sid) activarSugerenciasOAs(sid);
         })();
 
         // ==========================================
@@ -3695,6 +3705,10 @@
 
                 if (typeof validarEdad === 'function') validarEdad();
                 if (typeof updatePreview === 'function') updatePreview();
+
+                // Activar la marca "YA TRABAJADO" en los OAs ya vistos en otros
+                // PACI de este estudiante (siguen seleccionables si no se lograron).
+                if (st.id) activarSugerenciasOAs(st.id);
             }});
         }
 
@@ -4875,8 +4889,8 @@
                 };
 
                 const workedBadge = isWorked
-                    ? '<span style="background:#d1fae5;color:#065f46;font-size:8px;font-weight:800;padding:1px 6px;border-radius:10px;margin-left:4px;">YA TRABAJADO</span>'
-                    : (workedCodes.size > 0 ? '<span style="background:#fef3c7;color:#92400e;font-size:8px;font-weight:800;padding:1px 6px;border-radius:10px;margin-left:4px;">SUGERIDO</span>' : '');
+                    ? '<span title="Este OA ya se trabajó en otro PACI de este estudiante. Puedes volver a seleccionarlo si no se logró." style="background:#d1fae5;color:#065f46;font-size:9px;font-weight:800;padding:2px 8px;border-radius:10px;margin-left:4px;border:1px solid #6ee7b7;"><i class="fa-solid fa-check" style="font-size:8px;"></i> YA TRABAJADO</span>'
+                    : (workedCodes.size > 0 ? '<span title="Este OA aún no se ha trabajado con este estudiante." style="background:#fef3c7;color:#92400e;font-size:9px;font-weight:800;padding:2px 8px;border-radius:10px;margin-left:4px;border:1px solid #fcd34d;">SUGERIDO</span>' : '');
 
                 d.innerHTML = `
                     <input type="checkbox" class="mt-1 w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500 cursor-pointer" value="${oa.texto.replace(/"/g, '&quot;')}" data-code="${oa.id}" data-unit="${unitName}" ${isChecked ? 'checked' : ''} onchange="handleOAToggle(this, '${oa.id}')">
