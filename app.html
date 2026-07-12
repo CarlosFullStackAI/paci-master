@@ -6570,6 +6570,46 @@
             if(dateFinEl) dateFinEl.value = newEnd;
             updateCalendarSummary();
             updateValidationHints();
+
+            // Si el documento ya tiene módulos con clases fuera del nuevo período
+            // (ej: módulo del 1er semestre y ahora se planifica Julio), ofrecer
+            // reprogramarlas para que el documento no cuente dos historias.
+            reprogramarModulosFueraDePeriodo(newDate, newEnd);
+        }
+
+        // Detecta módulos con clases fuera del período [inicio, fin] y ofrece
+        // reprogramarlas dentro de las nuevas fechas manteniendo los contenidos.
+        // Nada se borra: si el período no alcanza para todas las clases, las
+        // sobrantes quedan SIN FECHA y se avisa para que el educador decida.
+        function reprogramarModulosFueraDePeriodo(inicio, fin) {
+            if (!state.modulos || !state.modulos.length || !inicio || !fin) return;
+            const fuera = state.modulos.filter(m =>
+                (m.clases || []).some(cl => cl.date && (cl.date < inicio || cl.date > fin)));
+            if (!fuera.length) return;
+
+            const detalle = fuera.map(m => '• ' + (m.unit || 'Módulo') + ' (' + m.clases.length + ' clases)').join('\n');
+            if (!confirm(
+                'Hay ' + fuera.length + ' módulo(s) con clases FUERA del período seleccionado:\n\n' + detalle +
+                '\n\n¿Reprogramar sus clases dentro de las nuevas fechas?\n\n' +
+                'Se mantienen los contenidos; solo cambian las fechas según los días de la semana marcados, ' +
+                'saltando feriados y días sin clases. Si no caben todas, las sobrantes quedan sin fecha para que tú decidas.'
+            )) return;
+
+            let sinCupo = 0;
+            fuera.forEach(m => {
+                const fechas = calcularFechasPlanificacion(inicio, fin, m.clases.length);
+                m.clases.forEach((cl, i) => {
+                    cl.date = fechas[i] || '';
+                    if (!fechas[i]) sinCupo++;
+                });
+            });
+            renderModulos();
+            updateGantt();
+            if (typeof updatePreview === 'function') updatePreview();
+            if (sinCupo > 0) {
+                alert('Clases reprogramadas. ATENCIÓN: ' + sinCupo + ' clase(s) quedaron SIN FECHA porque el período no tiene suficientes días disponibles.\n\n' +
+                    'Opciones: borrar esas clases, marcar más días de la semana, o elegir un período más largo.');
+            }
         }
 
         // Helper: reemplazar inputs del documento con elementos visibles para html2canvas
