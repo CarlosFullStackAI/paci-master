@@ -515,6 +515,24 @@
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
             }
+            /* Fondo decorativo del editor (blobs radiales body::before + textura
+               body::after de app.html): NUNCA debe imprimirse. Sin esta regla se
+               "asoma" como un cuadro de colores en la ultima hoja del PDF, donde
+               #documento ya no cubre la pagina. */
+            body::before,
+            body::after {
+                display: none !important;
+                content: none !important;
+            }
+            /* Saltos de pagina del documento: la clase html2pdf__page-break era el
+               marcador de la libreria html2pdf (legacy). El PDF actual (Puppeteer,
+               @media print) necesita esta regla CSS para que cada seccion marcada
+               (II-V, cada asignatura nueva y el Consolidado de Materiales y
+               Recursos) comience en una hoja nueva. */
+            .html2pdf__page-break {
+                page-break-before: always !important;
+                break-before: page !important;
+            }
 
             /* 2) AISLAMIENTO: ocultar todo fuera del documento */
             #skeleton-screen, #control-panel, #mobile-nav, #mobile-actions,
