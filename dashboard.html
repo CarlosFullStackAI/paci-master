@@ -2747,6 +2747,26 @@
     const LEGACY_DIAG_IDS = { motor: 'disc_mot', visual: 'dv', auditiva: 'da' };
     function normDiagId(id) { return LEGACY_DIAG_IDS[id] || id || ''; }
 
+    // Normaliza el texto de curso a su forma canónica para agrupar y mostrar:
+    // "4° básico" / "4 basico" → "4° Básico"; "6°" → "6° Básico"; "6b" (código
+    // de nivel) → "6° Básico"; "nt1"/"pre-kínder" → "NT1"; conserva la letra de
+    // sección ("3° Básico A"). Si no reconoce el formato, devuelve el texto limpio.
+    function normalizarCurso(raw) {
+      const t = String(raw || '').trim().replace(/\s+/g, ' ');
+      if (!t) return '';
+      if (/^nt\s*1$/i.test(t) || /^pre[\s-]*k[ií]nder$/i.test(t)) return 'NT1';
+      if (/^nt\s*2$/i.test(t) || /^k[ií]nder$/i.test(t)) return 'NT2';
+      let m = /^([1-8])\s*b$/i.exec(t); // códigos de nivel del editor ("6b")
+      if (m) return m[1] + '° Básico';
+      m = /^(\d{1,2})\s*[°º]?\s*medio(?:\s+([a-d]))?$/i.exec(t);
+      if (m) return m[1] + '° Medio' + (m[2] ? ' ' + m[2].toUpperCase() : '');
+      m = /^(\d{1,2})\s*[°º]?\s*b[aá]sico(?:\s+([a-d]))?$/i.exec(t);
+      if (m) return m[1] + '° Básico' + (m[2] ? ' ' + m[2].toUpperCase() : '');
+      m = /^(\d{1,2})\s*[°º]$/.exec(t); // "6°" a secas: en básica equivale a 6° Básico
+      if (m) return m[1] + '° Básico';
+      return t;
+    }
+
     // ===== Periodicidad de reevaluación (FUDEI) por diagnóstico =====
     // Fuente única usada por el panel del inicio y por el modal del ícono de ayuda (ℹ️).
     const REEVAL_PERIODICIDAD = [
@@ -4010,24 +4030,27 @@
         return;
       }
 
-      // Agrupar estudiantes por curso. Prioriza `s.curso` (campo manual nuevo,
+      // Agrupar estudiantes por curso NORMALIZADO. Prioriza `s.curso` (campo manual,
       // ej "3° Básico A") y cae a `s.real_level` (clasificación curricular).
+      // Sin normalizar, variantes como "4° básico"/"4° Básico" o "6°"/"6° Básico"
+      // creaban grupos DUPLICADOS del mismo curso.
       const grouped = {};
       students.forEach(s => {
-        const curso = (s.curso && s.curso.trim()) || s.real_level || 'Sin curso asignado';
+        const curso = normalizarCurso(s.curso) || normalizarCurso(s.real_level) || 'Sin curso asignado';
         if (!grouped[curso]) grouped[curso] = [];
         grouped[curso].push(s);
       });
 
-      // Ordenar cursos logicamente
-      const courseOrder = ['NT1','NT2','1° Basico','2° Basico','3° Basico','4° Basico','5° Basico','6° Basico','7° Basico','8° Basico','1° Medio','2° Medio','3° Medio','4° Medio'];
+      // Ordenar cursos logicamente (nombres canonicos CON tilde: la lista anterior
+      // decia "Basico" sin tilde y nunca calzaba con los cursos reales).
+      const courseOrder = ['NT1','NT2','1° Básico','2° Básico','3° Básico','4° Básico','5° Básico','6° Básico','7° Básico','8° Básico','1° Medio','2° Medio','3° Medio','4° Medio'];
       const sortedCourses = Object.keys(grouped).sort((a, b) => {
-        const ia = courseOrder.findIndex(c => a.includes(c));
-        const ib = courseOrder.findIndex(c => b.includes(c));
+        const ia = courseOrder.findIndex(c => a.startsWith(c));
+        const ib = courseOrder.findIndex(c => b.startsWith(c));
         if (ia === -1 && ib === -1) return a.localeCompare(b);
         if (ia === -1) return 1;
         if (ib === -1) return -1;
-        return ia - ib;
+        return ia - ib || a.localeCompare(b);
       });
 
       let html = '';
@@ -4036,9 +4059,9 @@
       sortedCourses.forEach(curso => {
         const courseStudents = grouped[curso];
         const grpId = 'cgrp-' + (curso.replace(/[^a-z0-9]/gi, '_') || 'sin');
-        // Acordeón: por defecto se expanden los primeros 2 cursos, el resto colapsados.
-        const idxCurso = sortedCourses.indexOf(curso);
-        const startOpen = idxCurso < 2;
+        // Acordeón: TODOS los cursos parten colapsados; la información del curso
+        // se muestra solo al presionarlo (pedido 2026-07-12).
+        const startOpen = false;
         html += `
         <div class="fade-up" style="margin-bottom:1.5rem; animation-delay: ${cardIndex * 0.1}s">
           <button type="button" onclick="toggleCourseGroup('${grpId}')" style="all:unset;display:flex;align-items:center;gap:0.65rem;margin-bottom:0.75rem;cursor:pointer;width:100%;">

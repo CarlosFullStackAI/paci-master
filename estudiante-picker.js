@@ -66,6 +66,27 @@
     return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
+  // Normaliza el curso a forma canónica (mismas reglas que el dashboard) para que
+  // variantes como "4° básico"/"6°" no dupliquen grupos en la lista ni en el filtro.
+  function normCurso(raw) {
+    const t = String(raw || '').trim().replace(/\s+/g, ' ');
+    if (!t) return '';
+    if (/^nt\s*1$/i.test(t) || /^pre[\s-]*k[ií]nder$/i.test(t)) return 'NT1';
+    if (/^nt\s*2$/i.test(t) || /^k[ií]nder$/i.test(t)) return 'NT2';
+    let m = /^([1-8])\s*b$/i.exec(t);
+    if (m) return m[1] + '° Básico';
+    m = /^(\d{1,2})\s*[°º]?\s*medio(?:\s+([a-d]))?$/i.exec(t);
+    if (m) return m[1] + '° Medio' + (m[2] ? ' ' + m[2].toUpperCase() : '');
+    m = /^(\d{1,2})\s*[°º]?\s*b[aá]sico(?:\s+([a-d]))?$/i.exec(t);
+    if (m) return m[1] + '° Básico' + (m[2] ? ' ' + m[2].toUpperCase() : '');
+    m = /^(\d{1,2})\s*[°º]$/.exec(t);
+    if (m) return m[1] + '° Básico';
+    return t;
+  }
+  function cursoDe(s) {
+    return normCurso(s.curso) || '— sin curso —';
+  }
+
   let allStudents = [];
   let currentOnSelect = null;
 
@@ -93,7 +114,7 @@
 
     let pool = allStudents.slice();
     if (cursoFilter) {
-      pool = pool.filter(s => ((s.curso || '').trim() || '— sin curso —') === cursoFilter);
+      pool = pool.filter(s => cursoDe(s) === cursoFilter);
     }
     if (q) {
       pool = pool.filter(s =>
@@ -112,7 +133,7 @@
     // Agrupar por curso
     const groups = {};
     pool.forEach(s => {
-      const c = (s.curso || '').trim() || '— sin curso —';
+      const c = cursoDe(s);
       if (!groups[c]) groups[c] = [];
       groups[c].push(s);
     });
@@ -156,12 +177,12 @@
       allStudents = data.ok ? (data.students || []) : [];
 
       // Llenar dropdown de cursos
-      const cursos = [...new Set(allStudents.map(s => (s.curso || '').trim() || '— sin curso —'))].sort();
+      const cursos = [...new Set(allStudents.map(cursoDe))].sort();
       const sel = document.getElementById('ep-curso-filter');
       if (sel) {
         sel.innerHTML = '<option value="">Todos los cursos (' + allStudents.length + ')</option>' +
           cursos.map(c => {
-            const count = allStudents.filter(s => ((s.curso || '').trim() || '— sin curso —') === c).length;
+            const count = allStudents.filter(s => cursoDe(s) === c).length;
             return '<option value="' + esc(c) + '">' + esc(c) + ' (' + count + ')</option>';
           }).join('');
       }
