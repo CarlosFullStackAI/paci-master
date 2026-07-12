@@ -524,15 +524,9 @@
                 display: none !important;
                 content: none !important;
             }
-            /* Saltos de pagina del documento: la clase html2pdf__page-break era el
-               marcador de la libreria html2pdf (legacy). El PDF actual (Puppeteer,
-               @media print) necesita esta regla CSS para que cada seccion marcada
-               (II-V, cada asignatura nueva y el Consolidado de Materiales y
-               Recursos) comience en una hoja nueva. */
-            .html2pdf__page-break {
-                page-break-before: always !important;
-                break-before: page !important;
-            }
+            /* (Los saltos de pagina de .html2pdf__page-break se declaran mas abajo,
+               en la seccion 12 de paginacion — no duplicar aqui: una copia extra
+               confunde la cascada.) */
 
             /* 2) AISLAMIENTO: ocultar todo fuera del documento */
             #skeleton-screen, #control-panel, #mobile-nav, #mobile-actions,
@@ -778,25 +772,23 @@
                 break-inside: avoid !important;
             }
 
-            /* 12b) CONSOLIDADO DE MATERIALES: flujo continuo */
-            /* CONSOLIDADO DE MATERIALES: SIEMPRE pegado a su tabla de clases.
-               NUNCA arranca en pagina nueva por si solo (huerfano sin header de modulo). */
+            /* 12b) CONSOLIDADO DE MATERIALES: SIEMPRE comienza en hoja nueva
+               (pedido 2026-07-12: separa el consolidado de las clases y ordena el
+               documento). OJO: antes esta regla decia "break-before: avoid" y por
+               cascada ANULABA el salto de .html2pdf__page-break — no volver a eso. */
             .consolidado-materiales {
-                margin-top: 8pt !important;
+                margin-top: 0 !important;
                 padding-top: 0 !important;
-                /* Pegar al contenido anterior (tabla de clases del modulo) */
-                break-before: avoid !important;
-                page-break-before: avoid !important;
+                break-before: page !important;
+                page-break-before: always !important;
                 /* El bloque entero se mantiene junto si cabe */
                 break-inside: avoid !important;
                 page-break-inside: avoid !important;
             }
-            /* Titulo pegado a la tabla (anti-orphan) */
+            /* Titulo pegado a su tabla (anti-orphan) */
             .consolidado-materiales > .paci-header {
                 break-after: avoid !important;
                 page-break-after: avoid !important;
-                break-before: avoid !important;
-                page-break-before: avoid !important;
             }
             /* Tabla del consolidado: si es muy grande, puede fluir; lo normal es que quepa entera */
             .consolidado-materiales table {
