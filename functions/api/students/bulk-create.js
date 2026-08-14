@@ -76,9 +76,14 @@ export async function onRequestPost(context) {
     }
 
     if (!toInsert.length && !toUpdate.length) {
+      // Trampa frecuente: importar un CSV de ACTUALIZACION sin marcar el modo
+      // upsert deja todo en "duplicado" y parece exito. Decirlo explicito.
+      const hint = !upsert
+        ? ' ¿Querias ACTUALIZAR sus datos? Marca la casilla "Actualizar existentes" e importa de nuevo.'
+        : '';
       return new Response(JSON.stringify({
         ok: true, inserted: 0, updated: 0, skipped,
-        message: 'Todos los nombres ya existian en tu base.'
+        message: 'No se guardo nada: todos los nombres ya existian en tu base.' + hint
       }), { headers });
     }
 
