@@ -27,26 +27,25 @@ export async function onRequestPost(context) {
     // Descifrar campos sensibles
     const decrypted = await decryptStudentFields(student, env.ENCRYPTION_KEY);
 
-    // Determinar nivel de acceso segun rol
+    // Determinar nivel de acceso segun rol.
+    // Modelo multi-establecimiento: la base es COMPARTIDA por el colegio
+    // (resolveTenant ya garantizo que el estudiante es del establecimiento del
+    // usuario). Los roles docentes/de gestion ven los datos completos al pedir
+    // fullAccess — necesarios para generar documentos (PACI, FUR, etc.) — y cada
+    // acceso queda auditado. La mascara se mantiene para roles acotados
+    // (profesor_asignatura: solo comenta) y para vistas sin fullAccess.
     const role = await getUserRole(env, user.email);
-    const canSeeFullData = role === 'admin' || role === 'coordinator';
+    const FULL_DATA_ROLES = ['admin', 'coordinator', 'utp', 'teacher', 'educador_diferencial'];
+    const canSeeFullData = FULL_DATA_ROLES.includes(role) || student.user_email === user.email;
 
     let responseStudent;
 
     if (fullAccess && canSeeFullData) {
-      // Acceso completo: admin/coordinador solicitando datos completos
       responseStudent = decrypted;
 
       // Registrar en audit log (acceso a datos sensibles completos)
       await logAudit(env, request, user, 'VIEW_FULL_STUDENT', 'students', studentId,
-        'Full data access by ' + role);
-    } else if (fullAccess && !canSeeFullData && student.user_email === user.email) {
-      // Profesor pidiendo acceso completo: solo de estudiantes que ELLOS crearon
-      // (sin esta verificacion el flag fullAccess del cliente anulaba la mascara).
-      responseStudent = decrypted;
-
-      await logAudit(env, request, user, 'VIEW_FULL_STUDENT', 'students', studentId,
-        'Owner access by ' + role);
+        (student.user_email === user.email ? 'Owner access by ' : 'Full data access by ') + role);
     } else {
       // Vista por defecto: datos enmascarados
       responseStudent = {
