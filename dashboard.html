@@ -2403,6 +2403,10 @@
         <span class="nav-icon"><i class="fa-solid fa-file-import"></i></span>
         Importar CSV
       </button>
+      <button class="dash-nav-item" onclick="exportarEstudiantesCSV()">
+        <span class="nav-icon"><i class="fa-solid fa-file-export"></i></span>
+        Exportar CSV
+      </button>
       <button class="dash-nav-item" onclick="showMiPerfil()">
         <span class="nav-icon"><i class="fa-solid fa-id-badge"></i></span>
         Mi Perfil
@@ -2569,6 +2573,9 @@
             </button>
             <button type="button" class="btn btn-slate btn-sm" onclick="abrirImportarCSV()" title="Importar estudiantes desde planilla CSV">
               <i class="fa-solid fa-file-import" aria-hidden="true"></i> Importar CSV
+            </button>
+            <button type="button" class="btn btn-slate btn-sm" onclick="exportarEstudiantesCSV()" title="Descargar la ficha completa de todos tus estudiantes en una planilla CSV (compatible con el importador)">
+              <i class="fa-solid fa-file-export" aria-hidden="true"></i> Exportar CSV
             </button>
             <div class="search-box">
               <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
@@ -4225,7 +4232,7 @@
             <span class="save-status" id="save-status-${id}"><i class="fa-solid fa-check"></i> Guardado</span>
           </span>
         </div>
-        <div class="profile-grid">
+        <div class="profile-grid" id="profile-grid-${id}">
           <div class="profile-section"><i class="fa-solid fa-user"></i> Datos Personales <span class="auto-tag">Auto</span></div>
 
           <div class="profile-field">
@@ -4339,6 +4346,12 @@
             <textarea placeholder="Notas adicionales sobre el estudiante..." onchange="saveField(${id},'observations',this.value)">${esc(s.observations || '')}</textarea>
           </div>
         </div>
+        ${CAN_MANAGE_STUDENTS ? `<div style="margin-top:1rem;display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
+          <button type="button" id="save-all-btn-${id}" onclick="guardarFichaCompleta(${id})" class="btn btn-primary btn-sm" title="Guarda TODA la ficha de una vez (los campos también se guardan solos al salir de cada uno, pero este botón te da la confirmación explícita)">
+            <i class="fa-solid fa-floppy-disk"></i> Guardar datos
+          </button>
+          <span style="font-size:0.68rem;color:#94a3b8;">Los campos también se guardan automáticamente al salir de cada uno.</span>
+        </div>` : ''}
         ${CAN_CREATE ? `<div style="margin-top:1rem;display:flex;gap:0.5rem;">
           <a href="/app.html?student=${id}" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> Nuevo PACI</a>
           <a href="/pai.html?student=${id}" class="btn btn-green btn-sm"><i class="fa-solid fa-plus"></i> Nuevo PAI</a>
@@ -4495,6 +4508,50 @@
         status.style.display = 'inline';
         status.innerHTML = res.ok ? '<i class="fa-solid fa-check"></i> Guardado' : '<i class="fa-solid fa-xmark" style="color:#ef4444;"></i> Error';
         setTimeout(() => { status.style.display = 'none'; }, 2000);
+      }
+    }
+
+    // Botón "Guardar datos": junta TODA la ficha visible y la persiste en UNA llamada.
+    // Los campos ya se guardan al salir de cada uno (onchange), pero este botón entrega
+    // certeza explícita (y rescata cambios cuyo onchange no alcanzó a dispararse).
+    // Los campos se identifican leyendo su atributo onchange (saveField/saveProfileField/
+    // onDiagDateChange/onReevalDateChange); inputs con otros manejadores conservan su
+    // guardado propio y se omiten aquí.
+    async function guardarFichaCompleta(id) {
+      const grid = document.getElementById('profile-grid-' + id);
+      const btn = document.getElementById('save-all-btn-' + id);
+      if (!grid) return;
+
+      const data = {};
+      const profile = Object.assign({}, _profileCache[id] || {});
+      grid.querySelectorAll('input, select, textarea').forEach(el => {
+        const oc = el.getAttribute('onchange') || '';
+        let m = /saveField\(\d+,\s*'([a-z_]+)'/.exec(oc);
+        if (m) { data[m[1]] = (el.type === 'number') ? (parseInt(el.value) || 0) : el.value; return; }
+        m = /saveProfileField\(\d+,\s*'([a-z_]+)'/.exec(oc);
+        if (m) { profile[m[1]] = el.value; return; }
+        if (/onDiagDateChange\(/.test(oc)) data.diagnosis_date = el.value;
+        else if (/onReevalDateChange\(/.test(oc)) data.last_evaluation_date = el.value;
+      });
+      data.profile_json = profile;
+      _profileCache[id] = profile;
+
+      if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando…'; }
+      let res;
+      try { res = await api('/api/students/update', { studentId: id, data }); }
+      catch (e) { res = { ok: false }; }
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = res.ok
+          ? '<i class="fa-solid fa-check"></i> Datos guardados ✓'
+          : '<i class="fa-solid fa-xmark"></i> Error — reintenta';
+        setTimeout(() => { btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Guardar datos'; }, 3000);
+      }
+      const status = document.getElementById('save-status-' + id);
+      if (status) {
+        status.style.display = 'inline';
+        status.innerHTML = res.ok ? '<i class="fa-solid fa-check"></i> Ficha completa guardada' : '<i class="fa-solid fa-xmark" style="color:#ef4444;"></i> Error al guardar';
+        setTimeout(() => { status.style.display = 'none'; }, 3000);
       }
     }
 
@@ -5843,6 +5900,48 @@
         btn.disabled = false;
         btn.innerHTML = orig;
       }
+    }
+
+    // Exportar TODA la base de estudiantes a CSV (datos ya descifrados por la sesión).
+    // Encabezados compatibles con el importador: puedes exportar, editar en Excel y
+    // re-importar con "Actualizar existentes" para aplicar los cambios en lote.
+    function exportarEstudiantesCSV() {
+      if (!DASH_STUDENTS.length) { alert('Aún no hay estudiantes cargados. Espera a que cargue el dashboard.'); return; }
+
+      const q = (v) => {
+        const s = String(v == null ? '' : v);
+        return /[",\n\r;]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+      };
+      const perfil = (s) => {
+        try { return typeof s.profile_json === 'string' ? (JSON.parse(s.profile_json || '{}') || {}) : (s.profile_json || {}); }
+        catch (e) { return {}; }
+      };
+
+      const header = ['nombre', 'rut estudiante', 'curso', 'diagnostico', 'cod diagnostico', 'tipo nee',
+        'fecha diagnostico', 'fecha ultima reevaluacion', 'fecha proxima reevaluacion', 'fecha nacimiento', 'edad',
+        'nivel real', 'nivel de trabajo', 'apoderado', 'rut apoderado', 'relacion apoderado', 'telefono apoderado',
+        'establecimiento', 'observaciones'];
+
+      const filas = DASH_STUDENTS.map(s => {
+        const p = perfil(s);
+        return [
+          s.name, s.rut, s.curso, s.diagnosis, s.diagnosis_id, s.nee_type,
+          s.diagnosis_date, s.last_evaluation_date, s.next_evaluation_date, s.birth_date, s.age,
+          s.real_level, s.work_level, s.guardian, p.apoderado_rut, p.apoderado_rel, p.apoderado_tel,
+          s.school, s.observations
+        ].map(q).join(',');
+      });
+
+      const csv = '﻿' + header.join(',') + '\r\n' + filas.join('\r\n') + '\r\n';
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const hoy = new Date();
+      const fecha = String(hoy.getDate()).padStart(2, '0') + '-' + String(hoy.getMonth() + 1).padStart(2, '0') + '-' + hoy.getFullYear();
+      a.href = url;
+      a.download = 'estudiantes-pie-' + fecha + '.csv';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     }
 
     function csvDescargarPlantilla(e) {
