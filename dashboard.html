@@ -4172,7 +4172,11 @@
       loadedStudents[id] = true;
 
       try {
-        const res = await api('/api/students/get', { studentId: id });
+        // fullAccess: la ficha es EDITABLE — sin datos completos, el RUT/apoderado
+        // llegan enmascarados (***) y al guardar se persistiría la máscara sobre el
+        // dato real. El endpoint audita cada acceso (VIEW_FULL_STUDENT) y solo lo
+        // entrega a roles docentes/gestión del establecimiento.
+        const res = await api('/api/students/get', { studentId: id, fullAccess: true });
         if (!res.ok) throw new Error(res.error);
 
         renderProfile(id, res.student);
@@ -4499,7 +4503,18 @@
       }
     }
 
+    // Un valor enmascarado (RUT "24.***.**1-5" o similar) JAMÁS debe guardarse:
+    // pisaría el dato real con la máscara. Puede aparecer si una ficha se pintó
+    // con datos enmascarados (rol acotado o versión antigua en caché).
+    function esValorEnmascarado(v) {
+      return typeof v === 'string' && v.includes('***');
+    }
+
     async function saveField(studentId, field, value) {
+      if (esValorEnmascarado(value)) {
+        alert('Ese valor viene enmascarado (***) y no se guardará para no pisar el dato real. Recarga la página (F5) para ver el dato completo.');
+        return;
+      }
       const data = {};
       data[field] = value;
       const res = await api('/api/students/update', { studentId, data });
@@ -4525,6 +4540,7 @@
       const data = {};
       const profile = Object.assign({}, _profileCache[id] || {});
       grid.querySelectorAll('input, select, textarea').forEach(el => {
+        if (esValorEnmascarado(el.value)) return; // nunca persistir máscaras (***)
         const oc = el.getAttribute('onchange') || '';
         let m = /saveField\(\d+,\s*'([a-z_]+)'/.exec(oc);
         if (m) { data[m[1]] = (el.type === 'number') ? (parseInt(el.value) || 0) : el.value; return; }
