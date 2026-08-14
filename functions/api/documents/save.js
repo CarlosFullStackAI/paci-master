@@ -3,7 +3,7 @@ import { resolveTenant } from '../tenant-helper.js';
 import { encrypt } from '../crypto-helper.js';
 import { checkPermission } from '../rbac-helper.js';
 
-// Los 13 tipos de documento del ciclo PIE (debe coincidir con docs-registry.js).
+// Los 14 tipos de documento del ciclo PIE (debe coincidir con docs-registry.js).
 // 'paci' y 'pai' son los originales con editores propios; el resto usa /docs.html.
 const VALID_PLAN_TYPES = [
   'paci', 'pai',
@@ -11,7 +11,7 @@ const VALID_PLAN_TYPES = [
   'anamnesis', 'informe_psicopedagogico', 'fudei',
   'informe_especialista', 'autorizacion_familia', 'valoracion_salud',
   // Fase planificacion (extras a paci/pai)
-  'registro_colaborativo', 'registro_atencion',
+  'registro_colaborativo', 'registro_atencion', 'intervencion_neep',
   // Fase seguimiento
   'informe_familia', 'fur', 'informe_avance'
 ];
@@ -20,7 +20,7 @@ const VALID_PLAN_TYPES = [
 const STUB_PLAN_TYPES = new Set([
   'anamnesis', 'informe_psicopedagogico', 'fudei',
   'informe_especialista', 'autorizacion_familia', 'valoracion_salud',
-  'registro_colaborativo', 'registro_atencion',
+  'registro_colaborativo', 'registro_atencion', 'intervencion_neep',
   'informe_familia', 'fur', 'informe_avance'
 ]);
 

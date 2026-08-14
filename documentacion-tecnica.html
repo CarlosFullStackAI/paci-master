@@ -87,7 +87,7 @@
 <header class="hero">
   <h1>PIE MASTER — Documentación técnica</h1>
   <p>Plataforma de gestión documental para Educadores Diferenciales chilenos (Decreto 83/2015 y Decreto 170/2009).</p>
-  <span class="badge">Última actualización: 2026-07-12</span>
+  <span class="badge">Última actualización: 2026-08-14</span>
   <span class="badge">Interna — solo admins (link en el dashboard)</span>
 </header>
 
@@ -268,6 +268,13 @@ npx wrangler d1 execute paci-db --remote --file migrations/0XX.sql   # migrar AN
 
 <section id="historial">
   <h2>11. Historial de cambios</h2>
+
+  <div class="chg">
+    <div class="fecha">2026-08-14</div>
+    <ul>
+      <li><strong>Nuevo documento: "Intervención NEEP sin PACI"</strong> (tipo <code>intervencion_neep</code>, fase Planificación): constancia que fundamenta por qué un estudiante NEEP no requiere PACI en una asignatura durante el período por estar a nivel del grupo curso (formato interno del colegio, digitalizado desde el docx de la carpeta PACI). Formulario en docs.html con autorrelleno vía selector de estudiantes (<code>prefillFrom</code>: nombre, diagnóstico, curso); la prosa vive en <code>CUSTOM_BODIES.intervencion_neep</code> y se <em>redacta según el género seleccionado de cada profesional</em>: "el/la docente" en la justificación y títulos de firma "Profesor/Profesora de Educación Diferencial", "Profesor/a de asignatura" y "Coordinador/a PIE". Justificación editable (vacía = redacción estándar automática con asignatura y períodos en prosa). Registrado en <code>DOC_RECURRENCE</code> (trimestral, opcional) y en <code>VALID_PLAN_TYPES</code>/<code>STUB_PLAN_TYPES</code> de save.js.</li>
+    </ul>
+  </div>
 
   <div class="chg">
     <div class="fecha">2026-07-12</div>

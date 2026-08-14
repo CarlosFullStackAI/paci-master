@@ -1429,6 +1429,53 @@
             '<div style="border-top:1px solid #475569;padding-top:5px;flex:1;">Nombre, RUT y firma<br>Apoderado/a Suplente</div>' +
             '<div style="border-top:1px solid #475569;padding-top:5px;flex:1;">Nombre, RUT y firma<br>Responsable Equipo de Gestión (PIE / UTP / Dirección)</div>' +
           '</div>';
+      },
+      // Formato interno del colegio: constancia de NO elaboración de PACI en una
+      // asignatura (estudiante a nivel del curso). La redacción y los títulos de
+      // firma usan "el/la docente" y "Profesor/Profesora" según el género elegido.
+      intervencion_neep: function (d, tenant, fecha) {
+        const generoDif = d.prof_diferencial_genero || 'Hombre';
+        const artDif = generoDif === 'Mujer' ? 'la' : 'el';
+        const tituloDif = generoDif === 'Mujer' ? 'Profesora de Educación Diferencial' : 'Profesor de Educación Diferencial';
+        const tituloAsig = (d.prof_asignatura_genero || 'Mujer') === 'Mujer' ? 'Profesora de asignatura' : 'Profesor de asignatura';
+        const tituloCoord = (d.coordinador_pie_genero || 'Mujer') === 'Mujer' ? 'Coordinadora PIE' : 'Coordinador PIE';
+
+        const PERIODO_PROSA = {
+          '1er Trimestre': 'primer trimestre', '2do Trimestre': 'segundo trimestre',
+          '3er Trimestre': 'tercer trimestre', 'Año escolar anterior': 'año escolar anterior'
+        };
+        const evaluado = PERIODO_PROSA[d.periodo_evaluado] || d.periodo_evaluado || '____________';
+        const periodo = PERIODO_PROSA[d.periodo] || d.periodo || '____________';
+        const asig = d.asignatura || '____________________';
+
+        const justif = (d.justificacion || '').trim() ||
+          ('Considerando la observación dentro del aula y los resultados obtenidos por el/la estudiante en el ' + evaluado +
+           ', se considera que no hay necesidad de realizar un PACI en la asignatura de ' + asig +
+           ' para el período del ' + periodo +
+           ', ya que se evidencia que está a nivel del curso en los objetivos que se trabajarán, por lo que se prioriza el apoyo de ' +
+           artDif + ' docente diferencial tanto en aula de recursos como en aula común.');
+
+        const rowId = (l, v) => '<div style="display:flex;gap:8px;padding:5px 0;border-bottom:1px dotted #e2e8f0;">' +
+          '<span style="flex:0 0 32%;color:#475569;font-weight:bold;font-size:9.5pt;text-transform:uppercase;">' + l + '</span>' +
+          '<span style="flex:1;color:#0f172a;font-size:10.5pt;">' + esc(v || '—') + '</span></div>';
+
+        return '' +
+          '<div style="' + DOCX.h2 + '">Identificación</div>' +
+          rowId('Nombre:', d.student_name) +
+          rowId('Diagnóstico:', d.student_diag) +
+          rowId('Curso:', d.student_curso) +
+          rowId('Período:', d.periodo) +
+          rowId('Prof. de asignatura:', d.prof_asignatura) +
+          rowId('Prof. Diferencial:', d.prof_diferencial) +
+          '<div style="' + DOCX.h2 + 'margin-top:18px;">Justificación</div>' +
+          '<p style="' + PARR + '">' + esc(justif) + '</p>' +
+          '<div style="display:flex;justify-content:space-around;text-align:center;font-size:9pt;margin-top:60px;gap:14px;">' +
+            '<div style="flex:1;"><div style="border-top:1px solid #475569;padding-top:5px;font-weight:bold;">' + esc(d.prof_diferencial || '') + '</div><div style="color:#475569;">' + tituloDif + '</div></div>' +
+            '<div style="flex:1;"><div style="border-top:1px solid #475569;padding-top:5px;font-weight:bold;">' + esc(d.prof_asignatura || '') + '</div><div style="color:#475569;">' + tituloAsig + '</div></div>' +
+          '</div>' +
+          '<div style="display:flex;justify-content:center;text-align:center;font-size:9pt;margin-top:44px;">' +
+            '<div style="width:44%;"><div style="border-top:1px solid #475569;padding-top:5px;font-weight:bold;">' + esc(d.coordinador_pie || '') + '</div><div style="color:#475569;">' + tituloCoord + '</div></div>' +
+          '</div>';
       }
     };
 

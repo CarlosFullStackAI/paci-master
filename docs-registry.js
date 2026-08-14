@@ -1,7 +1,7 @@
 /**
  * PIE MASTER - Registro Central de Tipos de Documento
  *
- * Define los 13 documentos del ciclo PIE (Programa de Integracion Escolar)
+ * Define los documentos del ciclo PIE (Programa de Integracion Escolar)
  * chileno, agrupados en 3 fases. Cada documento incluye:
  *   - metadata visible (label, sublabel, icon, route)
  *   - referencia normativa (decree)
@@ -639,6 +639,60 @@ window.DOC_TYPES = {
     }
   },
 
+  intervencion_neep: {
+    key: 'intervencion_neep',
+    phase: 'planificacion',
+    label: 'Intervención NEEP sin PACI',
+    sublabel: 'Justificación de no elaboración de PACI en una asignatura',
+    icon: 'fa-scale-balanced',
+    route: '/docs.html?type=intervencion_neep',
+    decree: 'Decreto 83/2015 (la adecuación curricular se elabora solo cuando se requiere)',
+    description: 'Constancia que fundamenta por qué un estudiante NEEP no requiere PACI en una asignatura durante el período, por encontrarse a nivel del grupo curso; el apoyo se prioriza en aula de recursos y aula común.',
+    requiresMineduc: false,
+    docTitle: 'INTERVENCIÓN CON ESTUDIANTES NEEP SIN PACI',
+    info: {
+      cuando: 'Al inicio de cada período (trimestre) en que el equipo de aula decide NO elaborar PACI en una asignatura.',
+      paraQuien: 'Estudiantes NEEP con PACI o PAI en solo una asignatura, que están a nivel del curso en la otra.',
+      renovacion: 'Por período: se emite en cada trimestre en que se mantenga la decisión.'
+    },
+    // El documento se arma con la prosa del formato interno del colegio
+    // (CUSTOM_BODIES.intervencion_neep en docs.html); la redacción usa
+    // "el docente" o "la docente" según el género seleccionado del especialista.
+    schema: {
+      sections: [
+        { key: 'identificacion', label: '1. Identificación', icon: 'fa-user',
+          fields: [
+            { id: 'student_name',  label: 'Nombre completo del estudiante', type: 'text', required: true, prefillFrom: 'student.name' },
+            { id: 'student_diag',  label: 'Diagnóstico', type: 'text', prefillFrom: 'student.diagnosis' },
+            { id: 'student_curso', label: 'Curso / Nivel', type: 'text', prefillFrom: 'student.real_level' }
+          ]},
+        { key: 'decision', label: '2. Decisión pedagógica', icon: 'fa-scale-balanced',
+          fields: [
+            { id: 'asignatura', label: 'Asignatura SIN PACI en este período', type: 'select', required: true,
+              options: ['Lenguaje y Comunicación', 'Lengua y Literatura', 'Matemática', 'Historia, Geografía y Ciencias Sociales', 'Ciencias Naturales', 'Inglés'] },
+            { id: 'periodo', label: 'Período de la decisión', type: 'select', required: true,
+              options: ['2do Trimestre', '3er Trimestre', '1er Trimestre'] },
+            { id: 'periodo_evaluado', label: 'Período cuyos resultados se consideraron', type: 'select',
+              options: ['1er Trimestre', '2do Trimestre', '3er Trimestre', 'Año escolar anterior'] }
+          ]},
+        { key: 'profesionales', label: '3. Profesionales que suscriben', icon: 'fa-users',
+          fields: [
+            { id: 'prof_diferencial', label: 'Docente de Educación Diferencial', type: 'text', required: true, placeholder: 'Ej: Carlos Molina Salgado' },
+            { id: 'prof_diferencial_genero', label: 'Género (redacción: "el docente" / "la docente")', type: 'select', options: ['Hombre', 'Mujer'] },
+            { id: 'prof_asignatura', label: 'Docente de la asignatura', type: 'text', placeholder: 'Nombre del profesor/a de la asignatura' },
+            { id: 'prof_asignatura_genero', label: 'Género (título de la firma)', type: 'select', options: ['Mujer', 'Hombre'] },
+            { id: 'coordinador_pie', label: 'Coordinación PIE', type: 'text', placeholder: 'Ej: Gladys Matamala Salas' },
+            { id: 'coordinador_pie_genero', label: 'Género (título de la firma)', type: 'select', options: ['Mujer', 'Hombre'] }
+          ]},
+        { key: 'justificacion', label: '4. Justificación', icon: 'fa-file-lines',
+          fields: [
+            { id: 'justificacion', label: 'Justificación (opcional)', type: 'textarea', rows: 5,
+              placeholder: 'Déjala vacía para usar la redacción estándar del colegio, construida automáticamente con los datos anteriores.' }
+          ]}
+      ]
+    }
+  },
+
   // ============================================================
   // FASE 3 - SEGUIMIENTO
   // ============================================================
@@ -1011,6 +1065,8 @@ window.DOC_RECURRENCE = {
   paci:                     { mode: 'trimester',    renewMonths: 4,  required: false, group: 'Planificación' },
   registro_colaborativo:    { mode: 'continuous',   renewMonths: 0,  required: false, group: 'Planificación' },
   registro_atencion:        { mode: 'continuous',   renewMonths: 0,  required: false, group: 'Planificación' },
+  // Constancia "sin PACI en una asignatura": una por trimestre en que aplique la decisión.
+  intervencion_neep:        { mode: 'trimester',    renewMonths: 4,  required: false, group: 'Planificación' },
 
   // Formato ministerial exigible en ingreso y egreso; el semestral es practica interna:
   informe_familia:          { mode: 'semester',     renewMonths: 0,  required: true,  group: 'Seguimiento' },
