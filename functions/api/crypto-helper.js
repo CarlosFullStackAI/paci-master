@@ -10,19 +10,32 @@
 
 const ALGO = 'AES-GCM';
 
-// Derivar una CryptoKey desde el secret string
-async function getKey(envKey) {
-  const encoder = new TextEncoder();
-  const keyMaterial = await crypto.subtle.importKey(
-    'raw', encoder.encode(envKey), 'PBKDF2', false, ['deriveKey']
-  );
-  return crypto.subtle.deriveKey(
-    { name: 'PBKDF2', salt: encoder.encode('paci-salt-v1'), iterations: 100000, hash: 'SHA-256' },
-    keyMaterial,
-    { name: ALGO, length: 256 },
-    false,
-    ['encrypt', 'decrypt']
-  );
+// Cache de la CryptoKey derivada: PBKDF2 con 100k iteraciones es CARO (decenas de
+// ms de CPU). Sin cache, listar 30+ estudiantes deriva la llave ~90 veces (una por
+// campo cifrado) y revienta el limite de CPU del worker (Cloudflare devuelve una
+// pagina HTML de error y el frontend ve "Unexpected token '<'"). Con cache se
+// deriva UNA vez por isolate y el resto son solo AES (microsegundos).
+const keyCache = new Map();
+
+// Derivar una CryptoKey desde el secret string (memoizada por valor de llave)
+function getKey(envKey) {
+  let cached = keyCache.get(envKey);
+  if (!cached) {
+    const encoder = new TextEncoder();
+    cached = crypto.subtle.importKey(
+      'raw', encoder.encode(envKey), 'PBKDF2', false, ['deriveKey']
+    ).then(keyMaterial => crypto.subtle.deriveKey(
+      { name: 'PBKDF2', salt: encoder.encode('paci-salt-v1'), iterations: 100000, hash: 'SHA-256' },
+      keyMaterial,
+      { name: ALGO, length: 256 },
+      false,
+      ['encrypt', 'decrypt']
+    ));
+    // Si la derivacion falla, no dejar una promesa rota cacheada.
+    cached.catch(() => keyCache.delete(envKey));
+    keyCache.set(envKey, cached);
+  }
+  return cached;
 }
 
 // Cifrar un texto plano → retorna string base64 (iv:ciphertext)
