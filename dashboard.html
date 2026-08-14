@@ -5600,15 +5600,19 @@
     let _csvMapping = {};   // { destField: srcColIndex }
 
     const CSV_FIELDS = [
-      { key: 'name',       label: 'Nombre completo',    required: true },
-      { key: 'rut',        label: 'RUT',                required: false },
-      { key: 'curso',      label: 'Curso / Sección',    required: false },
-      { key: 'diagnosis',  label: 'Diagnóstico',        required: false },
-      { key: 'real_level', label: 'Nivel real',         required: false },
-      { key: 'work_level', label: 'Nivel de trabajo',   required: false },
-      { key: 'birth_date', label: 'Fecha nacimiento',   required: false },
-      { key: 'guardian',   label: 'Apoderado',          required: false },
-      { key: 'school',     label: 'Establecimiento',    required: false }
+      { key: 'name',           label: 'Nombre completo',      required: true },
+      { key: 'rut',            label: 'RUT estudiante',       required: false },
+      { key: 'curso',          label: 'Curso / Sección',      required: false },
+      { key: 'diagnosis',      label: 'Diagnóstico',          required: false },
+      { key: 'diagnosis_id',   label: 'Cód. diagnóstico',     required: false },
+      { key: 'nee_type',       label: 'Tipo NEE (NEET/NEEP)', required: false },
+      { key: 'diagnosis_date', label: 'Fecha diagnóstico',    required: false },
+      { key: 'real_level',     label: 'Nivel real',           required: false },
+      { key: 'work_level',     label: 'Nivel de trabajo',     required: false },
+      { key: 'birth_date',     label: 'Fecha nacimiento',     required: false },
+      { key: 'guardian',       label: 'Apoderado',            required: false },
+      { key: 'apoderado_rut',  label: 'RUT apoderado',        required: false },
+      { key: 'school',         label: 'Establecimiento',      required: false }
     ];
 
     function abrirImportarCSV() {
@@ -5644,7 +5648,11 @@
           </div>
           <div class="csv-footer">
             <div class="csv-summary" id="csv-summary">Esperando archivo...</div>
-            <div style="display:flex;gap:0.5rem;">
+            <div style="display:flex;gap:0.75rem;align-items:center;">
+              <label style="display:flex;align-items:center;gap:0.4rem;font-size:0.75rem;color:#cbd5e1;cursor:pointer;white-space:nowrap;" title="Si el nombre ya existe en tu base, actualiza sus datos con los del CSV (solo las columnas con valor; las vacías no borran nada). Los datos sensibles se cifran en el servidor.">
+                <input type="checkbox" id="csv-upsert" style="width:auto;margin:0;cursor:pointer;">
+                Actualizar existentes
+              </label>
               <button onclick="cerrarImportarCSV()" class="btn btn-slate btn-sm">Cancelar</button>
               <button id="csv-import-btn" onclick="csvEnviarImport()" class="btn btn-primary btn-sm" disabled>
                 <i class="fa-solid fa-cloud-arrow-up"></i> Importar
@@ -5729,9 +5737,15 @@
       const autoMap = {};
       _csvHeaders.forEach((h, i) => {
         const k = h.toLowerCase();
+        // Los patrones específicos van ANTES que los genéricos (rut apoderado antes
+        // que rut; fecha/cód/tipo de diagnóstico antes que diagnóstico).
         if (/^(nombre|name|estudiante|alumno)/.test(k)) autoMap.name = i;
+        else if (/(rut|run).*(apoder|tutor)/.test(k) || /(apoder|tutor).*(rut|run)/.test(k)) autoMap.apoderado_rut = i;
         else if (/(rut|run)\s*estud/.test(k) || k === 'rut' || k === 'run') autoMap.rut = i;
         else if (/^(curso|seccion|sección|grupo|aula)/.test(k)) autoMap.curso = i;
+        else if (/fecha.*diag|diag.*fecha/.test(k)) autoMap.diagnosis_date = i;
+        else if (/(cod|cód|id).*diag|diag.*(_id|id$)/.test(k)) autoMap.diagnosis_id = i;
+        else if (/tipo.*nee|nee.*tipo|^nee$/.test(k)) autoMap.nee_type = i;
         else if (/(diag|nee)/.test(k)) autoMap.diagnosis = i;
         else if (/nivel.*real/.test(k)) autoMap.real_level = i;
         else if (/nivel.*trabajo/.test(k) || /trabajo.*nivel/.test(k)) autoMap.work_level = i;
@@ -5814,7 +5828,8 @@
         .filter(o => o.name && o.name.length >= 2);
 
       try {
-        const res = await api('/api/students/bulk-create', { students });
+        const upsert = !!document.getElementById('csv-upsert')?.checked;
+        const res = await api('/api/students/bulk-create', { students, mode: upsert ? 'upsert' : 'create' });
         if (res.ok) {
           alert('✓ ' + res.message);
           cerrarImportarCSV();
