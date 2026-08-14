@@ -20,12 +20,14 @@
     "eslint": "^8.57.1",
     "eslint-plugin-security": "^4.0.0",
     "tailwindcss": "^3.4.19",
-    "wrangler": "^4.85.0"
+    "wrangler": "^4.85.0",
+    "pdfjs-dist": "^5.7.284"
   },
   "dependencies": {
-    "@cloudflare/puppeteer": "^1.1.0",
-    "fflate": "^0.8.3",
-    "pdf-parse": "^2.4.5",
-    "pdfjs-dist": "^5.7.284"
+    "@cloudflare/puppeteer": "^1.3.0",
+    "fflate": "^0.8.3"
+  },
+  "overrides": {
+    "@puppeteer/browsers": "^3.2.0"
   }
 }
