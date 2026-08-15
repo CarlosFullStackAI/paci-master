@@ -5303,10 +5303,19 @@
             <label style="font-size:0.65rem;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:0.3rem;">RUT profesional</label>
             <input type="text" id="perfil-rut" maxlength="20" style="width:100%;border:1.5px solid #e2e8f0;border-radius:0.5rem;padding:0.6rem 0.8rem;font-size:0.85rem;outline:none;color:#0f172a;" placeholder="12.345.678-9">
           </div>
-          <div style="margin-bottom:1.2rem;">
+          <div style="margin-bottom:0.85rem;">
             <label style="font-size:0.65rem;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:0.3rem;">Registro MINEDUC</label>
             <input type="text" id="perfil-registro" maxlength="60" style="width:100%;border:1.5px solid #e2e8f0;border-radius:0.5rem;padding:0.6rem 0.8rem;font-size:0.85rem;outline:none;color:#0f172a;" placeholder="Ej: ED-12345 / RBD propio">
             <p style="font-size:0.68rem;color:#94a3b8;margin-top:0.35rem;">Tu nº de registro como educador diferencial ante el Ministerio.</p>
+          </div>
+          <div style="margin-bottom:1.2rem;">
+            <label style="font-size:0.65rem;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:0.3rem;">Trato en los documentos</label>
+            <select id="perfil-genero" style="width:100%;border:1.5px solid #e2e8f0;border-radius:0.5rem;padding:0.6rem 0.8rem;font-size:0.85rem;outline:none;color:#0f172a;background:#fff;">
+              <option value="">Sin especificar</option>
+              <option value="hombre">El docente (masculino)</option>
+              <option value="mujer">La docente (femenino)</option>
+            </select>
+            <p style="font-size:0.68rem;color:#94a3b8;margin-top:0.35rem;">Define cómo te redactan los documentos: "el docente" o "la docente" (clases con IA, Intervención NEEP, firmas).</p>
           </div>
           <div style="display:flex;gap:0.5rem;">
             <button onclick="guardarMiPerfil()" class="btn btn-primary" style="flex:1;justify-content:center;" id="perfil-save">
@@ -5335,11 +5344,13 @@
           if ($('perfil-name'))     $('perfil-name').value = data.profile.name || '';
           if ($('perfil-rut'))      $('perfil-rut').value = data.profile.rut || '';
           if ($('perfil-registro')) $('perfil-registro').value = data.profile.registroMineduc || '';
+          if ($('perfil-genero'))   $('perfil-genero').value = data.profile.genero || '';
           // Sincronizar localStorage para que docs.html y otros editores tengan los valores frescos
           try {
             const u = JSON.parse(localStorage.getItem('paci_user') || '{}');
             u.rut = data.profile.rut || '';
             u.registroMineduc = data.profile.registroMineduc || '';
+            u.genero = data.profile.genero || '';
             localStorage.setItem('paci_user', JSON.stringify(u));
           } catch (e) {}
         }
@@ -5351,6 +5362,7 @@
       const btn = document.getElementById('perfil-save');
       const rut = document.getElementById('perfil-rut').value.trim();
       const registroMineduc = document.getElementById('perfil-registro').value.trim();
+      const genero = document.getElementById('perfil-genero').value;
       btn.disabled = true;
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando…';
       msg.style.display = 'none';
@@ -5358,7 +5370,7 @@
         const res = await fetch('/api/users/profile', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ rut, registroMineduc })
+          body: JSON.stringify({ rut, registroMineduc, genero })
         });
         const data = await res.json();
         if (data.ok) {
@@ -5366,7 +5378,7 @@
           msg.textContent = '✓ Perfil actualizado.';
           try {
             const u = JSON.parse(localStorage.getItem('paci_user') || '{}');
-            u.rut = rut; u.registroMineduc = registroMineduc;
+            u.rut = rut; u.registroMineduc = registroMineduc; u.genero = genero;
             localStorage.setItem('paci_user', JSON.stringify(u));
           } catch (e) {}
         } else {

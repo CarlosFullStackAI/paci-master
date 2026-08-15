@@ -293,7 +293,7 @@
         const data = await res.json();
         if (data.ok) {
           localStorage.setItem('paci_token', data.token);
-          localStorage.setItem('paci_user', JSON.stringify({ email: data.email, name: data.name, role: data.role, tenantSlug: data.tenantSlug || '' }));
+          localStorage.setItem('paci_user', JSON.stringify({ email: data.email, name: data.name, role: data.role, tenantSlug: data.tenantSlug || '', genero: data.genero || '' }));
           window.location.href = '/dashboard.html';
         } else {
           showError(data.error || 'Error al iniciar sesión');
@@ -338,7 +338,7 @@
         const data = await res.json();
         if (data.ok) {
           localStorage.setItem('paci_token', data.token);
-          localStorage.setItem('paci_user', JSON.stringify({ email: data.email, name: data.name, role: data.role, tenantSlug: data.tenantSlug || '' }));
+          localStorage.setItem('paci_user', JSON.stringify({ email: data.email, name: data.name, role: data.role, tenantSlug: data.tenantSlug || '', genero: data.genero || '' }));
           window.location.href = '/dashboard.html';
         } else {
           showError(data.error || 'Error al crear cuenta');
@@ -363,7 +363,7 @@
         const data = await res.json();
         if (data.ok) {
           localStorage.setItem('paci_token', data.token);
-          localStorage.setItem('paci_user', JSON.stringify({ email: data.email, name: data.name, role: data.role, tenantSlug: data.tenantSlug || '' }));
+          localStorage.setItem('paci_user', JSON.stringify({ email: data.email, name: data.name, role: data.role, tenantSlug: data.tenantSlug || '', genero: data.genero || '' }));
           window.location.href = '/dashboard.html';
         } else {
           showError(data.error || 'Error con Google');

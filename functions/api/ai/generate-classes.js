@@ -57,6 +57,17 @@ export async function onRequestPost(context) {
       return new Response(JSON.stringify({ ok: false, error: `numClases debe estar entre 1 y ${MAX_CLASES}.` }), { status: 400, headers });
     }
 
+    // Trato del docente ("el docente"/"la docente") desde su perfil en KV, para
+    // que la redaccion de las clases use el genero correcto (Mi Perfil > Trato).
+    let generoDocente = '';
+    try {
+      const rawPerfil = await env.PACI_USERS.get(`user:${user.email}`);
+      if (rawPerfil) {
+        const g = JSON.parse(rawPerfil).genero;
+        if (g === 'hombre' || g === 'mujer') generoDocente = g;
+      }
+    } catch (e) { /* sin perfil legible: redaccion neutra */ }
+
     // Sanitizar inputs comunes a todos los lotes
     const oasFormateados = oas.slice(0, 8).map(oa => {
       const code = sanitizeForPrompt(oa.code || '');
@@ -72,6 +83,7 @@ export async function onRequestPost(context) {
       realSkills: sanitizeForPrompt(realSkills || '', 600),
       estrategiasNEE: sanitizeForPrompt(estrategiasNEE || '', 1500),
       ambitoLabel: esParvularia ? 'Nucleo de Aprendizaje' : 'Asignatura',
+      generoDocente,
       oasFormateados,
       total: numClases,
       // Markdown consolidado (caso comun). Limite mayor porque concatena 8 campos.
@@ -210,7 +222,8 @@ Si el contexto es ANUAL, la progresion abarca los 3 trimestres (T1 fundacional, 
 - CONTEXTO DEL DOCENTE (CRITICO): Si el mensaje incluye un bloque <contexto_docente>, NO es opcional considerarlo: cada clase debe reflejar la duracion por clase, las estrategias de evaluacion preferidas, los conocimientos previos, los intereses del grupo, los recursos y las pautas DUA ahi descritos.
 - Adapta complejidad al diagnostico y nivel REAL del estudiante (no al nivel curricular nominal).
 - PERSONALIZACION VISIBLE (CRITICO): El PACI es un plan INDIVIDUAL. Cada clase se redacta para ESTE estudiante en particular, no para un curso. La actividad ("act") de CADA clase debe terminar con una linea "Apoyos para el estudiante: ..." con 2-3 apoyos CONCRETOS de esa clase especifica, coherentes con su diagnostico, su nivel real de habilidades y las estrategias sugeridas del diagnostico (si se entregan). Prohibido redactar clases genericas que servirian igual para cualquier estudiante, y prohibido repetir los mismos apoyos identicos en todas las clases (elige los pertinentes a cada actividad). No uses el nombre propio del estudiante: escribe "el/la estudiante".
-- Lenguaje tecnico chileno (NEE, DUA, Barreras, Apoyos), tono profesional, libre de etiquetas estigmatizantes.
+- Lenguaje tecnico chileno (NEE, DUA, Barreras, Apoyos), tono profesional, libre de etiquetas estigmatizantes.${ctx.generoDocente ? `
+- GENERO DEL DOCENTE (CRITICO): quien ejecuta estas clases es ${ctx.generoDocente === 'mujer' ? 'una educadora diferencial MUJER: toda referencia debe ser en femenino ("la docente", "la educadora"), NUNCA "el docente"' : 'un educador diferencial HOMBRE: toda referencia debe ser en masculino ("el docente", "el educador"), NUNCA "la docente"'}.` : ''}
 - Materiales concretos y especificos.
 - VARIAR actividades entre clases (no repetir estructura identica).
 - Responder SIEMPRE en espanol.

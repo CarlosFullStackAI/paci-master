@@ -1831,6 +1831,12 @@
           // Heredar campos comunes desde documentos previos de este estudiante
           await derivarDeDocumentosPrevios(studentId);
         }
+        // Documento nuevo: el genero del docente diferencial parte con el trato
+        // configurado en Mi Perfil del usuario (editable por documento igual).
+        if (!docId && (USER.genero === 'hombre' || USER.genero === 'mujer')) {
+          const selGen = document.getElementById('f-prof_diferencial_genero');
+          if (selGen) selGen.value = USER.genero === 'mujer' ? 'Mujer' : 'Hombre';
+        }
         // Vista previa en vivo: actualizar al editar cualquier campo del formulario.
         const fp = $('form-pane');
         if (fp) {

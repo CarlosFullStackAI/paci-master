@@ -14,6 +14,7 @@
   var UI_KEY = 'paci_ui_font';
   var DOC_KEY = 'paci_doc_zoom';
   var FONT_KEY = 'paci_doc_fuente';
+  var OPEN_KEY = 'paci_fsc_open';   // pastilla desplegada ('1') o solo el boton Aa ('0', defecto)
   var UI_STEPS = [100, 110, 120, 130];   // % tipografia base de la interfaz
   var DOC_STEPS = [85, 100, 115, 130, 145];   // % zoom del documento (PDF via page.pdf scale)
 
@@ -153,20 +154,37 @@
 
   function ensureStyles() {
     var css = [
+      // Contenedor: boton circular "Aa" + panel desplegable. Colapsado por defecto
+      // para que NUNCA tape el contenido de la pagina.
       '#fsc-pill { position: fixed; left: 12px; bottom: 12px; z-index: 9000;',
-      '  display: flex; align-items: center; gap: 0.55rem;',
-      '  background: rgba(15,23,42,0.92); color: #e2e8f0;',
-      '  border: 1px solid rgba(148,163,184,0.35); border-radius: 999px;',
-      '  padding: 5px 10px; font-size: 11px; font-family: inherit;',
-      '  box-shadow: 0 8px 24px rgba(2,6,23,0.35); user-select: none; }',
-      '#fsc-pill .fsc-group { display: flex; align-items: center; gap: 4px; }',
-      '#fsc-pill .fsc-sep { width: 1px; height: 16px; background: rgba(148,163,184,0.4); }',
-      '#fsc-pill i { font-size: 11px; opacity: 0.75; }',
-      '#fsc-pill .fsc-pct { min-width: 34px; text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; }',
-      '#fsc-pill button { width: 22px; height: 22px; border-radius: 50%; border: none; cursor: pointer;',
-      '  background: rgba(255,255,255,0.14); color: #e2e8f0; font-weight: 800; font-size: 12px;',
-      '  line-height: 1; display: flex; align-items: center; justify-content: center; padding: 0; }',
-      '#fsc-pill button:hover { background: rgba(56,189,248,0.4); }',
+      '  display: flex; align-items: center; user-select: none; font-family: inherit; }',
+      '#fsc-toggle { width: 42px; height: 42px; border-radius: 50%; border: none; cursor: pointer; flex: none;',
+      '  background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%); color: #fff;',
+      '  font-weight: 800; font-size: 14px; letter-spacing: -0.5px;',
+      '  display: flex; align-items: center; justify-content: center;',
+      '  box-shadow: 0 8px 24px rgba(2,6,23,0.45), 0 0 0 1px rgba(148,163,184,0.25);',
+      '  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease; }',
+      '#fsc-toggle:hover { transform: scale(1.08); box-shadow: 0 10px 28px rgba(14,165,233,0.5), 0 0 0 1px rgba(148,163,184,0.35); }',
+      '#fsc-pill.fsc-open #fsc-toggle { filter: saturate(0.55) brightness(0.85); }',
+      '#fsc-controls { display: none; align-items: stretch; gap: 0.9rem; margin-left: 10px;',
+      '  background: rgba(15,23,42,0.95); color: #e2e8f0;',
+      '  border: 1px solid rgba(56,189,248,0.3); border-radius: 16px;',
+      '  padding: 8px 14px; font-size: 11px;',
+      '  box-shadow: 0 12px 32px rgba(2,6,23,0.5); backdrop-filter: blur(8px); }',
+      '#fsc-pill.fsc-open #fsc-controls { display: flex; animation: fsc-pop 0.22s ease; }',
+      '@keyframes fsc-pop { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: none; } }',
+      '#fsc-controls .fsc-group { display: flex; flex-direction: column; align-items: center; gap: 3px; }',
+      '#fsc-controls .fsc-cap { font-size: 8.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: #7dd3fc; white-space: nowrap; }',
+      '#fsc-controls .fsc-cap i { font-size: 8.5px; margin-right: 2px; opacity: 0.8; }',
+      '#fsc-controls .fsc-row { display: flex; align-items: center; gap: 5px; }',
+      '#fsc-controls .fsc-sep { width: 1px; align-self: stretch;',
+      '  background: linear-gradient(rgba(148,163,184,0), rgba(148,163,184,0.45), rgba(148,163,184,0)); }',
+      '#fsc-controls .fsc-pct { min-width: 36px; text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; }',
+      '#fsc-controls button { width: 22px; height: 22px; border-radius: 50%; border: none; cursor: pointer;',
+      '  background: rgba(255,255,255,0.12); color: #e2e8f0; font-weight: 800; font-size: 12px;',
+      '  line-height: 1; display: flex; align-items: center; justify-content: center; padding: 0;',
+      '  transition: background 0.15s ease, transform 0.15s ease; }',
+      '#fsc-controls button:hover { background: rgba(56,189,248,0.5); transform: scale(1.1); }',
       '@media print { #fsc-pill { display: none !important; } }'
     ].join('\n');
     var el = document.createElement('style');
@@ -179,27 +197,43 @@
     if (!document.body) return;
     ensureStyles();
     var conDoc = !!document.getElementById('documento');
+    var abierto = localStorage.getItem(OPEN_KEY) === '1';
     var pill = document.createElement('div');
     pill.id = 'fsc-pill';
     pill.setAttribute('role', 'group');
     pill.setAttribute('aria-label', 'Tamaño de letra');
+    if (abierto) pill.className = 'fsc-open';
     pill.innerHTML =
-      '<div class="fsc-group" title="Tamaño de letra de la plataforma (menús y formularios)">' +
-        '<i class="fa-solid fa-display" aria-hidden="true"></i>' +
-        '<button type="button" onclick="uiFontStep(-1)" aria-label="Reducir letra de la plataforma">−</button>' +
-        '<span class="fsc-pct" id="fsc-ui-pct">100%</span>' +
-        '<button type="button" onclick="uiFontStep(1)" aria-label="Aumentar letra de la plataforma">+</button>' +
-      '</div>' +
-      (conDoc
-        ? '<div class="fsc-sep" aria-hidden="true"></div>' +
-          '<div class="fsc-group" title="Tamaño de letra del documento (vista previa, impresión y PDF)">' +
-            '<i class="fa-solid fa-file-lines" aria-hidden="true"></i>' +
-            '<button type="button" onclick="docZoomStep(-1)" aria-label="Reducir letra del documento">−</button>' +
-            '<span class="fsc-pct" id="fsc-doc-pct">100%</span>' +
-            '<button type="button" onclick="docZoomStep(1)" aria-label="Aumentar letra del documento">+</button>' +
-          '</div>'
-        : '');
+      '<button type="button" id="fsc-toggle" title="Tamaño de letra" aria-expanded="' + (abierto ? 'true' : 'false') + '"' +
+        ' aria-label="Mostrar u ocultar los controles de tamaño de letra">Aa</button>' +
+      '<div id="fsc-controls">' +
+        '<div class="fsc-group" title="Tamaño de letra de la plataforma (menús y formularios)">' +
+          '<span class="fsc-cap"><i class="fa-solid fa-display" aria-hidden="true"></i>Pantalla</span>' +
+          '<div class="fsc-row">' +
+            '<button type="button" onclick="uiFontStep(-1)" aria-label="Reducir letra de la plataforma">−</button>' +
+            '<span class="fsc-pct" id="fsc-ui-pct">100%</span>' +
+            '<button type="button" onclick="uiFontStep(1)" aria-label="Aumentar letra de la plataforma">+</button>' +
+          '</div>' +
+        '</div>' +
+        (conDoc
+          ? '<div class="fsc-sep" aria-hidden="true"></div>' +
+            '<div class="fsc-group" title="Tamaño de letra del documento (vista previa, impresión y PDF)">' +
+              '<span class="fsc-cap"><i class="fa-solid fa-file-lines" aria-hidden="true"></i>Documento</span>' +
+              '<div class="fsc-row">' +
+                '<button type="button" onclick="docZoomStep(-1)" aria-label="Reducir letra del documento">−</button>' +
+                '<span class="fsc-pct" id="fsc-doc-pct">100%</span>' +
+                '<button type="button" onclick="docZoomStep(1)" aria-label="Aumentar letra del documento">+</button>' +
+              '</div>' +
+            '</div>'
+          : '') +
+      '</div>';
     document.body.appendChild(pill);
+    var toggle = document.getElementById('fsc-toggle');
+    toggle.addEventListener('click', function () {
+      var open = pill.classList.toggle('fsc-open');
+      localStorage.setItem(OPEN_KEY, open ? '1' : '0');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
     refrescar();
   }
 

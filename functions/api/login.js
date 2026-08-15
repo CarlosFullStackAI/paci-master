@@ -87,7 +87,8 @@ export async function onRequestPost(context) {
       email: user.email,
       name: user.name,
       role: userRole,
-      tenantSlug: userTenant
+      tenantSlug: userTenant,
+      genero: user.genero || ''
     }), {
       status: 200,
       headers: {
