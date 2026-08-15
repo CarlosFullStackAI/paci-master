@@ -114,6 +114,39 @@
             background-attachment: fixed;
         }
         [data-theme="light"] body::after { opacity: 0.04; mix-blend-mode: multiply; filter: invert(1) hue-rotate(180deg); }
+
+        /* === Encabezado del panel: marca + utilidades arriba, botonera de acciones abajo.
+           El encabezado se mantiene oscuro en ambos temas (barra de marca). === */
+        .hdr-top { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; }
+        .hdr-utils { display: flex; gap: 0.4rem; flex-shrink: 0; }
+        .hdr-icon-btn {
+            width: 36px; height: 36px; border-radius: 10px; flex: none; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(51,65,85,0.55); border: 1px solid rgba(148,163,184,0.18);
+            color: #cbd5e1; font-size: 13px; text-decoration: none;
+            transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+        }
+        .hdr-icon-btn:hover { background: rgba(71,85,105,0.95); color: #fff; transform: translateY(-1px); }
+        .hdr-icon-btn.hdr-danger:hover { background: #ef4444; border-color: #ef4444; }
+        .hdr-actions { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.75rem; }
+        .hdr-btn {
+            flex: 1 1 auto; min-width: 92px; display: flex; align-items: center; justify-content: center; gap: 0.4rem;
+            padding: 0.6rem 0.7rem; border-radius: 0.65rem; border: none; cursor: pointer;
+            font-size: 0.72rem; font-weight: 800; color: #fff; white-space: nowrap;
+            box-shadow: 0 4px 14px rgba(2,6,23,0.35);
+            transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+        }
+        .hdr-btn:hover { transform: translateY(-1px); filter: brightness(1.12); box-shadow: 0 6px 18px rgba(2,6,23,0.5); }
+        .hdr-btn:active { transform: scale(0.97); }
+        .hdr-btn:disabled { background: #94a3b8; box-shadow: none; transform: none; filter: none; cursor: not-allowed; }
+        .hdr-btn-emerald { background: linear-gradient(135deg, #10b981, #059669); }
+        .hdr-btn-teal    { background: linear-gradient(135deg, #14b8a6, #0f766e); }
+        .hdr-btn-ia      { background: linear-gradient(135deg, #8b5cf6, #3b82f6); }
+        .hdr-btn-pdf     { background: linear-gradient(135deg, #0ea5e9, #2563eb); }
+        .hdr-btn-word    { background: linear-gradient(135deg, #2563eb, #1e40af); }
+        .hdr-btn-ghost   { flex: 0 0 auto; min-width: 44px; background: rgba(51,65,85,0.55); border: 1px solid rgba(148,163,184,0.18); color: #cbd5e1; box-shadow: none; }
+        .hdr-btn-ghost:hover { color: #fff; filter: none; background: rgba(71,85,105,0.95); }
+
         .brand-logo-app {
             height: 60px;
             width: auto;
@@ -168,42 +201,47 @@
 
     <!-- PANEL DE CONTROL -->
     <aside id="control-panel" style="width:40%;min-width:340px;height:100%;flex-shrink:0;display:flex;flex-direction:column; background: rgba(13, 19, 36, 0.95); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);" class="border-r border-slate-800 z-20">
-        <div class="p-4 bg-slate-900/80 text-white flex justify-between items-center border-b border-slate-800" style="gap:0.6rem;">
-            <div class="flex items-center gap-3" style="min-width:0;">
-                <img class="brand-logo-app" src="/assets/canva/logo.png" alt="PIE MASTER">
-                <div style="min-width:0;">
-                    <p class="text-sm font-black tracking-tighter uppercase leading-none text-slate-100">Editor de Planificación</p>
-                    <p class="text-[10px] text-blue-400 font-bold uppercase tracking-widest mt-1" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">OAs Reales Mineduc NT1-8B &middot; v2</p>
+        <div class="p-4 bg-slate-900/80 text-white border-b border-slate-800">
+            <!-- Fila 1: marca + utilidades (carpeta, tema, salir) -->
+            <div class="hdr-top">
+                <div class="flex items-center gap-3" style="min-width:0;">
+                    <img class="brand-logo-app" src="/assets/canva/logo.png" alt="PIE MASTER">
+                    <div style="min-width:0;">
+                        <p class="text-sm font-black tracking-tighter uppercase leading-none text-slate-100">Editor de Planificación</p>
+                        <p class="text-[10px] text-blue-400 font-bold uppercase tracking-widest mt-1" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">OAs Reales Mineduc NT1-8B &middot; v2</p>
+                    </div>
+                </div>
+                <div class="hdr-utils">
+                    <a href="/dashboard.html" class="hdr-icon-btn" title="Mis Documentos">
+                        <i class="fa-solid fa-folder-open"></i>
+                    </a>
+                    <button type="button" id="theme-toggle" onclick="toggleTheme()" class="hdr-icon-btn" title="Cambiar entre modo claro y oscuro" aria-label="Cambiar entre modo claro y oscuro">
+                        <i class="fa-solid fa-moon"></i>
+                    </button>
+                    <button onclick="cerrarSesion()" class="hdr-icon-btn hdr-danger" title="Cerrar sesión" aria-label="Cerrar sesión">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </button>
                 </div>
             </div>
-            <!-- Controles de Impresión, PDF, Guardar y Sesión -->
-            <div class="flex gap-2" style="flex-wrap:wrap;justify-content:flex-end;">
-                <a href="/dashboard.html" class="bg-slate-700 hover:bg-slate-600 text-white p-2.5 rounded-lg transition active:scale-95 shadow-lg text-xs font-bold flex items-center" title="Mis Documentos" style="text-decoration:none;">
-                    <i class="fa-solid fa-folder-open"></i>
-                </a>
-                <button onclick="guardarPACI()" id="btn-guardar" class="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-2.5 rounded-lg transition active:scale-95 shadow-lg text-xs font-bold flex items-center gap-1" title="Guardar en la nube">
+            <!-- Fila 2: botonera de acciones (guardar, IA, imprimir, exportar) -->
+            <div class="hdr-actions">
+                <button onclick="guardarPACI()" id="btn-guardar" class="hdr-btn hdr-btn-emerald" title="Guardar en la nube">
                     <i class="fa-solid fa-cloud-arrow-up"></i> Guardar
                 </button>
-                <button onclick="guardarPlanAnualVinculado()" id="btn-guardar-anual" style="display:none;" class="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-2.5 rounded-lg transition active:scale-95 shadow-lg text-xs font-bold flex items-center gap-1" title="Guardar como plan anual padre + 3 trimestres vinculados">
+                <button onclick="guardarPlanAnualVinculado()" id="btn-guardar-anual" style="display:none;" class="hdr-btn hdr-btn-teal" title="Guardar como plan anual padre + 3 trimestres vinculados">
                     <i class="fa-solid fa-sitemap"></i> Anual + 3 trimestres
                 </button>
-                <button onclick="distribuirTrimestresIA()" id="btn-distribuir-ia" style="display:none;" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-2.5 rounded-lg transition active:scale-95 shadow-lg text-xs font-bold flex items-center gap-1" title="Distribuir modulos en 3 trimestres con progresion ordenada (IA)">
+                <button onclick="distribuirTrimestresIA()" id="btn-distribuir-ia" style="display:none;" class="hdr-btn hdr-btn-ia" title="Distribuir modulos en 3 trimestres con progresion ordenada (IA)">
                     <i class="fa-solid fa-wand-magic-sparkles"></i> Distribuir IA
                 </button>
-                <button onclick="printPDF()" class="bg-slate-700 hover:bg-slate-600 text-white p-2.5 rounded-lg transition active:scale-95 shadow-lg text-xs font-bold" title="Imprimir directamente">
+                <button onclick="printPDF()" class="hdr-btn hdr-btn-ghost" title="Imprimir directamente" aria-label="Imprimir directamente">
                     <i class="fa-solid fa-print"></i>
                 </button>
-                <button onclick="downloadPDF()" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-2.5 rounded-lg transition active:scale-95 shadow-lg text-xs font-bold flex items-center gap-1" title="Descargar como archivo PDF">
-                    <i class="fa-solid fa-download"></i> PDF
+                <button onclick="downloadPDF()" class="hdr-btn hdr-btn-pdf" title="Descargar como archivo PDF">
+                    <i class="fa-solid fa-file-pdf"></i> PDF
                 </button>
-                <button onclick="downloadWord()" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-2.5 rounded-lg transition active:scale-95 shadow-lg text-xs font-bold flex items-center gap-1" title="Descargar como archivo Word (.docx)">
+                <button onclick="downloadWord()" class="hdr-btn hdr-btn-word" title="Descargar como archivo Word (.docx)">
                     <i class="fa-solid fa-file-word"></i> Word
-                </button>
-                <button type="button" id="theme-toggle" onclick="toggleTheme()" class="bg-slate-700 hover:bg-slate-600 text-white p-2.5 rounded-lg transition active:scale-95 shadow-lg text-xs font-bold" title="Cambiar entre modo claro y oscuro" aria-label="Cambiar entre modo claro y oscuro">
-                    <i class="fa-solid fa-moon"></i>
-                </button>
-                <button onclick="cerrarSesion()" class="bg-slate-700 hover:bg-red-500 text-white p-2.5 rounded-lg transition active:scale-95 shadow-lg text-xs font-bold" title="Cerrar sesion">
-                    <i class="fa-solid fa-right-from-bracket"></i>
                 </button>
             </div>
         </div>
@@ -1614,8 +1652,8 @@
             const btnGuardar = document.getElementById('btn-guardar');
             if (btnGuardar) {
               btnGuardar.disabled = true;
-              btnGuardar.classList.remove('bg-emerald-500', 'hover:bg-emerald-600');
-              btnGuardar.classList.add('bg-slate-400', 'cursor-not-allowed');
+              // El estilo gris lo aporta .hdr-btn:disabled; solo quitamos el gradiente.
+              btnGuardar.classList.remove('hdr-btn-emerald');
               btnGuardar.title = 'No tienes permisos para editar. Tu rol: ' + PACI_ROLE;
             }
             // Deshabilitar todos los inputs del formulario
