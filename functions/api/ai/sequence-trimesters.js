@@ -101,7 +101,10 @@ Devuelve EXACTAMENTE este JSON (sin texto fuera del JSON):
       jsonMode: true
     });
 
-    if (!result.ok) {
+    // callAI devuelve {content, usage, model, provider} y LANZA si todos los
+    // proveedores fallan (lo captura el catch de abajo). Nunca trae campo "ok":
+    // el chequeo antiguo `!result.ok` hacia fallar SIEMPRE este endpoint.
+    if (!result || !result.content) {
       return new Response(JSON.stringify({
         ok: false,
         error: 'No se pudo generar la secuencia. Intenta de nuevo.'
