@@ -572,7 +572,9 @@
                 overflow: visible !important;
                 background-color: #fff !important;
                 color: #1a1a2e !important;
-                font-family: 'Merriweather', 'Georgia', serif !important;
+                /* --doc-font la fija el selector "Tipo de letra" (font-size-controls.js)
+                   como estilo inline de #documento; sin selección, Merriweather. */
+                font-family: var(--doc-font, 'Merriweather', 'Georgia', serif) !important;
                 font-size: 11pt !important;
                 line-height: 1.4 !important;
                 -webkit-print-color-adjust: exact !important;

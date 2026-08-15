@@ -457,6 +457,15 @@
               <button type="button" class="btn btn-slate btn-sm" onclick="docZoomStep(1)" aria-label="Aumentar letra del documento" style="min-width:44px;">A+</button>
             </div>
             <p class="hint" style="margin-top:0.5rem;">Agranda todo el documento por igual: vista previa, impresión y PDF salen con el mismo tamaño. Se recuerda en este navegador.</p>
+            <div style="margin-top:0.85rem;">
+              <label style="display:block;margin-bottom:0.3rem;">Tipo de letra</label>
+              <select class="fsc-doc-font" onchange="docFontSet(this.value)" style="width:100%;">
+                <option value="merriweather">Merriweather (clásica)</option>
+                <option value="arial">Arial (moderna)</option>
+                <option value="times">Times New Roman</option>
+                <option value="atkinson">Atkinson (alta legibilidad)</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>
@@ -1187,10 +1196,11 @@
     function construirHtmlImpresion(incluirZoom) {
       const d = recolectar();
       const cfg = window.TENANT_CONFIG || { nombre: 'Establecimiento' };
-      // Tamaño de letra del documento elegido por el usuario (font-size-controls.js)
+      // Tamaño y tipo de letra del documento elegidos por el usuario (font-size-controls.js)
       const zoomDoc = (incluirZoom && typeof window.docZoomActual === 'function') ? window.docZoomActual() : 1;
+      const fuente = (typeof window.docFontActual === 'function') ? window.docFontActual() : { stack: "'Merriweather','Georgia','Times New Roman',serif", google: 'Merriweather:wght@300;400;700;900' };
       const css =
-        "body{font-family:'Merriweather','Georgia','Times New Roman',serif;color:#1a1a2e;font-size:12px;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}" +
+        'body{font-family:' + fuente.stack + ';color:#1a1a2e;font-size:12px;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}' +
         (zoomDoc !== 1 ? 'body{zoom:' + zoomDoc + ';}' : '') +
         'h3{-webkit-print-color-adjust:exact;print-color-adjust:exact;}' +
         'table{page-break-inside:auto;}' +
@@ -1198,7 +1208,7 @@
         '@page{size:letter;margin:1.5cm;}';
       return '<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">' +
         '<title>' + escapeHtml(nombreArchivo()) + '</title>' +
-        '<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700;900&display=swap" rel="stylesheet">' +
+        (fuente.google ? '<link href="https://fonts.googleapis.com/css2?family=' + fuente.google + '&display=swap" rel="stylesheet">' : '') +
         '<style>' + css + '</style></head><body>' +
         construirCuerpoDocumento(d, cfg) +
         '</body></html>';

@@ -739,6 +739,16 @@
                         </div>
                         <p class="text-[9px] text-slate-400 leading-tight mt-1">Agranda TODO el documento por igual. Lo que ves en la vista previa es lo que sale en el PDF y la impresión.</p>
                     </div>
+                    <div>
+                        <label class="text-[10px] font-black text-slate-500 uppercase mb-1 block">Tipo de letra</label>
+                        <select class="fsc-doc-font w-full border p-2.5 rounded-lg text-sm outline-none" onchange="docFontSet(this.value)">
+                            <option value="merriweather">Merriweather (clásica)</option>
+                            <option value="arial">Arial (moderna)</option>
+                            <option value="times">Times New Roman</option>
+                            <option value="atkinson">Atkinson (alta legibilidad)</option>
+                        </select>
+                        <p class="text-[9px] text-slate-400 leading-tight mt-1">Cambia la tipografía del documento completo: vista previa, PDF e impresión. Se recuerda en este navegador.</p>
+                    </div>
                     <div class="border-t border-slate-100 pt-3 space-y-2">
                         <label class="text-[10px] font-black text-slate-500 uppercase block">Ajuste fino por sección</label>
                         <div class="flex items-center gap-2">
@@ -6770,9 +6780,17 @@
                 });
             });
 
+            // Hoja de Google Fonts de la tipografía elegida (selector "Tipo de letra"),
+            // para que el PDF server-side renderice con la fuente real y no un fallback.
+            var fuenteDoc = (typeof window.docFontActual === 'function') ? window.docFontActual() : null;
+            var linkFuente = (fuenteDoc && fuenteDoc.google)
+                ? '<link href="https://fonts.googleapis.com/css2?family=' + fuenteDoc.google + '&display=swap" rel="stylesheet">'
+                : '';
+
             var fullHtml = '<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">'
                 + '<title>' + filename + '</title>'
                 + '<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">'
+                + linkFuente
                 + '<style>' + allStyles + '</style>'
                 + '</head><body>' + tempContainer.innerHTML + '</body></html>';
 

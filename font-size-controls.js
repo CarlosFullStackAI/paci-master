@@ -13,8 +13,37 @@
 
   var UI_KEY = 'paci_ui_font';
   var DOC_KEY = 'paci_doc_zoom';
+  var FONT_KEY = 'paci_doc_fuente';
   var UI_STEPS = [100, 110, 120, 130];   // % tipografia base de la interfaz
   var DOC_STEPS = [85, 100, 115, 130, 145];   // % zoom del documento (PDF via page.pdf scale)
+
+  // Tipografias del documento (todas gratis). Las de sistema no requieren carga;
+  // las de Google Fonts (Merriweather/Atkinson) se cargan bajo demanda y la CSP
+  // del sitio ya permite fonts.googleapis.com / fonts.gstatic.com.
+  var FUENTES = {
+    merriweather: { label: 'Merriweather (clásica)', stack: "'Merriweather', Georgia, 'Times New Roman', serif", google: 'Merriweather:wght@300;400;700;900' },
+    arial:        { label: 'Arial (moderna)',        stack: 'Arial, Helvetica, sans-serif', google: null },
+    times:        { label: 'Times New Roman',        stack: "'Times New Roman', Times, serif", google: null },
+    atkinson:     { label: 'Atkinson (alta legibilidad)', stack: "'Atkinson Hyperlegible', Arial, sans-serif", google: 'Atkinson+Hyperlegible:wght@400;700' }
+  };
+
+  function fuenteActualKey() {
+    var k = localStorage.getItem(FONT_KEY);
+    return FUENTES[k] ? k : 'merriweather';
+  }
+
+  // Carga la hoja de Google Fonts de una fuente si aún no está en la página.
+  function asegurarFuenteCargada(key) {
+    var f = FUENTES[key];
+    if (!f || !f.google) return;
+    var id = 'fsc-font-' + key;
+    if (document.getElementById(id)) return;
+    var link = document.createElement('link');
+    link.id = id;
+    link.rel = 'stylesheet';
+    link.href = 'https://fonts.googleapis.com/css2?family=' + f.google + '&display=swap';
+    document.head.appendChild(link);
+  }
 
   function leer(key, def) {
     var v = parseFloat(localStorage.getItem(key));
@@ -44,6 +73,23 @@
     el.style.zoom = (pct === 100) ? '' : String(pct / 100);
   }
 
+  // Aplica la fuente elegida al documento: fontFamily inline (vista previa) y la
+  // variable --doc-font, que el CSS de impresión de paci.css usa como fuente del
+  // print/PDF. Ambos viajan en el outerHTML que consume el PDF server-side.
+  function aplicarFuente() {
+    var el = document.getElementById('documento');
+    if (!el) return;
+    var key = fuenteActualKey();
+    asegurarFuenteCargada(key);
+    if (key === 'merriweather') {
+      el.style.removeProperty('--doc-font');
+      el.style.fontFamily = '';
+    } else {
+      el.style.setProperty('--doc-font', FUENTES[key].stack);
+      el.style.fontFamily = FUENTES[key].stack;
+    }
+  }
+
   function refrescar() {
     var ui = document.getElementById('fsc-ui-pct');
     if (ui) ui.textContent = leer(UI_KEY, 100) + '%';
@@ -53,7 +99,26 @@
     // Contadores adicionales en los paneles de los editores (clase compartida).
     var outs = document.querySelectorAll('.fsc-doc-pct-out');
     for (var i = 0; i < outs.length; i++) outs[i].textContent = docPct;
+    // Selects de tipografía de los paneles (clase compartida).
+    var sels = document.querySelectorAll('.fsc-doc-font');
+    for (var j = 0; j < sels.length; j++) sels[j].value = fuenteActualKey();
   }
+
+  // Cambia el tipo de letra del documento (lo llaman los selects de los editores).
+  window.docFontSet = function (key) {
+    if (!FUENTES[key]) key = 'merriweather';
+    localStorage.setItem(FONT_KEY, key);
+    aplicarFuente();
+    refrescar();
+    if (typeof window.updatePreview === 'function') { try { window.updatePreview(); } catch (e) {} }
+  };
+
+  // Fuente actual: la usan pai.html/docs.html para construir el HTML del PDF/Word,
+  // y app.html para incluir la hoja de Google Fonts correcta en el PDF.
+  window.docFontActual = function () {
+    var key = fuenteActualKey();
+    return { key: key, stack: FUENTES[key].stack, google: FUENTES[key].google, label: FUENTES[key].label };
+  };
 
   // Factor de zoom actual del documento (1 = 100%). Lo usan los editores que
   // construyen el HTML del PDF aparte de #documento (pai.html, docs.html) para
@@ -143,9 +208,10 @@
   aplicarUI();
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function () { aplicarDoc(); inyectarPill(); });
+    document.addEventListener('DOMContentLoaded', function () { aplicarDoc(); aplicarFuente(); inyectarPill(); });
   } else {
     aplicarDoc();
+    aplicarFuente();
     inyectarPill();
   }
 })();

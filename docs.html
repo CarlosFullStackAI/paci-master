@@ -591,16 +591,27 @@
       <button type="button" onclick="abrirPicker()"><i class="fa-solid fa-magnifying-glass"></i> Seleccionar</button>
     </div>
 
-    <!-- Tamaño de letra del documento (vista previa + PDF) -->
-    <div class="card" style="display:flex;align-items:center;gap:0.75rem;padding:0.8rem 1.25rem;">
-      <i class="fa-solid fa-text-height" style="color:#38bdf8;font-size:1rem;" aria-hidden="true"></i>
-      <div style="flex:1;">
-        <div style="font-size:0.8rem;font-weight:800;">Tamaño de letra del documento</div>
-        <div style="font-size:0.68rem;opacity:0.75;margin-top:0.1rem;">Vista previa y PDF salen con el mismo tamaño. Se recuerda en este navegador.</div>
+    <!-- Tamaño y tipo de letra del documento (vista previa + PDF) -->
+    <div class="card" style="padding:0.8rem 1.25rem;">
+      <div style="display:flex;align-items:center;gap:0.75rem;">
+        <i class="fa-solid fa-text-height" style="color:#38bdf8;font-size:1rem;" aria-hidden="true"></i>
+        <div style="flex:1;">
+          <div style="font-size:0.8rem;font-weight:800;">Tamaño de letra del documento</div>
+          <div style="font-size:0.68rem;opacity:0.75;margin-top:0.1rem;">Vista previa y PDF salen con el mismo tamaño. Se recuerda en este navegador.</div>
+        </div>
+        <button type="button" class="btn btn-ghost" onclick="docZoomStep(-1)" aria-label="Reducir letra del documento" style="min-width:44px;">A−</button>
+        <span class="fsc-doc-pct-out" style="min-width:44px;text-align:center;font-weight:800;font-size:0.9rem;">100%</span>
+        <button type="button" class="btn btn-ghost" onclick="docZoomStep(1)" aria-label="Aumentar letra del documento" style="min-width:44px;">A+</button>
       </div>
-      <button type="button" class="btn btn-ghost" onclick="docZoomStep(-1)" aria-label="Reducir letra del documento" style="min-width:44px;">A−</button>
-      <span class="fsc-doc-pct-out" style="min-width:44px;text-align:center;font-weight:800;font-size:0.9rem;">100%</span>
-      <button type="button" class="btn btn-ghost" onclick="docZoomStep(1)" aria-label="Aumentar letra del documento" style="min-width:44px;">A+</button>
+      <div style="display:flex;align-items:center;gap:0.75rem;margin-top:0.65rem;">
+        <label style="font-size:0.75rem;font-weight:700;white-space:nowrap;">Tipo de letra</label>
+        <select class="fsc-doc-font" onchange="docFontSet(this.value)" style="flex:1;padding:0.45rem 0.6rem;border:1px solid rgba(148,163,184,0.4);border-radius:0.5rem;font-size:0.8rem;background:inherit;color:inherit;">
+          <option value="merriweather">Merriweather (clásica)</option>
+          <option value="arial">Arial (moderna)</option>
+          <option value="times">Times New Roman</option>
+          <option value="atkinson">Atkinson (alta legibilidad)</option>
+        </select>
+      </div>
     </div>
 
     <div id="derived-banner" class="derived-banner" style="display:none;">
@@ -1526,13 +1537,14 @@
       // Nota: el tamano de letra del documento (control A-/A+) NO se inyecta aqui:
       // este HTML tambien alimenta la descarga Word (donde el zoom CSS no aplica).
       // El PDF server-side lo recibe via page.pdf({scale}) en descargarPDF.
+      const fuente = (typeof window.docFontActual === 'function') ? window.docFontActual() : { stack: "'Merriweather','Georgia','Times New Roman',serif", google: 'Merriweather:wght@300;400;700;900' };
       const css =
-        "*{box-sizing:border-box;margin:0;padding:0;font-family:'Merriweather','Georgia','Times New Roman',serif;}" +
+        '*{box-sizing:border-box;margin:0;padding:0;font-family:' + fuente.stack + ';}' +
         'body{font-size:11pt;line-height:1.45;color:#1a1a2e;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}' +
         '@page{size:letter;margin:1.8cm;}';
       return '<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">' +
         '<title>' + esc(docType.label) + '_' + esc(data.student_name || 'Estudiante') + '</title>' +
-        '<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700;900&display=swap" rel="stylesheet">' +
+        (fuente.google ? '<link href="https://fonts.googleapis.com/css2?family=' + fuente.google + '&display=swap" rel="stylesheet">' : '') +
         '<style>' + css + '</style></head><body>' +
         construirCuerpoDocumento(data, tenant) +
         '</body></html>';
