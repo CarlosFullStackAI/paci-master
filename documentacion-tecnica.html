@@ -87,7 +87,7 @@
 <header class="hero">
   <h1>PIE MASTER — Documentación técnica</h1>
   <p>Plataforma de gestión documental para Educadores Diferenciales chilenos (Decreto 83/2015 y Decreto 170/2009).</p>
-  <span class="badge">Última actualización: 2026-08-14</span>
+  <span class="badge">Última actualización: 2026-08-19</span>
   <span class="badge">Interna — solo admins (link en el dashboard)</span>
 </header>
 
@@ -268,6 +268,14 @@ npx wrangler d1 execute paci-db --remote --file migrations/0XX.sql   # migrar AN
 
 <section id="historial">
   <h2>11. Historial de cambios</h2>
+
+  <div class="chg">
+    <div class="fecha">2026-08-19</div>
+    <ul>
+      <li><strong>Tarjeta de saludo del dashboard: ilustración integrada</strong> (dashboard.html): la ilustración <code>banner-welcome.png</code> trae su propio fondo morado y se veía como un rectángulo duro pegado sobre el cielo degradado por hora (reporte con captura). Ahora <code>.greeting-illustration</code> lleva una <code>mask-image</code> radial anclada a la derecha que desvanece sus 4 bordes hacia el cielo (opaca al centro-derecha, transparente hacia afuera) — de noche se funde por completo con el cielo nocturno. En modo claro baja a opacidad 0.85 y la regla <code>[data-theme="light"] .dash-greeting</code> ya NO pinta el banner como background (capa muerta oculta tras <code>.greeting-sky</code>: la imagen la pone solo la capa con máscara, consistente en ambos temas). En móvil (≤640px) la ilustración pasa a fondo sutil (ancho 88%, opacidad 0.4) tras el overlay para que el texto a ancho completo se lea. Verificado con Chrome headless en 4 escenarios (tarde/noche × claro/oscuro × escritorio/móvil).</li>
+      <li><strong>Subtítulo del login</strong>: "Plataforma Inteligente de Adecuación Curricular Individual" → <strong>"Plataforma Inteligente para la Educación Inclusiva en Chile"</strong> (la plataforma ya no es solo PACI; se mantiene la identidad inclusiva/PIE del producto).</li>
+    </ul>
+  </div>
 
   <div class="chg">
     <div class="fecha">2026-08-14</div>

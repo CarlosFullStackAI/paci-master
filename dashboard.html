@@ -1266,18 +1266,25 @@
         to   { transform: translateX(140vw); }
     }
 
-    /* Capa 4: imagen de niños diversos (banner-welcome.png) - sobre el cielo */
+    /* Capa 4: imagen de niños diversos (banner-welcome.png) - sobre el cielo.
+       La ilustración trae su PROPIO fondo (morado), así que se funde con el
+       cielo desvaneciendo sus 4 bordes con una máscara radial anclada a la
+       derecha: opaca en el centro-derecha, transparente hacia los bordes. */
     .greeting-illustration {
         position: absolute;
         top: 0; right: 0;
         height: 100%;
-        width: 50%;
+        width: 52%;
         background: url('/assets/canva/banner-welcome.png') no-repeat center right;
         background-size: contain;
         z-index: 2;
         pointer-events: none;
         opacity: 0.95;
+        -webkit-mask-image: radial-gradient(ellipse 100% 130% at 100% 50%, #000 45%, rgba(0,0,0,0.6) 65%, transparent 85%);
+        mask-image: radial-gradient(ellipse 100% 130% at 100% 50%, #000 45%, rgba(0,0,0,0.6) 65%, transparent 85%);
     }
+    /* Modo claro: la ilustración se aclara para no pesar sobre el cielo de día */
+    [data-theme="light"] .greeting-illustration { opacity: 0.85; }
 
     /* Capa 5: overlay para legibilidad del texto en la izquierda */
     .greeting-overlay {
@@ -1315,18 +1322,19 @@
             min-height: 230px;
             padding: 1.5rem 1.25rem 1.25rem;
             font-size: 1.25rem;
-            background-position: 80% center;
         }
+        /* En pantallas chicas el texto ocupa todo el ancho: la ilustración pasa
+           a ser un fondo sutil (más ancha pero muy desvanecida) tras el overlay. */
+        .greeting-illustration { width: 88%; opacity: 0.4; }
         .greeting-content { max-width: 100% !important; }
         .weather-chip-top { top: 0.7rem; right: 0.9rem; padding: 0.4rem 0.65rem; }
         .weather-chip-top .weather-meta { display: none; }
     }
+    /* Modo claro: base clara (el cielo por hora se dibuja encima igual que en
+       oscuro; el banner ya NO se pinta aquí — lo pone .greeting-illustration
+       con su máscara de fundido, para que ambos temas se vean consistentes). */
     [data-theme="light"] .dash-greeting {
-        background:
-            linear-gradient(110deg, rgba(255,255,255,0.96) 0%, rgba(241,245,251,0.88) 38%, rgba(241,245,251,0.45) 62%, rgba(241,245,251,0.05) 100%),
-            url('/assets/canva/banner-welcome.png');
-        background-size: cover;
-        background-position: right center;
+        background: #eef4fb;
         color: #0f172a;
         border-color: rgba(15, 23, 42, 0.08);
         box-shadow: 0 12px 36px rgba(37, 99, 235, 0.12);
