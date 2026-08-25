@@ -1266,25 +1266,24 @@
         to   { transform: translateX(140vw); }
     }
 
-    /* Capa 4: imagen de niños diversos (banner-welcome.png) - sobre el cielo.
-       La ilustración trae su PROPIO fondo (morado), así que se funde con el
-       cielo desvaneciendo sus 4 bordes con una máscara radial anclada a la
-       derecha: opaca en el centro-derecha, transparente hacia los bordes. */
+    /* Capa 4: ilustración de niños diversos SIN fondo propio (PNG transparente
+       banner-welcome-trans.png, generado desde el banner original removiendo el
+       degradado morado). Al ser transparente se posa directo sobre el cielo del
+       momento del día y se adapta sola al tema claro/oscuro; anclada abajo para
+       que las plantas "pisen" el borde de la tarjeta. */
     .greeting-illustration {
         position: absolute;
-        top: 0; right: 0;
-        height: 100%;
-        width: 52%;
-        background: url('/assets/canva/banner-welcome.png') no-repeat center right;
+        right: 1rem; bottom: 0;
+        width: 46%; height: 94%;
+        background: url('/assets/canva/banner-welcome-trans.png') no-repeat right bottom;
         background-size: contain;
         z-index: 2;
         pointer-events: none;
-        opacity: 0.95;
-        -webkit-mask-image: radial-gradient(ellipse 100% 130% at 100% 50%, #000 45%, rgba(0,0,0,0.6) 65%, transparent 85%);
-        mask-image: radial-gradient(ellipse 100% 130% at 100% 50%, #000 45%, rgba(0,0,0,0.6) 65%, transparent 85%);
+        filter: drop-shadow(0 12px 26px rgba(2, 6, 23, 0.35));
     }
-    /* Modo claro: la ilustración se aclara para no pesar sobre el cielo de día */
-    [data-theme="light"] .greeting-illustration { opacity: 0.85; }
+    [data-theme="light"] .greeting-illustration {
+        filter: drop-shadow(0 12px 24px rgba(37, 99, 235, 0.22));
+    }
 
     /* Capa 5: overlay para legibilidad del texto en la izquierda */
     .greeting-overlay {
@@ -1323,9 +1322,9 @@
             padding: 1.5rem 1.25rem 1.25rem;
             font-size: 1.25rem;
         }
-        /* En pantallas chicas el texto ocupa todo el ancho: la ilustración pasa
-           a ser un fondo sutil (más ancha pero muy desvanecida) tras el overlay. */
-        .greeting-illustration { width: 88%; opacity: 0.4; }
+        /* En pantallas chicas la ilustración se achica y se atenúa un poco
+           (el texto ocupa todo el ancho; el overlay asegura la legibilidad) */
+        .greeting-illustration { width: 62%; height: 82%; right: 0.5rem; opacity: 0.85; }
         .greeting-content { max-width: 100% !important; }
         .weather-chip-top { top: 0.7rem; right: 0.9rem; padding: 0.4rem 0.65rem; }
         .weather-chip-top .weather-meta { display: none; }
