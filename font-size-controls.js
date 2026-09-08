@@ -28,9 +28,17 @@
     atkinson:     { label: 'Atkinson (alta legibilidad)', stack: "'Atkinson Hyperlegible', Arial, sans-serif", google: 'Atkinson+Hyperlegible:wght@400;700' }
   };
 
+  // Fuente por defecto del documento: cada editor puede fijarla con
+  // window.FSC_FONT_DEFAULT (app.html usa 'arial', formato oficial del colegio);
+  // sin eso, se mantiene Merriweather (PAI y otros documentos).
+  function fuenteDefaultKey() {
+    var d = (typeof window !== 'undefined') ? window.FSC_FONT_DEFAULT : null;
+    return FUENTES[d] ? d : 'merriweather';
+  }
+
   function fuenteActualKey() {
     var k = localStorage.getItem(FONT_KEY);
-    return FUENTES[k] ? k : 'merriweather';
+    return FUENTES[k] ? k : fuenteDefaultKey();
   }
 
   // Carga la hoja de Google Fonts de una fuente si aún no está en la página.
@@ -82,13 +90,10 @@
     if (!el) return;
     var key = fuenteActualKey();
     asegurarFuenteCargada(key);
-    if (key === 'merriweather') {
-      el.style.removeProperty('--doc-font');
-      el.style.fontFamily = '';
-    } else {
-      el.style.setProperty('--doc-font', FUENTES[key].stack);
-      el.style.fontFamily = FUENTES[key].stack;
-    }
+    // Siempre explicito (variable + inline): asi pantalla, impresion y PDF
+    // server-side usan la MISMA fuente, sea la default de la pagina u otra.
+    el.style.setProperty('--doc-font', FUENTES[key].stack);
+    el.style.fontFamily = FUENTES[key].stack;
   }
 
   function refrescar() {
@@ -107,7 +112,7 @@
 
   // Cambia el tipo de letra del documento (lo llaman los selects de los editores).
   window.docFontSet = function (key) {
-    if (!FUENTES[key]) key = 'merriweather';
+    if (!FUENTES[key]) key = fuenteDefaultKey();
     localStorage.setItem(FONT_KEY, key);
     aplicarFuente();
     refrescar();

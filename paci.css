@@ -463,23 +463,67 @@
         #security-status i { font-size: 0.55rem; animation: lockPulse 3s ease-in-out infinite; }
 
         /* ===================================================== */
+        /* FORMATO OFICIAL DEL COLEGIO (PACI Trinidad Aguilera)  */
+        /* Tablas celestes con borde negro, hoja horizontal.     */
+        /* ===================================================== */
+        #documento .franja-celeste {
+            background-color: #8faadc;
+            color: #111827;
+            font-weight: 800;
+            font-size: 9.5pt;
+            padding: 3px 8px;
+            border: 1px solid #1a1a2e;
+            line-height: 1.3;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        #documento .doc-tabla {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 9.5pt;
+        }
+        #documento .doc-tabla th {
+            background-color: #8faadc;
+            border: 1px solid #1a1a2e;
+            color: #111827;
+            font-weight: 800;
+            text-align: center;
+            padding: 3px 4px;
+            font-size: 9pt;
+        }
+        #documento .doc-tabla td {
+            border: 1px solid #1a1a2e;
+            padding: 3px 6px;
+            vertical-align: top;
+        }
+        #documento .doc-tabla td.doc-lbl {
+            background-color: #8faadc;
+            font-weight: 700;
+            text-align: center;
+            vertical-align: middle;
+        }
+        #documento .doc-caja {
+            border: 1px solid #1a1a2e;
+            padding: 5px 8px;
+        }
+        /* La caja/tabla pegada a su franja no duplica el borde superior */
+        #documento .franja-celeste + .doc-caja,
+        #documento .franja-celeste + .doc-tabla,
+        #documento .franja-celeste + table { border-top: none; }
+        /* Celdas L / ML / PL: vacias, se marcan a mano en papel */
+        #documento .celda-logro { min-width: 20px; }
+        /* La tabla envolvente no lleva bordes propios */
+        #documento #doc-layout > thead > tr > td,
+        #documento #doc-layout > tbody > tr > td { border: none; }
+
+        /* ===================================================== */
         /* @MEDIA PRINT - Estilos de impresion                   */
         /* ===================================================== */
         @media print {
-            /* 0) PAGINA: tamaño carta, margenes 1cm (maximo aprovechamiento) */
-            @page { size: letter; margin: 1cm; }
-            /* Pagina de la Gantt: landscape para que las 11 columnas (asignatura + 10 meses)
-               quepan sin recorte. Named pages funcionan en algunos navegadores;
-               donde no funcionen, el transform:scale del wrapper es respaldo. */
-            @page gantt-landscape { size: letter landscape; margin: 1cm; }
-            #seccion-gantt { page: gantt-landscape; }
-            /* Respaldo siempre activo: escalar la Gantt al 80% para que entre
-               horizontalmente aunque el navegador no soporte named pages. */
-            #gantt-wrapper {
-                transform: scale(0.85) !important;
-                transform-origin: top left !important;
-                width: 117% !important;
-            }
+            /* 0) PAGINA: carta HORIZONTAL (formato oficial PACI del colegio), margenes 1cm.
+               Todo el documento es landscape, igual que los PACI en Word del colegio;
+               la Gantt del anexo cabe sin escala. */
+            @page { size: letter landscape; margin: 1cm; }
             #seccion-gantt #gantt {
                 font-size: 7pt !important;
             }
@@ -573,10 +617,10 @@
                 background-color: #fff !important;
                 color: #1a1a2e !important;
                 /* --doc-font la fija el selector "Tipo de letra" (font-size-controls.js)
-                   como estilo inline de #documento; sin selección, Merriweather. */
-                font-family: var(--doc-font, 'Merriweather', 'Georgia', serif) !important;
-                font-size: 11pt !important;
-                line-height: 1.4 !important;
+                   como estilo inline de #documento; sin selección, Arial (formato oficial). */
+                font-family: var(--doc-font, Arial, 'Helvetica Neue', Helvetica, sans-serif) !important;
+                font-size: 9.5pt !important;
+                line-height: 1.3 !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
             }
@@ -619,24 +663,24 @@
                 border-color: #cbd5e1 !important;
                 border-collapse: collapse !important;
                 width: 100% !important;
-                font-size: 10pt !important;
+                font-size: 9pt !important;
             }
             #documento th {
-                background: #e8f0fe !important;
+                background: #8faadc !important;
                 background-image: none !important;
-                color: #091845 !important;
-                -webkit-text-fill-color: #091845 !important;
+                color: #111827 !important;
+                -webkit-text-fill-color: #111827 !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
-                padding: 8pt 6pt !important;
-                font-size: 8pt !important;
+                padding: 3pt 4pt !important;
+                font-size: 8.5pt !important;
             }
             #documento td {
                 color: #1a1a2e !important;
                 -webkit-text-fill-color: #1a1a2e !important;
                 border-color: #cbd5e1 !important;
-                padding: 8pt 6pt !important;
-                line-height: 1.15 !important;
+                padding: 3pt 5pt !important;
+                line-height: 1.25 !important;
                 vertical-align: top !important;
             }
             #documento td textarea,
@@ -918,6 +962,54 @@
             #documento label[style*="inline-flex"] {
                 white-space: nowrap !important;
             }
+
+            /* 24) FORMATO OFICIAL (PACI Trinidad) */
+            #documento .franja-celeste {
+                background-color: #8faadc !important;
+                background-image: none !important;
+                color: #111827 !important;
+                -webkit-text-fill-color: #111827 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                page-break-after: avoid !important;
+                break-after: avoid !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+            #documento .doc-tabla th,
+            #documento .doc-tabla td {
+                border: 0.75pt solid #1a1a2e !important;
+            }
+            #documento .doc-tabla th,
+            #documento .doc-tabla td.doc-lbl {
+                background: #8faadc !important;
+            }
+            #documento .doc-caja,
+            #documento .franja-celeste {
+                border-color: #1a1a2e !important;
+            }
+            /* La tabla envolvente (#doc-layout) NO es tabla de datos: sin bordes ni
+               padding, y su fila unica DEBE fluir entre paginas. Su <thead> (encabezado
+               institucional con logos) se repite automaticamente en cada pagina. */
+            #documento #doc-layout { table-layout: auto !important; }
+            #documento #doc-layout > thead > tr > td,
+            #documento #doc-layout > tbody > tr > td {
+                border: none !important;
+                padding: 0 !important;
+            }
+            #documento #doc-layout > thead > tr > td { padding-bottom: 8pt !important; }
+            #documento #doc-layout > tbody,
+            #documento #doc-layout > tbody > tr,
+            #documento #doc-layout > tbody > tr > td {
+                page-break-inside: auto !important;
+                break-inside: auto !important;
+            }
+            #documento #doc-layout > thead img {
+                max-height: 55pt !important;
+                max-width: 55pt !important;
+            }
+            /* Celdas L/ML/PL: vacias para marcar a mano */
+            #documento .celda-logro { min-width: 18pt !important; }
         }
 
         /* === RESPONSIVE MÓVIL === */

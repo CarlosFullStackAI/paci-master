@@ -44,6 +44,8 @@ export async function onRequestGet(context) {
       id: tenant.slug,
       nombre: tenant.nombre,
       nombre_corto: tenant.nombre_corto || tenant.nombre,
+      rbd: tenant.rbd || '',
+      comuna: tenant.comuna || '',
       localidad: tenant.localidad || '',
       region: tenant.region || '',
       branding,

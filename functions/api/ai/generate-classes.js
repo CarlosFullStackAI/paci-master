@@ -254,6 +254,7 @@ Devuelve EXACTAMENTE este JSON (sin texto adicional fuera del JSON):
   "clases": [
     {
       "n": ${desde},
+      "oa": "Codigo/s del o los OA que trabaja ESTA clase, tal como aparecen en la lista de objetivos (ej. 'OA 2 y OA 3'). Cada clase trabaja 1 a 3 OA de la lista; distribuye todos los OA a lo largo de las clases.",
       "act": "Actividad central completa: Inicio (~2 lineas) + Desarrollo (~4-5 lineas con modelado, practica guiada y autonoma) + Cierre (~2 lineas con sintesis y metacognicion) + linea final 'Apoyos para el estudiante: ...' (2-3 apoyos concretos de ESTA clase segun su diagnostico y nivel real).",
       "c": "Contenidos conceptuales especificos",
       "p": "Contenidos procedimentales especificos",
@@ -300,6 +301,7 @@ Genera EXACTAMENTE ${cantidadLote} objetos en "clases", numerados de ${desde} a 
 
       const clasesNorm = clases.slice(0, cantidadLote).map((cl, i) => ({
         n: typeof cl.n === 'number' ? cl.n : (desde + i),
+        oa: String(cl.oa || '').trim(),
         act: String(cl.act || ''),
         c: String(cl.c || ''),
         p: String(cl.p || ''),

@@ -87,7 +87,7 @@
 <header class="hero">
   <h1>PIE MASTER — Documentación técnica</h1>
   <p>Plataforma de gestión documental para Educadores Diferenciales chilenos (Decreto 83/2015 y Decreto 170/2009).</p>
-  <span class="badge">Última actualización: 2026-08-19</span>
+  <span class="badge">Última actualización: 2026-09-08</span>
   <span class="badge">Interna — solo admins (link en el dashboard)</span>
 </header>
 
@@ -268,6 +268,18 @@ npx wrangler d1 execute paci-db --remote --file migrations/0XX.sql   # migrar AN
 
 <section id="historial">
   <h2>11. Historial de cambios</h2>
+
+  <div class="chg">
+    <div class="fecha">2026-09-08</div>
+    <ul>
+      <li><strong>Rediseño completo del documento PACI al formato oficial del colegio</strong> (spec <code>specs/paci-formato-trinidad.md</code>; referencia: PACI reales de la prof. Trinidad Aguilera, jun-sep 2026). El documento imprimible de app.html ahora es <em>hoja carta horizontal</em>, letra Arial ~9.5pt, tablas con encabezados celestes (#8faadc) y borde negro, con encabezado institucional (logo escuela + "PULEBU - CAÑETE" | "Programa de Integración Escolar / PIE - año" + logo PIE) <strong>repetido en TODAS las páginas</strong> — truco del <code>&lt;thead&gt;</code> envolvente (<code>#doc-layout</code>): Chromium repite el table-header-group en cada página. Secciones en el orden oficial: Identificación (con RBD, comuna, región, N° FUR/FUI y duración "DD/MM/AAAA al DD/MM/AAAA") → Profesionales responsables/firmas → Evaluación y criterios de promoción (viñetas precargadas D67/2018 + 70% objetivos) → Organización de apoyos especializados (Especialista/Tipo/Ubicación/Horas/Horarios/Fechas, 3 filas default) → Objetivos a trabajar por asignatura (OA texto completo; editar un OA actualiza todos los módulos de la asignatura vía <code>updateOATextAsig</code>) → Planificación de objetivos (columnas Objetivo/s "Clase N · Semana DD al DD de mes · OA x" | Actividades DUA | Indicadores Conceptual/Procedimental/Actitudinal | Niveles de Logro <strong>L/ML/PL vacías para marcar a mano</strong>) → Metas de logro y evaluación (con nuevo campo "Criterio de logro" y fecha fin en el encabezado) → Fecha revisión/Ajustes/Responsable → Observaciones generales.</li>
+      <li><strong>Campos nuevos del PACI</strong> (form + <code>recolectarDatosPACI</code> + restauración + <code>save.js</code>): N° FUR/FUI (<code>in-fur</code>), organización de apoyos (<code>state.apoyos</code>, acordeón 1.11), revisiones (<code>state.revisiones</code>, acordeón 1.12), observaciones generales, checkbox "Incluir anexos" y <code>criterio</code> en cada meta. Docs guardados antiguos abren con defaults (<code>ensureFormatoDefaults</code>). Los criterios de evaluación/promoción (1.7) ahora SÍ se imprimen.</li>
+      <li><strong>Gantt de temporalización, caja legal y consolidado de materiales salen del cuerpo</strong>: solo se imprimen si se activa "Incluir anexos" (apagado por defecto), al final bajo "ANEXOS".</li>
+      <li><strong>Logos automáticos y persistentes</strong>: si no hay logo manual, se cargan solos desde <code>data/tenants/&lt;slug&gt;/logos/{escuela,pie}.png</code> como data URI (<code>autoloadTenantLogos</code>) y se guardan dentro del documento (patrón de pai.html). <code>tenant-config.js</code> ahora expone <code>rbd</code> y <code>comuna</code> (ya venían de tenant-helper). PENDIENTE en producción: poblar <code>tenants.rbd</code> ('5151-9') y <code>tenants.comuna</code> ('Cañete') — el seed 011 los dejó vacíos.</li>
+      <li><strong>IA: OA por clase</strong> (<code>generate-classes.js</code>): cada clase generada ahora trae campo <code>oa</code> ("OA 2 y OA 3") que alimenta la columna Objetivo/s; clases antiguas sin el campo muestran solo "Clase N · Semana...". La fecha de la clase sigue editable en pantalla (input <code>.no-print</code>) y ya no se imprime cruda.</li>
+      <li><strong>Print/PDF</strong>: <code>@page letter landscape</code> global (se eliminó la named page de la Gantt y su transform-scale), fuente default del documento en app.html ahora Arial vía <code>window.FSC_FONT_DEFAULT</code> (font-size-controls.js acepta default por página; PAI/docs siguen en Merriweather), el handler <code>beforeprint</code> legado ya no fuerza Merriweather 12pt ni inserta la fecha como span, y el nombre de descarga es <code>PACI_Nombre_Apellido_Año.pdf</code>. Verificado con Chrome headless print-to-pdf comparando página a página contra el PDF real de Trinidad (encabezado repetido, orden de secciones, L/ML/PL vacías, landscape, anexos on/off). Word (.docx) mantiene por ahora su formato anterior.</li>
+    </ul>
+  </div>
 
   <div class="chg">
     <div class="fecha">2026-08-19</div>

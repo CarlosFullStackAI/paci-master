@@ -70,6 +70,11 @@ async function insertDocument(db, userEmail, studentId, opts) {
     criteriosEvaluacion: opts.criteriosEvaluacion,
     adecuaciones: opts.adecuaciones,
     parentPaiId: opts.parentPaiId,
+    furNumero: opts.furNumero,
+    revisiones: opts.revisiones,
+    observaciones: opts.observaciones,
+    incluirAnexos: opts.incluirAnexos,
+    logos: opts.logos,
     fecha: opts.fecha,
     notas: opts.notas
   };
@@ -176,6 +181,11 @@ async function updateDocument(db, userEmail, documentId, opts) {
     criteriosEvaluacion: opts.criteriosEvaluacion,
     adecuaciones: opts.adecuaciones,
     parentPaiId: opts.parentPaiId,
+    furNumero: opts.furNumero,
+    revisiones: opts.revisiones,
+    observaciones: opts.observaciones,
+    incluirAnexos: opts.incluirAnexos,
+    logos: opts.logos,
     fecha: opts.fecha,
     notas: opts.notas
   };
@@ -246,6 +256,8 @@ export async function onRequestPost(context) {
       antecedentesSalud, evaluacion, metas, estrategiasDua, seguimiento, firmas,
       // Extras MINEDUC: PACI
       contextual, criteriosEvaluacion, adecuaciones, parentPaiId,
+      // Formato oficial PACI (Trinidad): FUR, revisiones, observaciones, anexos, logos
+      furNumero, revisiones, observaciones, incluirAnexos, logos,
       // Extras para tipos stub (anamnesis, fudei, registro colaborativo, etc.)
       fecha, notas
     } = body;
@@ -258,6 +270,7 @@ export async function onRequestPost(context) {
     const minEducExtras = {
       antecedentesSalud, evaluacion, metas, estrategiasDua, seguimiento, firmas,
       contextual, criteriosEvaluacion, adecuaciones, parentPaiId,
+      furNumero, revisiones, observaciones, incluirAnexos, logos,
       fecha, notas,
       // tenantId fluye a insertDocument/updateDocument (que hacen ...minEducExtras).
       tenantId
