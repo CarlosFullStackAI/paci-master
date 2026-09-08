@@ -7491,6 +7491,129 @@
         // ==========================================
         // EXPORT WORD (.docx)
         // ==========================================
+        // Construye el HTML del PACI para Word/LibreOffice clonando el MISMO
+        // #documento de la vista previa (formato oficial Trinidad): textareas ->
+        // divs con su texto, inputs -> texto plano, sin elementos solo-pantalla,
+        // y con los estilos criticos INLINE (lo que Word y LibreOffice importan
+        // de forma mas fiable; las hojas de estilo por clase se respetan poco).
+        function buildPaciWordHtml() {
+            var docElement = document.getElementById('documento');
+            if (!docElement) throw new Error('No se encontro #documento');
+
+            var tempContainer = document.createElement('div');
+            tempContainer.innerHTML = docElement.outerHTML;
+
+            var docClone = tempContainer.querySelector('#documento');
+            if (docClone) {
+                // El "papel" en pantalla (ancho fijo, sombra, padding) sobra en Word:
+                // la hoja y sus margenes los define @page WordSection1.
+                docClone.style.zoom = '';
+                docClone.style.width = '100%';
+                docClone.style.maxWidth = 'none';
+                docClone.style.minHeight = '0';
+                docClone.style.padding = '0';
+                docClone.style.border = 'none';
+                docClone.style.boxShadow = 'none';
+            }
+
+            // Fuera todo lo que es solo de pantalla (fechas editables, botones).
+            tempContainer.querySelectorAll('.no-print, button, script').forEach(function(el) { el.remove(); });
+
+            // Textareas -> divs con el texto REAL del DOM original (outerHTML solo
+            // captura el defaultValue). Mismo recorrido en paralelo que usa
+            // buildPaciPdfBlob; ningun textarea del documento es .no-print, asi que
+            // los indices calzan aunque arriba hayamos removido otros nodos.
+            var originalTextareas = Array.from(docElement.querySelectorAll('textarea'));
+            var clonedTextareas = Array.from(tempContainer.querySelectorAll('textarea'));
+            clonedTextareas.forEach(function(clonedTa, idx) {
+                var origTa = originalTextareas[idx];
+                var value = origTa ? (origTa.value || '') : (clonedTa.value || clonedTa.textContent || '');
+                var div = document.createElement('div');
+                div.setAttribute('style', 'white-space:pre-wrap;');
+                div.textContent = value;
+                clonedTa.parentNode.replaceChild(div, clonedTa);
+            });
+
+            // Inputs/selects restantes -> texto plano (fechas en DD/MM/AAAA).
+            tempContainer.querySelectorAll('input, select').forEach(function(el) {
+                var span = document.createElement('span');
+                if (el.tagName === 'SELECT') {
+                    span.textContent = el.selectedOptions && el.selectedOptions[0] ? el.selectedOptions[0].text : '';
+                } else if (el.type === 'checkbox' || el.type === 'radio') {
+                    span.textContent = el.checked ? '☑' : '☐';
+                } else if (el.type === 'date') {
+                    span.textContent = fmtFechaCL(el.value || '');
+                } else {
+                    span.textContent = el.value || '';
+                }
+                el.parentNode.replaceChild(span, el);
+            });
+
+            // Estilos criticos INLINE sobre el clon (Word y LibreOffice honran el
+            // style= de cada nodo mucho mejor que los selectores de <style>).
+            tempContainer.querySelectorAll('.franja-celeste').forEach(function(el) {
+                el.style.backgroundColor = '#8faadc';
+                el.style.color = '#1f3864';
+                el.style.fontWeight = 'bold';
+                el.style.fontSize = '10pt';
+                el.style.border = '1pt solid #1a1a2e';
+                el.style.padding = '3pt 6pt';
+            });
+            tempContainer.querySelectorAll('.doc-tabla').forEach(function(t) {
+                t.style.width = '100%';
+                t.style.borderCollapse = 'collapse';
+                t.style.fontSize = '10pt';
+                t.setAttribute('border', '1');
+                t.setAttribute('cellspacing', '0');
+            });
+            tempContainer.querySelectorAll('.doc-tabla th, .doc-tabla td').forEach(function(c) {
+                c.style.border = '0.75pt solid #1a1a2e';
+                if (!c.style.padding) c.style.padding = '3pt 5pt';
+                if (c.tagName === 'TH') {
+                    c.style.backgroundColor = '#8faadc';
+                    c.style.color = '#1f3864';
+                    c.style.fontWeight = 'bold';
+                    c.style.textAlign = 'center';
+                }
+            });
+            tempContainer.querySelectorAll('.doc-tabla td.doc-lbl').forEach(function(c) {
+                c.style.backgroundColor = '#8faadc';
+                c.style.color = '#1f3864';
+                c.style.fontWeight = 'bold';
+                c.style.textAlign = 'center';
+                c.style.verticalAlign = 'middle';
+            });
+            tempContainer.querySelectorAll('.doc-caja').forEach(function(el) {
+                el.style.border = '1pt solid #1a1a2e';
+                el.style.padding = '4pt 6pt';
+            });
+
+            // Tipografia elegida en el panel (por defecto Arial Narrow, la del formato).
+            var fuenteDoc = (typeof window.docFontActual === 'function') ? window.docFontActual() : null;
+            var fontStack = (fuenteDoc && fuenteDoc.stack) ? fuenteDoc.stack : "'Arial Narrow', 'Liberation Sans Narrow', Arial, sans-serif";
+
+            var rawNombre = document.getElementById('in-nombre') ? (document.getElementById('in-nombre').value || 'Estudiante') : 'Estudiante';
+            var nombreLimpio = rawNombre.replace(/[\\/:*?"<>|]/g, '').trim() || 'Estudiante';
+            var filename = 'PACI_' + nombreLimpio.replace(/\s+/g, '_') + '_' + anioDocumento();
+
+            var html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">'
+                + '<head><meta charset="utf-8"><title>' + filename + '</title>'
+                + '<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->'
+                + '<style>'
+                // Hoja carta HORIZONTAL con margen 1cm (formato oficial del colegio).
+                + '@page WordSection1 { size: 27.94cm 21.59cm; mso-page-orientation: landscape; margin: 1cm 1cm 1cm 1cm; } '
+                + 'div.WordSection1 { page: WordSection1; } '
+                + 'body { font-family: ' + fontStack + '; font-size: 10pt; line-height: 1.3; color: #1a1a2e; } '
+                + 'table { border-collapse: collapse; } '
+                + 'p, div { margin: 0; } '
+                + '</style></head><body>'
+                + '<div class="WordSection1" style="font-family:' + fontStack + ';font-size:10pt;">'
+                + tempContainer.innerHTML
+                + '</div></body></html>';
+
+            return { html: html, filename: filename };
+        }
+
         async function downloadWord() {
           const btn = event.target.closest('button');
           const originalHTML = btn.innerHTML;
@@ -7498,94 +7621,16 @@
           btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generando...';
 
           try {
-            // Recoger datos del formulario
-            const nombre = document.getElementById('in-nombre')?.value || 'Estudiante';
-            const escuela = document.getElementById('in-escuela')?.value || '';
-            const edad = document.getElementById('in-edad')?.value || '';
-            const fnac = document.getElementById('in-fnac')?.value || '';
-            const diagSel = document.getElementById('in-diag');
-            const diagnostico = diagSel?.options[diagSel.selectedIndex]?.text || '';
-            const nivelReal = document.getElementById('in-nivel-real')?.options[document.getElementById('in-nivel-real').selectedIndex]?.text || '';
-            const nivelTrabajo = document.getElementById('in-nivel-trabajo')?.options[document.getElementById('in-nivel-trabajo').selectedIndex]?.text || '';
-            const trimestre = document.getElementById('in-duracion')?.options[document.getElementById('in-duracion').selectedIndex]?.text || '';
+            const word = buildPaciWordHtml();
 
-            // Generar HTML limpio para Word
-            let html = `
-              <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
-              <head><meta charset="utf-8">
-              <style>
-                body { font-family: 'Calibri', sans-serif; font-size: 11pt; color: #1a1a2e; margin: 2cm; }
-                h1 { font-size: 16pt; font-weight: bold; text-align: center; color: #091845; margin-bottom: 4pt; }
-                h2 { font-size: 13pt; font-weight: bold; color: #1e3a8a; border-bottom: 2px solid #2563eb; padding-bottom: 4pt; margin-top: 18pt; }
-                h3 { font-size: 11pt; font-weight: bold; color: #1e40af; margin-top: 12pt; }
-                table { width: 100%; border-collapse: collapse; margin: 8pt 0; }
-                th { background-color: #091845; color: white; font-size: 9pt; font-weight: bold; text-transform: uppercase; padding: 6pt; text-align: left; }
-                td { border: 1px solid #cbd5e1; padding: 5pt; font-size: 10pt; vertical-align: top; }
-                .info-label { font-weight: bold; color: #475569; font-size: 9pt; text-transform: uppercase; width: 35%; background: #f1f5f9; }
-                .sig-line { border-bottom: 1.5px solid #1a1a2e; width: 200px; height: 40px; display: inline-block; }
-                .sig-text { font-size: 8pt; color: #64748b; font-style: italic; }
-                .footer { text-align: center; font-size: 8pt; color: #94a3b8; margin-top: 24pt; border-top: 1px solid #e2e8f0; padding-top: 8pt; }
-              </style></head><body>
-
-              <h1>PLAN DE ADECUACIÓN CURRICULAR INDIVIDUAL (PACI)</h1>
-              <p style="text-align:center;font-size:9pt;color:#64748b;font-weight:bold;">Decreto N° 83/2015 - Decreto N° 170/2009</p>
-
-              <h2>1. Identificación del Estudiante</h2>
-              <table>
-                <tr><td class="info-label">Nombre Completo</td><td>${nombre}</td></tr>
-                <tr><td class="info-label">Establecimiento</td><td>${escuela}</td></tr>
-                <tr><td class="info-label">Fecha Nacimiento</td><td>${fnac}</td><td class="info-label">Edad</td><td>${edad} años</td></tr>
-                <tr><td class="info-label">Diagnóstico</td><td colspan="3">${diagnostico}</td></tr>
-                <tr><td class="info-label">Curso / Nivel Real</td><td>${nivelReal}</td></tr>
-                <tr><td class="info-label">Nivel de Trabajo PACI</td><td>${nivelTrabajo}</td></tr>
-                <tr><td class="info-label">Periodo</td><td>${trimestre}</td></tr>
-              </table>
-
-              <h2>2. Equipo de Trabajo PIE</h2>
-              <table>
-                <tr><th>Rol</th><th>Nombre</th><th>Firma</th></tr>
-                ${state.equipo.map(m => {
-                  const rolLower = (m.rol || '').toLowerCase();
-                  const esApoderado = rolLower.includes('apoderado');
-                  const esUtp = rolLower.includes('utp');
-                  const bgStyle = esApoderado ? ' style="background:#eff6ff;"' : esUtp ? ' style="background:#ecfdf5;"' : '';
-                  const rolStyle = esApoderado ? ' style="font-weight:bold;color:#1e3a8a;"' : esUtp ? ' style="font-weight:bold;color:#065f46;"' : '';
-                  const firmaTxt = esApoderado ? 'Firma apoderado/a' : esUtp ? 'Firma y timbre UTP' : 'Firma y timbre';
-                  return '<tr' + bgStyle + '><td' + rolStyle + '>' + (m.rol || '') + '</td><td>' + (m.nom || '') + '</td><td style="text-align:center;"><div class="sig-line"></div><br><span class="sig-text">' + firmaTxt + '</span></td></tr>';
-                }).join('')}
-              </table>`;
-
-            // Modulos de planificacion
-            if (state.modulos.length) {
-              html += '<h2>3. Planificación Curricular Adaptada</h2>';
-
-              state.modulos.forEach((mod, i) => {
-                html += '<h3>' + (i + 1) + '. ' + (mod.asig || 'Sin asignatura') + ' - ' + (mod.nivelTrabajo || '') + '</h3>';
-                html += '<p style="font-size:9pt;color:#475569;">Eje/Unidad: ' + (mod.unit || '') + ' | OAs: ' + mod.oas.map(o => o.code).join(', ') + '</p>';
-
-                if (mod.clases && mod.clases.length) {
-                  html += '<table><tr><th>N°</th><th>Fecha</th><th>Actividad</th><th>Contenido</th><th>Procedimiento</th><th>Actitud</th></tr>';
-                  mod.clases.forEach(cl => {
-                    html += '<tr><td>' + cl.n + '</td><td>' + (cl.date || '') + '</td><td>' + (cl.act || '') + '</td><td>' + (cl.c || '') + '</td><td>' + (cl.p || '') + '</td><td>' + (cl.a || '') + '</td></tr>';
-                  });
-                  html += '</table>';
-                }
-              });
-            }
-
-            html += `
-              <div class="footer">
-                <p>Documento generado por PIE MASTER - ${new Date().toLocaleDateString('es-CL')}</p>
-                <p>Este documento es confidencial y de uso exclusivo del establecimiento educacional.</p>
-              </div>
-              </body></html>`;
-
-            // Descargar como .doc (Word lo abre nativamente)
-            const blob = new Blob(['\ufeff' + html], { type: 'application/msword' });
+            // Descargar como .doc (Word y LibreOffice lo abren nativamente).
+            // Nota: los logos van como data URI; LibreOffice los muestra, versiones
+            // antiguas de MS Word pueden omitirlos (se reinsertan a mano si hace falta).
+            const blob = new Blob(['﻿' + word.html], { type: 'application/msword' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'PACI_' + nombre + '.doc';
+            a.download = word.filename + '.doc';
             a.click();
             URL.revokeObjectURL(url);
 

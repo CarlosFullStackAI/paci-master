@@ -2,10 +2,10 @@
   "id": "lcm-pulebu",
   "nombre": "Escuela Luis Cruz Martínez",
   "nombre_corto": "LCM Pulebu",
-  "rbd": null,
+  "rbd": "5151-9",
   "localidad": "Pulebu",
-  "comuna": null,
-  "region": "Biobio",
+  "comuna": "Cañete",
+  "region": "Biobío",
   "decretos_aplicables": ["170/2009", "83/2015", "67/2018"],
   "branding": {
     "logo_principal": "logos/escuela.png",

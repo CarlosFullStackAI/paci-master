@@ -59,8 +59,12 @@ textos por defecto precargados; secciones viejas como anexo opcional.)
   landscape, encabezado repetido, orden de secciones, tablas celestes,
   L/ML/PL vacías y anexos on/off — OK. ESLint (security:sast) limpio.
 - Desvíos/pendientes:
-  - El export Word (.docx) mantiene el formato anterior (solo PDF/print cambiaron).
-  - PENDIENTE producción: poblar `tenants.rbd` ('5151-9') y `tenants.comuna`
-    ('Cañete') en D1 remoto (el seed de la migración 011 los dejó '').
+  - Export Word igualado también (2026-09-08, pedido posterior de Carlos):
+    buildPaciWordHtml() clona el #documento y lo envuelve en HTML-Word landscape
+    con estilos inline. Los logos (data URI) se ven en LibreOffice; MS Word
+    antiguo puede omitirlos.
+  - Producción: `tenants.rbd` = '5151-9', `tenants.comuna` = 'Cañete' y
+    `region` = 'Biobío' poblados vía wrangler el 2026-09-08 (verificado en
+    /api/tenant-config). `data/tenants/lcm-pulebu/config.json` sincronizado.
   - El campo `oa` por clase solo existe en clases generadas desde ahora; las
     antiguas muestran "Clase N · Semana ..." sin código de OA (editable a mano).
