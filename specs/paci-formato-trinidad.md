@@ -12,7 +12,7 @@ Así la educadora puede imprimir directo desde la app un documento indistinguibl
 del formato que el colegio ya usa y firma, sin rehacerlo en Word.
 
 ## Criterios de aceptacion
-- [ ] Página horizontal (letter landscape) en todo el documento, margen 1cm, letra sans, tamaño ~9-10pt.
+- [ ] Página horizontal (letter landscape, 792×612 pt como el PDF real) en todo el documento, margen 1cm, letra Arial Narrow 10pt (los PACI reales usan Liberation Sans Narrow; respaldo web Archivo Narrow para el PDF server-side). La vista previa en pantalla también se muestra como hoja horizontal.
 - [ ] Encabezado institucional repetido en TODAS las páginas: logo escuela + "Escuela Luis Cruz Martínez / PULEBU - CAÑETE" (desde tenant) a la izquierda, "Programa de Integración Escolar / PIE - <año>" + logo PIE a la derecha.
 - [ ] Título centrado: "PLANIFICACIÓN DE ADECUACIÓN CURRICULAR INDIVIDUAL. (PACI)".
 - [ ] Tablas con borde negro fino y celdas de encabezado celeste (#8faadc aprox.), texto azul oscuro en negrita.
@@ -50,7 +50,10 @@ textos por defecto precargados; secciones viejas como anexo opcional.)
 5. `documentacion-tecnica.html`: entrada en el historial.
 
 ## Resultado
-- Implementada el 2026-09-08 (commit pendiente de confirmación de Carlos).
+- Implementada el 2026-09-08 (commit 9df7324) + afinado del mismo día pedido por
+  Carlos: letra idéntica al original (Arial Narrow 10pt, extraída del PDF real:
+  Liberation Sans Narrow), títulos azul #1f3864, filas más espaciosas en
+  identificación/profesionales y vista previa en pantalla como hoja horizontal.
 - Verificación: PDF de prueba con datos de Johan generado vía Chrome headless
   (print-to-pdf) comparado página a página contra el PDF real de Trinidad:
   landscape, encabezado repetido, orden de secciones, tablas celestes,

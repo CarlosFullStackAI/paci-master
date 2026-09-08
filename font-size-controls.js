@@ -23,6 +23,10 @@
   // del sitio ya permite fonts.googleapis.com / fonts.gstatic.com.
   var FUENTES = {
     merriweather: { label: 'Merriweather (clásica)', stack: "'Merriweather', Georgia, 'Times New Roman', serif", google: 'Merriweather:wght@300;400;700;900' },
+    // Formato oficial del colegio: los PACI reales están en Liberation Sans Narrow
+    // (clon de Arial Narrow). 'Archivo Narrow' (Google Fonts) es el respaldo para
+    // el PDF server-side, donde Arial Narrow puede no existir.
+    arialNarrow:  { label: 'Arial Narrow (formato oficial)', stack: "'Arial Narrow', 'Liberation Sans Narrow', 'Archivo Narrow', Arial, sans-serif", google: 'Archivo+Narrow:wght@400;500;600;700' },
     arial:        { label: 'Arial (moderna)',        stack: 'Arial, Helvetica, sans-serif', google: null },
     times:        { label: 'Times New Roman',        stack: "'Times New Roman', Times, serif", google: null },
     atkinson:     { label: 'Atkinson (alta legibilidad)', stack: "'Atkinson Hyperlegible', Arial, sans-serif", google: 'Atkinson+Hyperlegible:wght@400;700' }

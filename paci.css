@@ -468,9 +468,9 @@
         /* ===================================================== */
         #documento .franja-celeste {
             background-color: #8faadc;
-            color: #111827;
-            font-weight: 800;
-            font-size: 9.5pt;
+            color: #1f3864;
+            font-weight: 700;
+            font-size: 10pt;
             padding: 3px 8px;
             border: 1px solid #1a1a2e;
             line-height: 1.3;
@@ -480,24 +480,28 @@
         #documento .doc-tabla {
             width: 100%;
             border-collapse: collapse;
-            font-size: 9.5pt;
+            font-size: 10pt;
         }
         #documento .doc-tabla th {
             background-color: #8faadc;
             border: 1px solid #1a1a2e;
-            color: #111827;
-            font-weight: 800;
+            color: #1f3864;
+            font-weight: 700;
             text-align: center;
-            padding: 3px 4px;
-            font-size: 9pt;
+            padding: 4px 5px;
+            font-size: 10pt;
         }
         #documento .doc-tabla td {
             border: 1px solid #1a1a2e;
-            padding: 3px 6px;
+            padding: 4px 6px;
             vertical-align: top;
+        }
+        #documento .tabla-plan td {
+            padding: 3px 5px;
         }
         #documento .doc-tabla td.doc-lbl {
             background-color: #8faadc;
+            color: #1f3864;
             font-weight: 700;
             text-align: center;
             vertical-align: middle;
@@ -515,6 +519,8 @@
         /* La tabla envolvente no lleva bordes propios */
         #documento #doc-layout > thead > tr > td,
         #documento #doc-layout > tbody > tr > td { border: none; }
+        /* La hoja horizontal (27.94cm) puede exceder el panel: permitir scroll lateral */
+        #preview-panel { overflow-x: auto; }
 
         /* ===================================================== */
         /* @MEDIA PRINT - Estilos de impresion                   */
@@ -617,9 +623,10 @@
                 background-color: #fff !important;
                 color: #1a1a2e !important;
                 /* --doc-font la fija el selector "Tipo de letra" (font-size-controls.js)
-                   como estilo inline de #documento; sin selección, Arial (formato oficial). */
-                font-family: var(--doc-font, Arial, 'Helvetica Neue', Helvetica, sans-serif) !important;
-                font-size: 9.5pt !important;
+                   como estilo inline de #documento; sin selección, Arial Narrow
+                   (Liberation Sans Narrow: la letra de los PACI reales del colegio). */
+                font-family: var(--doc-font, 'Arial Narrow', 'Liberation Sans Narrow', 'Archivo Narrow', Arial, sans-serif) !important;
+                font-size: 10pt !important;
                 line-height: 1.3 !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
@@ -663,25 +670,28 @@
                 border-color: #cbd5e1 !important;
                 border-collapse: collapse !important;
                 width: 100% !important;
-                font-size: 9pt !important;
+                font-size: 9.5pt !important;
             }
             #documento th {
                 background: #8faadc !important;
                 background-image: none !important;
-                color: #111827 !important;
-                -webkit-text-fill-color: #111827 !important;
+                color: #1f3864 !important;
+                -webkit-text-fill-color: #1f3864 !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
-                padding: 3pt 4pt !important;
-                font-size: 8.5pt !important;
+                padding: 3pt 5pt !important;
+                font-size: 9.5pt !important;
             }
             #documento td {
                 color: #1a1a2e !important;
                 -webkit-text-fill-color: #1a1a2e !important;
                 border-color: #cbd5e1 !important;
-                padding: 3pt 5pt !important;
+                padding: 4pt 6pt !important;
                 line-height: 1.25 !important;
                 vertical-align: top !important;
+            }
+            #documento .tabla-plan td {
+                padding: 3pt 4pt !important;
             }
             #documento td textarea,
             #documento td div[data-print-swap] {
@@ -967,8 +977,8 @@
             #documento .franja-celeste {
                 background-color: #8faadc !important;
                 background-image: none !important;
-                color: #111827 !important;
-                -webkit-text-fill-color: #111827 !important;
+                color: #1f3864 !important;
+                -webkit-text-fill-color: #1f3864 !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
                 page-break-after: avoid !important;
@@ -983,6 +993,8 @@
             #documento .doc-tabla th,
             #documento .doc-tabla td.doc-lbl {
                 background: #8faadc !important;
+                color: #1f3864 !important;
+                -webkit-text-fill-color: #1f3864 !important;
             }
             #documento .doc-caja,
             #documento .franja-celeste {
@@ -1016,6 +1028,14 @@
         @media (max-width: 768px) {
             html { height: auto; overflow: auto; }
             body { flex-direction: column !important; height: auto !important; overflow-y: auto !important; }
+
+            /* En pantallas chicas la hoja horizontal fija (27.94cm) no cabe:
+               volver a ancho fluido (la impresión/PDF no se ve afectada). */
+            #documento {
+                width: 100% !important;
+                min-height: 0 !important;
+                padding: 12px !important;
+            }
 
             #control-panel {
                 width: 100% !important; min-width: 0 !important; height: auto !important;
