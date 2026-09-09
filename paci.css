@@ -470,7 +470,7 @@
             background-color: #8faadc;
             color: #1f3864;
             font-weight: 700;
-            font-size: 10pt;
+            font-size: 11pt;
             padding: 3px 8px;
             border: 1px solid #1a1a2e;
             line-height: 1.3;
@@ -480,7 +480,7 @@
         #documento .doc-tabla {
             width: 100%;
             border-collapse: collapse;
-            font-size: 10pt;
+            font-size: 11pt;
         }
         #documento .doc-tabla th {
             background-color: #8faadc;
@@ -489,7 +489,7 @@
             font-weight: 700;
             text-align: center;
             padding: 4px 5px;
-            font-size: 10pt;
+            font-size: 11pt;
         }
         #documento .doc-tabla td {
             border: 1px solid #1a1a2e;
@@ -626,7 +626,7 @@
                    como estilo inline de #documento; sin selección, Arial Narrow
                    (Liberation Sans Narrow: la letra de los PACI reales del colegio). */
                 font-family: var(--doc-font, 'Arial Narrow', 'Liberation Sans Narrow', 'Archivo Narrow', Arial, sans-serif) !important;
-                font-size: 10pt !important;
+                font-size: 11pt !important;
                 line-height: 1.3 !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
@@ -695,7 +695,7 @@
             }
             #documento td textarea,
             #documento td div[data-print-swap] {
-                font-size: 10pt !important;
+                font-size: 11pt !important;
                 line-height: 1.15 !important;
             }
 

@@ -9,21 +9,36 @@
 
 const MAX_CALLS_PER_DAY = 100;
 
-// Modelos free de cada proveedor (verificados disponibles 2026-04-25).
+// Modelos free de cada proveedor. Revisados 2026-09-09: OpenRouter contra
+// https://openrouter.ai/api/v1/models (solo ids ":free" con soporte de
+// response_format); Groq y Gemini segun sus listas vigentes (la cascada tolera
+// que alguno este dado de baja). Caidos ese dia y retirados de aqui:
+// qwen3-next-80b:free y gpt-oss-120b:free (ya no gratis en OpenRouter),
+// gemma2-9b-it (Groq lo dio de baja) y gemini-1.5-flash (retirado por Google).
 const OPENROUTER_MODELS = [
   'google/gemma-4-26b-a4b-it:free',
-  'qwen/qwen3-next-80b-a3b-instruct:free',
-  'openai/gpt-oss-120b:free'
+  'google/gemma-4-31b-it:free',
+  'nvidia/nemotron-3-super-120b-a12b:free',
+  'nex-agi/nex-n2.5-pro:free'
 ];
 const GROQ_MODELS = [
   'llama-3.3-70b-versatile',
-  'llama-3.1-8b-instant',
-  'gemma2-9b-it'
+  'openai/gpt-oss-120b',
+  'openai/gpt-oss-20b',
+  'llama-3.1-8b-instant'
 ];
 const GEMINI_MODELS = [
-  'gemini-2.0-flash',
-  'gemini-1.5-flash'
+  'gemini-2.5-flash',
+  'gemini-2.5-flash-lite',
+  'gemini-2.0-flash'
 ];
+
+// Acumula el error de CADA modelo probado (antes solo se conservaba el ultimo,
+// lo que escondia la causa real: p. ej. un 429 de cuota en el primer modelo
+// quedaba tapado por el 404 del ultimo).
+function registrarError(errores, model, detalle) {
+  errores.push(`${model}: ${String(detalle).replace(/\s+/g, ' ').substring(0, 160)}`);
+}
 
 // Rate limiting interno (separado de la cuota de cada proveedor).
 // 100 consultas/dia/usuario es generoso pero protege contra abuso.
@@ -124,7 +139,7 @@ export async function callAI(env, messages, options = {}) {
 async function callOpenRouter(env, messages, options) {
   const apiKey = env.OPENROUTER_API_KEY;
   const modelsToTry = options.openrouterModel ? [options.openrouterModel] : OPENROUTER_MODELS;
-  let lastError = '';
+  const errores = [];
 
   for (const model of modelsToTry) {
     const body = {
@@ -151,17 +166,17 @@ async function callOpenRouter(env, messages, options) {
 
     if (!res.ok) {
       const errorText = await res.text();
-      lastError = `${model}: HTTP ${res.status} - ${errorText.substring(0, 200)}`;
+      registrarError(errores, model, `HTTP ${res.status} - ${errorText.substring(0, 200)}`);
       continue;
     }
     const data = await res.json();
     if (!data.choices || !data.choices.length) {
-      lastError = `${model}: respuesta sin choices`;
+      registrarError(errores, model, 'respuesta sin choices');
       continue;
     }
     const content = data.choices[0].message.content;
     if (!content || !content.trim() || content.trim() === 'null') {
-      lastError = `${model}: respuesta vacia`;
+      registrarError(errores, model, 'respuesta vacia');
       continue;
     }
     // Si pedimos JSON, validar que el modelo no genero basura degenerada.
@@ -169,7 +184,7 @@ async function callOpenRouter(env, messages, options) {
     if (options.jsonMode) {
       const parsed = extractJSON(content);
       if (!parsed) {
-        lastError = `${model}: JSON malformado en respuesta`;
+        registrarError(errores, model, 'JSON malformado en respuesta');
         continue;
       }
       return {
@@ -184,13 +199,13 @@ async function callOpenRouter(env, messages, options) {
       model: data.model || model
     };
   }
-  throw new Error(lastError || 'OpenRouter: todos los modelos fallaron');
+  throw new Error(errores.join(' ; ') || 'OpenRouter: todos los modelos fallaron');
 }
 
 async function callGroq(env, messages, options) {
   const apiKey = env.GROQ_API_KEY;
   const modelsToTry = options.groqModel ? [options.groqModel] : GROQ_MODELS;
-  let lastError = '';
+  const errores = [];
 
   for (const model of modelsToTry) {
     const body = {
@@ -214,23 +229,23 @@ async function callGroq(env, messages, options) {
 
     if (!res.ok) {
       const errorText = await res.text();
-      lastError = `${model}: HTTP ${res.status} - ${errorText.substring(0, 200)}`;
+      registrarError(errores, model, `HTTP ${res.status} - ${errorText.substring(0, 200)}`);
       continue;
     }
     const data = await res.json();
     if (!data.choices || !data.choices.length) {
-      lastError = `${model}: respuesta sin choices`;
+      registrarError(errores, model, 'respuesta sin choices');
       continue;
     }
     const content = data.choices[0].message.content;
     if (!content || !content.trim() || content.trim() === 'null') {
-      lastError = `${model}: respuesta vacia`;
+      registrarError(errores, model, 'respuesta vacia');
       continue;
     }
     if (options.jsonMode) {
       const parsed = extractJSON(content);
       if (!parsed) {
-        lastError = `${model}: JSON malformado en respuesta`;
+        registrarError(errores, model, 'JSON malformado en respuesta');
         continue;
       }
       return {
@@ -245,13 +260,13 @@ async function callGroq(env, messages, options) {
       model: data.model || model
     };
   }
-  throw new Error(lastError || 'Groq: todos los modelos fallaron');
+  throw new Error(errores.join(' ; ') || 'Groq: todos los modelos fallaron');
 }
 
 async function callGemini(env, messages, options) {
   const apiKey = env.GEMINI_API_KEY;
   const modelsToTry = options.geminiModel ? [options.geminiModel] : GEMINI_MODELS;
-  let lastError = '';
+  const errores = [];
 
   // Gemini usa formato distinto a OpenAI: separa systemInstruction del contents.
   const systemMsgs = messages.filter(m => m.role === 'system').map(m => m.content).join('\n\n');
@@ -286,20 +301,20 @@ async function callGemini(env, messages, options) {
 
     if (!res.ok) {
       const errorText = await res.text();
-      lastError = `${model}: HTTP ${res.status} - ${errorText.substring(0, 200)}`;
+      registrarError(errores, model, `HTTP ${res.status} - ${errorText.substring(0, 200)}`);
       continue;
     }
     const data = await res.json();
     const candidate = data.candidates && data.candidates[0];
     const text = candidate && candidate.content && candidate.content.parts && candidate.content.parts[0] && candidate.content.parts[0].text;
     if (!text || !text.trim() || text.trim() === 'null') {
-      lastError = `${model}: respuesta vacia`;
+      registrarError(errores, model, 'respuesta vacia');
       continue;
     }
     if (options.jsonMode) {
       const parsed = extractJSON(text);
       if (!parsed) {
-        lastError = `${model}: JSON malformado en respuesta`;
+        registrarError(errores, model, 'JSON malformado en respuesta');
         continue;
       }
       return {
@@ -314,5 +329,5 @@ async function callGemini(env, messages, options) {
       model
     };
   }
-  throw new Error(lastError || 'Gemini: todos los modelos fallaron');
+  throw new Error(errores.join(' ; ') || 'Gemini: todos los modelos fallaron');
 }
