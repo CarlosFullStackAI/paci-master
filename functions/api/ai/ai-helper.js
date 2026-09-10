@@ -9,7 +9,8 @@
 
 const MAX_CALLS_PER_DAY = 100;
 
-// Modelos free de cada proveedor. Revisados 2026-09-09: OpenRouter contra
+// Modelos free de cada proveedor. Revisados 2026-09-10 contra los catalogos
+// vigentes de los tres proveedores. Revision previa 2026-09-09: OpenRouter contra
 // https://openrouter.ai/api/v1/models (solo ids ":free" con soporte de
 // response_format); Groq y Gemini segun sus listas vigentes (la cascada tolera
 // que alguno este dado de baja). Caidos ese dia y retirados de aqui:
@@ -32,23 +33,27 @@ const OPENROUTER_JSON_OK = new Set([
   'google/gemma-4-26b-a4b-it:free', 'google/gemma-4-31b-it:free',
   'nvidia/nemotron-3-super-120b-a12b:free', 'dots-studio/dots-3-note-preview:free', 'nex-agi/nex-n2.5-pro:free'
 ]);
+// Groq: solo los dos gpt-oss. El resto de su catalogo no sirve aqui —
+// llama-3.1-8b-instant y llama-3.3-70b-versatile pasaron a Enterprise
+// ('Contact Sales'), llama-4-scout y kimi-k2 fueron dados de baja, y los
+// preview (qwen3.6/3.8-27b) cuestan 4-5 veces mas por token.
 const GROQ_MODELS = [
   'openai/gpt-oss-120b',
-  'openai/gpt-oss-20b',
-  'meta-llama/llama-4-scout-17b-16e-instruct',
-  'moonshotai/kimi-k2-instruct-0905'
+  'openai/gpt-oss-20b'
 ];
+// Gemini: no existe un 3.6-flash-lite; los lite vigentes son 3.5 y 3.1.
 const GEMINI_MODELS = [
   'gemini-3.6-flash',
-  'gemini-3.6-flash-lite'
+  'gemini-3.5-flash',
+  'gemini-3.5-flash-lite'
 ];
 
 // Tiempo maximo por modelo: un proveedor colgado no debe bloquear la cascada
 // (una peticion de 2 clases llego a tardar 4 minutos recorriendo 11 modelos).
 const TIMEOUT_MODELO_MS = 90000;
 // Presupuesto para la cascada COMPLETA. Sin el, el tope por modelo no acota nada:
-// 12 modelos colgados = 18 minutos de espera. Al agotarse, los modelos restantes
-// se saltan y el usuario recibe el error de inmediato en vez de esperar.
+// cada modelo colgado suma 90 s y recorrer los 11 tardaria mas de 15 minutos. Al
+// agotarse, los modelos restantes se saltan y el error sale de inmediato.
 const PRESUPUESTO_TOTAL_MS = 150000;
 
 // Milisegundos que quedan del presupuesto (Infinity si la llamada no trae limite).
