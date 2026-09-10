@@ -1,5 +1,5 @@
 // Helper unificado para llamadas a IA con cascada de proveedores gratuitos.
-// Orden: OpenRouter -> Groq -> Gemini. Si uno falla, prueba el siguiente.
+// Orden: Groq -> OpenRouter -> Gemini. Si uno falla, prueba el siguiente.
 // Todos los modelos usados son tier gratuito (cero costo).
 //
 // Por que cascada y no un solo proveedor:
@@ -15,29 +15,57 @@ const MAX_CALLS_PER_DAY = 100;
 // que alguno este dado de baja). Caidos ese dia y retirados de aqui:
 // qwen3-next-80b:free y gpt-oss-120b:free (ya no gratis en OpenRouter),
 // gemma2-9b-it (Groq lo dio de baja) y gemini-1.5-flash (retirado por Google).
+// Orden de proveedores: Groq primero (responde en segundos y su cuota diaria es
+// amplia), luego OpenRouter (los :free se saturan en horario escolar y devuelven
+// 429 "rate-limited upstream") y al final Gemini.
 const OPENROUTER_MODELS = [
   'google/gemma-4-26b-a4b-it:free',
   'google/gemma-4-31b-it:free',
   'nvidia/nemotron-3-super-120b-a12b:free',
-  'nex-agi/nex-n2.5-pro:free'
+  'dots-studio/dots-3-note-preview:free',
+  'nex-agi/nex-n2.5-pro:free',
+  'thinkingmachines/inkling:free'
 ];
+// Modelos :free que aceptan response_format (segun /api/v1/models). Al resto se
+// les pide JSON solo por prompt y se valida con extractJSON.
+const OPENROUTER_JSON_OK = new Set([
+  'google/gemma-4-26b-a4b-it:free', 'google/gemma-4-31b-it:free',
+  'nvidia/nemotron-3-super-120b-a12b:free', 'dots-studio/dots-3-note-preview:free', 'nex-agi/nex-n2.5-pro:free'
+]);
 const GROQ_MODELS = [
-  'llama-3.3-70b-versatile',
   'openai/gpt-oss-120b',
   'openai/gpt-oss-20b',
-  'llama-3.1-8b-instant'
+  'meta-llama/llama-4-scout-17b-16e-instruct',
+  'moonshotai/kimi-k2-instruct-0905'
 ];
 const GEMINI_MODELS = [
-  'gemini-2.5-flash',
-  'gemini-2.5-flash-lite',
-  'gemini-2.0-flash'
+  'gemini-3.6-flash',
+  'gemini-3.6-flash-lite'
 ];
+
+// Tiempo maximo por modelo: un proveedor colgado no debe bloquear la cascada
+// (una peticion de 2 clases llego a tardar 4 minutos recorriendo 11 modelos).
+const TIMEOUT_MODELO_MS = 90000;
+// Presupuesto para la cascada COMPLETA. Sin el, el tope por modelo no acota nada:
+// 12 modelos colgados = 18 minutos de espera. Al agotarse, los modelos restantes
+// se saltan y el usuario recibe el error de inmediato en vez de esperar.
+const PRESUPUESTO_TOTAL_MS = 150000;
+
+// Milisegundos que quedan del presupuesto (Infinity si la llamada no trae limite).
+function msRestantes(options) {
+  return options && options.deadline ? options.deadline - Date.now() : Infinity;
+}
+function fetchConTimeout(url, init, options) {
+  const restante = msRestantes(options);
+  const ms = Math.max(1000, Math.min(TIMEOUT_MODELO_MS, restante));
+  return fetch(url, { ...init, signal: AbortSignal.timeout(ms) });
+}
 
 // Acumula el error de CADA modelo probado (antes solo se conservaba el ultimo,
 // lo que escondia la causa real: p. ej. un 429 de cuota en el primer modelo
 // quedaba tapado por el 404 del ultimo).
 function registrarError(errores, model, detalle) {
-  errores.push(`${model}: ${String(detalle).replace(/\s+/g, ' ').substring(0, 160)}`);
+  errores.push(`${model}: ${String(detalle).replace(/\s+/g, ' ').substring(0, 320)}`);
 }
 
 // Rate limiting interno (separado de la cuota de cada proveedor).
@@ -114,17 +142,20 @@ export async function callAI(env, messages, options = {}) {
   const errors = [];
   const providers = [];
 
-  if (env.OPENROUTER_API_KEY) providers.push({ name: 'OpenRouter', fn: callOpenRouter });
   if (env.GROQ_API_KEY) providers.push({ name: 'Groq', fn: callGroq });
+  if (env.OPENROUTER_API_KEY) providers.push({ name: 'OpenRouter', fn: callOpenRouter });
   if (env.GEMINI_API_KEY) providers.push({ name: 'Gemini', fn: callGemini });
 
   if (!providers.length) {
     throw new Error('Ningun proveedor IA configurado. Agregar OPENROUTER_API_KEY, GROQ_API_KEY o GEMINI_API_KEY como secret.');
   }
 
+  // Deadline compartido por toda la cascada (todos los proveedores y modelos).
+  const opciones = { ...options, deadline: options.deadline || (Date.now() + PRESUPUESTO_TOTAL_MS) };
+
   for (const provider of providers) {
     try {
-      const result = await provider.fn(env, messages, options);
+      const result = await provider.fn(env, messages, opciones);
       return { ...result, provider: provider.name };
     } catch (e) {
       errors.push(`${provider.name}: ${e.message}`);
@@ -142,6 +173,10 @@ async function callOpenRouter(env, messages, options) {
   const errores = [];
 
   for (const model of modelsToTry) {
+    if (msRestantes(options) <= 2000) {
+      registrarError(errores, model, 'no se intento: se agoto el presupuesto de tiempo de la cascada');
+      break;
+    }
     const body = {
       model,
       messages,
@@ -151,22 +186,28 @@ async function callOpenRouter(env, messages, options) {
       top_p: options.topP || 1,
       stream: false
     };
-    if (options.jsonMode) body.response_format = { type: 'json_object' };
+    if (options.jsonMode && OPENROUTER_JSON_OK.has(model)) body.response_format = { type: 'json_object' };
 
-    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://proyecto-paci.pages.dev',
-        'X-Title': 'Proyecto PACI'
-      },
-      body: JSON.stringify(body)
-    });
+    let res;
+    try {
+      res = await fetchConTimeout('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://proyecto-paci.pages.dev',
+          'X-Title': 'Proyecto PACI'
+        },
+        body: JSON.stringify(body)
+      }, options);
+    } catch (e) {
+      registrarError(errores, model, `sin respuesta (${e.name || 'error'}: ${e.message})`);
+      continue;
+    }
 
     if (!res.ok) {
       const errorText = await res.text();
-      registrarError(errores, model, `HTTP ${res.status} - ${errorText.substring(0, 200)}`);
+      registrarError(errores, model, `HTTP ${res.status} - ${errorText.substring(0, 320)}`);
       continue;
     }
     const data = await res.json();
@@ -208,6 +249,10 @@ async function callGroq(env, messages, options) {
   const errores = [];
 
   for (const model of modelsToTry) {
+    if (msRestantes(options) <= 2000) {
+      registrarError(errores, model, 'no se intento: se agoto el presupuesto de tiempo de la cascada');
+      break;
+    }
     const body = {
       model,
       messages,
@@ -217,19 +262,31 @@ async function callGroq(env, messages, options) {
       stream: false
     };
     if (options.jsonMode) body.response_format = { type: 'json_object' };
+    // gpt-oss razona antes de responder: con razonamiento medio y max_tokens justo
+    // el JSON llegaba truncado y Groq respondia 400 "Failed to validate JSON".
+    if (model.startsWith('openai/gpt-oss')) {
+      body.reasoning_effort = 'low';
+      body.max_tokens = Math.max((options.maxTokens || 2000) * 2, 8000);
+    }
 
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(body)
-    });
+    let res;
+    try {
+      res = await fetchConTimeout('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+      }, options);
+    } catch (e) {
+      registrarError(errores, model, `sin respuesta (${e.name || 'error'}: ${e.message})`);
+      continue;
+    }
 
     if (!res.ok) {
       const errorText = await res.text();
-      registrarError(errores, model, `HTTP ${res.status} - ${errorText.substring(0, 200)}`);
+      registrarError(errores, model, `HTTP ${res.status} - ${errorText.substring(0, 320)}`);
       continue;
     }
     const data = await res.json();
@@ -277,6 +334,10 @@ async function callGemini(env, messages, options) {
   }));
 
   for (const model of modelsToTry) {
+    if (msRestantes(options) <= 2000) {
+      registrarError(errores, model, 'no se intento: se agoto el presupuesto de tiempo de la cascada');
+      break;
+    }
     const body = {
       contents,
       generationConfig: {
@@ -293,15 +354,21 @@ async function callGemini(env, messages, options) {
     }
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
+    let res;
+    try {
+      res = await fetchConTimeout(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      }, options);
+    } catch (e) {
+      registrarError(errores, model, `sin respuesta (${e.name || 'error'}: ${e.message})`);
+      continue;
+    }
 
     if (!res.ok) {
       const errorText = await res.text();
-      registrarError(errores, model, `HTTP ${res.status} - ${errorText.substring(0, 200)}`);
+      registrarError(errores, model, `HTTP ${res.status} - ${errorText.substring(0, 320)}`);
       continue;
     }
     const data = await res.json();

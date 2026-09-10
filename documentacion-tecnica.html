@@ -87,7 +87,7 @@
 <header class="hero">
   <h1>PIE MASTER — Documentación técnica</h1>
   <p>Plataforma de gestión documental para Educadores Diferenciales chilenos (Decreto 83/2015 y Decreto 170/2009).</p>
-  <span class="badge">Última actualización: 2026-09-08</span>
+  <span class="badge">Última actualización: 2026-09-10</span>
   <span class="badge">Interna — solo admins (link en el dashboard)</span>
 </header>
 
@@ -134,7 +134,7 @@ Cloudflare Pages  ──  sitio estático + Pages Functions (serverless, ESM)
    ├── KV "PACI_USERS"            → usuarios (hash PBKDF2), sesiones, rate-limits
    ├── KV "PACI_FILES"            → archivos subidos y fotos de perfil
    ├── Browser Rendering (BROWSER) → PDF server-side (@cloudflare/puppeteer 1.1)
-   └── OpenRouter (modelos :free)  → funciones de IA
+   └── IA gratuita en cascada       → Groq → OpenRouter (:free) → Gemini
   </pre>
   <p class="muted">Sin frameworks ni build de JS: HTML + JavaScript vanilla. El único build es el CSS de Tailwind
   (<code>tailwind-utils.css</code> se cura a mano; <code>styles.css</code> no se usa).</p>
@@ -229,7 +229,9 @@ Cloudflare Pages  ──  sitio estático + Pages Functions (serverless, ESM)
 <section id="ia">
   <h2>8. Inteligencia artificial</h2>
   <ul>
-    <li><strong>Proveedor:</strong> OpenRouter, SOLO modelos <code>:free</code> (regla: costo cero), con cadena de fallback entre 2-3 modelos. Fetch nativo, sin SDKs.</li>
+    <li><strong>Proveedores (cascada, todos gratis):</strong> <code>functions/api/ai/ai-helper.js</code> prueba <strong>Groq → OpenRouter (:free) → Gemini</strong>, y dentro de cada uno recorre su lista de modelos hasta que alguno responda. Groq va primero porque contesta en segundos y su cuota diaria es amplia; los <code>:free</code> de OpenRouter se saturan en horario escolar y devuelven 429. Fetch nativo, sin SDKs.</li>
+    <li><strong>Topes de tiempo:</strong> 90 s por modelo (<code>AbortSignal.timeout</code>) y <strong>150 s para la cascada completa</strong> (<code>PRESUPUESTO_TOTAL_MS</code>). Al agotarse el presupuesto los modelos que faltan se saltan y el error sale de inmediato, en vez de dejar al usuario esperando minutos. El error final acumula el motivo de CADA modelo probado.</li>
+    <li><strong>JSON:</strong> <code>response_format</code> solo se envía a los modelos que lo soportan (set <code>OPENROUTER_JSON_OK</code>); al resto se les pide JSON por prompt y se valida con <code>extractJSON()</code>. Con <code>openai/gpt-oss-*</code> en Groq se fuerza <code>reasoning_effort: 'low'</code> y se dobla <code>max_tokens</code>, porque el razonamiento consumía el presupuesto y el JSON llegaba truncado.</li>
     <li><strong>Usos:</strong> chatbot asistente, redacción de documentos (fill-document), autocompletar ficha del estudiante, adaptar OAs, generar clases/metas/secuencias por trimestre.</li>
     <li><strong>Protecciones:</strong> endpoints con auth (no queman cuota terceros), input del usuario envuelto en <code>&lt;pregunta_usuario&gt;</code> contra prompt-injection, <code>max_tokens</code> siempre presente.</li>
     <li><strong>Contexto por colegio:</strong> recursos, contexto de aula, intereses y DUA se guardan en D1 (<code>ai_contexts</code>) y los comparte todo el equipo del colegio.</li>
@@ -268,6 +270,21 @@ npx wrangler d1 execute paci-db --remote --file migrations/0XX.sql   # migrar AN
 
 <section id="historial">
   <h2>11. Historial de cambios</h2>
+
+  <div class="chg">
+    <div class="fecha">2026-09-10</div>
+    <ul>
+      <li><strong>Cascada de IA: Groq primero y tope de tiempo real</strong> (<code>functions/api/ai/ai-helper.js</code>). El arreglo del 09-09 dejó la cascada funcionando pero <em>lenta</em>: una petición de 2 clases tardó 4 minutos recorriendo los 11 modelos, porque OpenRouter responde 429 ("rate-limited upstream") en horario escolar y ninguna llamada tenía límite de espera. Cambios: (1) el orden ahora es <strong>Groq → OpenRouter → Gemini</strong> (Groq contesta en segundos y su cuota diaria es amplia); (2) <strong>90 s de tope por modelo</strong> con <code>AbortSignal.timeout</code> y <strong>150 s de presupuesto para la cascada completa</strong> (<code>PRESUPUESTO_TOTAL_MS</code>) compartido por los tres proveedores — al agotarse, los modelos que faltan se saltan con el motivo "no se intentó" en vez de dejar al usuario esperando; (3) el fallo de red ya no rompe la cascada: se registra como <code>sin respuesta (TimeoutError)</code> y sigue al modelo siguiente; (4) <code>response_format</code> se envía SOLO a los modelos que lo declaran (set <code>OPENROUTER_JSON_OK</code>, verificado contra <code>/api/v1/models</code>); al resto se les pide JSON por prompt y se valida con <code>extractJSON()</code>; (5) con <code>openai/gpt-oss-*</code> en Groq se fija <code>reasoning_effort: 'low'</code> y se dobla <code>max_tokens</code> (mínimo 8000) porque el razonamiento se comía el presupuesto y Groq devolvía 400 "Failed to validate JSON" por respuesta truncada; (6) el detalle de error por modelo pasó de 200 a 320 caracteres (los 429 de OpenRouter traen el motivo al final). Listas de modelos revalidadas contra la API pública de OpenRouter el 10-09-2026: los 6 ids <code>:free</code> existen y 5 aceptan <code>response_format</code> (<code>thinkingmachines/inkling:free</code> no). Verificado con arnés de pruebas (<code>fetch</code> simulado): camino feliz responde con Groq en la 1ª llamada, si Groq cae entero pasa a OpenRouter al 5º intento, y con el presupuesto agotado corta en 4 s saltando los 11 modelos restantes. ESLint (security:sast) limpio.</li>
+    </ul>
+  </div>
+
+  <div class="chg">
+    <div class="fecha">2026-09-09</div>
+    <ul>
+      <li><strong>Fix: TODAS las funciones de IA estaban caídas en producción</strong> (<code>ai-helper.js</code>). Las tres listas de modelos habían quedado obsoletas al mismo tiempo: <code>qwen3-next-80b:free</code> y <code>gpt-oss-120b:free</code> dejaron de ser gratis en OpenRouter, Groq dio de baja <code>gemma2-9b-it</code> y Google retiró <code>gemini-1.5-flash</code>. Listas actualizadas contra las APIs vigentes de cada proveedor. Además, cada proveedor ahora <strong>acumula el error de cada modelo probado</strong> en vez de conservar solo el último: antes un 429 de cuota en el primer modelo quedaba tapado por el 404 del último, que era lo único que se veía en el mensaje de error.</li>
+      <li><strong>Documento PACI a 11pt</strong> (app.html + paci.css): cuerpo, encabezado institucional, título, tablas, impresión y export Word pasaron de 10pt (y 9pt en el encabezado) a 11pt uniforme, medido sobre los PDF reales del colegio (Liberation Sans Narrow 11pt).</li>
+    </ul>
+  </div>
 
   <div class="chg">
     <div class="fecha">2026-09-08</div>
