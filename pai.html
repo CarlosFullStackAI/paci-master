@@ -519,11 +519,16 @@
       'Otro profesional del equipo PIE'
     ];
 
-    const ESTADOS_SEGUIMIENTO = ['Por evaluar', 'En desarrollo', 'Logrado parcial', 'Logrado', 'No logrado'];
+    const ESTADOS_SEGUIMIENTO = ['', 'En desarrollo', 'Logrado parcial', 'Logrado', 'No logrado'];
 
     // Cargos del equipo de aula (mismo listado que renderEquipoForm() del editor PACI).
+    // Cargo diferencial según el género del docente (Mi Perfil > Trato): Educador / Educadora
+    const ROL_DIFERENCIAL = (() => {
+      try { return JSON.parse(localStorage.getItem('paci_user') || '{}').genero === 'hombre' ? 'Educador Diferencial' : 'Educadora Diferencial'; }
+      catch (e) { return 'Educadora Diferencial'; }
+    })();
     const EQUIPO_AULA_ROLES = [
-      'Profesor/a de Educación Diferencial',
+      ROL_DIFERENCIAL,
       'Psicólogo',
       'Fonoaudiólogo/a',
       'Profesor/a Jefe',
@@ -747,6 +752,34 @@
       updatePreviewPAI();
     }
 
+    // Logos del colegio (data/tenants/<slug>/logos/, igual que el editor PACI) cuando el
+    // documento no trae logos propios ni el usuario subió uno.
+    const logosColegio = { escuela: '', pie: '' };
+    async function autoloadTenantLogos() {
+      const slug = (window.TENANT_CONFIG && window.TENANT_CONFIG.id) || '';
+      if (!slug) return;
+      const pares = [['escuela', 'escuela.png'], ['pie', 'pie.png']];
+      for (const par of pares) {
+        if (state.logos[par[0]]) continue;
+        try {
+          const resp = await fetch('/data/tenants/' + encodeURIComponent(slug) + '/logos/' + par[1]);
+          if (!resp.ok) continue;
+          const blob = await resp.blob();
+          if (!blob.type || blob.type.indexOf('image/') !== 0) continue;
+          const dataUrl = await new Promise((resolve, reject) => {
+            const fr = new FileReader();
+            fr.onload = () => resolve(fr.result);
+            fr.onerror = reject;
+            fr.readAsDataURL(blob);
+          });
+          if (!state.logos[par[0]]) {
+            state.logos[par[0]] = dataUrl;
+            logosColegio[par[0]] = dataUrl;
+          }
+        } catch (e) { /* sin logo estático para este colegio */ }
+      }
+    }
+
     // ====== Logos institucionales (mismo patron loadLogo del editor PACI, adaptado a estado) ======
     function loadLogo(event, key) {
       const file = event.target.files && event.target.files[0];
@@ -859,7 +892,8 @@
       state.seguimiento.push({
         _id: ++segSeq,
         fecha: s.fecha || '',
-        estado: s.estado || ESTADOS_SEGUIMIENTO[0],
+        // 'Por evaluar' (estado pendiente) ya no se usa: documentos antiguos quedan sin estado
+        estado: s.estado && s.estado !== 'Por evaluar' ? s.estado : '',
         observacion: s.observacion || ''
       });
       renderSeguimiento();
@@ -882,7 +916,7 @@
       }
       cont.innerHTML = state.seguimiento.map((s) => {
         const estados = ESTADOS_SEGUIMIENTO.map((e) =>
-          '<option value="' + escapeHtml(e) + '"' + (e === s.estado ? ' selected' : '') + '>' + escapeHtml(e) + '</option>'
+          '<option value="' + escapeHtml(e) + '"' + (e === s.estado ? ' selected' : '') + '>' + (e ? escapeHtml(e) : '— Sin estado —') + '</option>'
         ).join('');
         return '' +
           '<div class="seg-row grid grid-3" style="align-items:end;">' +
@@ -1021,6 +1055,10 @@
     async function guardar() {
       if (!CAN_CREATE) { toast('Tu rol (' + (USER.role || 'lectura') + ') solo permite lectura.', true); return; }
       const data = recolectar();
+      // Los logos del colegio se cargan solos al abrir: no se duplican en cada documento (~2 MB)
+      ['escuela', 'pie'].forEach((k) => {
+        if (logosColegio[k] && data.logos[k] === logosColegio[k]) data.logos[k] = '';
+      });
       if (!data.student.name) { toast('Falta el nombre del estudiante.', true); return; }
       if (!data.apoyos.length) { toast('Agrega al menos un apoyo antes de guardar.', true); return; }
 
@@ -1053,7 +1091,7 @@
       td: 'padding:8px 10px;border:1px solid #cbd5e1;color:#1a1a2e;font-size:11px;vertical-align:top;',
       lbl: 'background-color:#a3c2f5;color:#091845;font-weight:800;text-transform:uppercase;font-size:9px;letter-spacing:0.03em;padding:8px 10px;border:1px solid #cbd5e1;width:140px;white-space:nowrap;vertical-align:top;',
       val: 'padding:8px 10px;border:1px solid #cbd5e1;color:#1a1a2e;font-size:11.5px;font-weight:600;vertical-align:top;',
-      box: 'border:1px solid #cbd5e1;border-left:4px solid #1240c4;border-radius:0 6px 6px 0;padding:10px 12px;margin-bottom:8px;background:#f4f7fd;',
+      box: 'border:1px solid #cbd5e1;border-left:4px solid #1240c4;border-radius:0 6px 6px 0;padding:10px 12px;margin-bottom:8px;background:#f4f7fd;break-inside:avoid;page-break-inside:avoid;',
       boxLbl: 'font-weight:800;font-size:9.5px;text-transform:uppercase;color:#091845;letter-spacing:0.05em;display:block;margin-bottom:3px;'
     };
     const secHeader = (num, title) =>
@@ -1062,6 +1100,8 @@
       'border-radius:6px;margin:18px 0 12px;-webkit-print-color-adjust:exact;print-color-adjust:exact;">' + num + '. ' + escapeHtml(title) + '</h3>';
     const th = (t) => '<th style="' + DOC.th + '">' + escapeHtml(t) + '</th>';
     const td = (v) => '<td style="' + DOC.td + '">' + txt(v) + '</td>';
+    // Celda que queda en blanco si no hay dato (para completar a mano en el impreso)
+    const tdManual = (v) => '<td style="' + DOC.td + '">' + escapeHtml(v || '') + '</td>';
     const datosRow = (l1, v1, l2, v2) =>
       '<tr><td style="' + DOC.lbl + '">' + escapeHtml(l1) + '</td><td style="' + DOC.val + '">' + txt(v1) + '</td>' +
       '<td style="' + DOC.lbl + '">' + escapeHtml(l2) + '</td><td style="' + DOC.val + '">' + txt(v2) + '</td></tr>';
@@ -1131,7 +1171,9 @@
         }).join('');
 
       // --- V. Estrategias diversificadas (DUA) ---
-      html += secHeader('V', 'Estrategias diversificadas (DUA)') +
+      // V. DUA siempre comienza en una hoja nueva (pedido del colegio)
+      html += '<div style="break-before:page;page-break-before:always;"></div>' +
+        secHeader('V', 'Estrategias diversificadas (DUA)') +
         PRINCIPIOS_DUA.map((p) => {
           const e = (d.estrategiasDua || []).find((x) => x.principio === p.key) || {};
           return evalBox(p.label, e.estrategia);
@@ -1139,7 +1181,7 @@
 
       // --- VI. Seguimiento y evaluación ---
       const filasSeg = d.seguimiento.length
-        ? d.seguimiento.map((s) => '<tr>' + td(fmtFecha(s.fecha)) + td(s.estado) + td(s.observacion) + '</tr>').join('')
+        ? d.seguimiento.map((s) => '<tr>' + td(fmtFecha(s.fecha)) + tdManual(s.estado === 'Por evaluar' ? '' : s.estado) + td(s.observacion) + '</tr>').join('')
         : '<tr><td style="' + DOC.td + '" colspan="3">Sin revisiones programadas.</td></tr>';
       html += secHeader('VI', 'Seguimiento y evaluación') +
         '<table style="' + DOC.table + '"><thead><tr>' +
@@ -1164,19 +1206,28 @@
 
       // --- IX. Firmas y compromisos ---
       const filasFirmas = d.firmas.length
-        ? d.firmas.map((f) => {
-            const estado = f.firmadoEn ? ('Firmado · ' + fmtFechaHora(f.firmadoEn)) : 'Pendiente';
-            return '<tr>' + td(f.rol) + td(f.nombre) + td(f.email) + td(estado) + '</tr>';
-          }).join('')
-        : '<tr><td style="' + DOC.td + '" colspan="4">Sin firmas registradas.</td></tr>';
-      html += secHeader('IX', 'Firmas y compromisos') +
+        ? d.firmas.map((f) => '<tr>' + td(f.rol) + td(f.nombre) + tdManual(f.email) + '</tr>').join('')
+        : '<tr><td style="' + DOC.td + '" colspan="3">Sin firmas registradas.</td></tr>';
+      // Firma diferencial con el cargo (y género) del equipo de apoyo del documento
+      const difTeam = (d.team || []).find((m) => /diferencial/i.test(String(m.cargo || '')));
+      const esEducador = !!difTeam && /^Educador Diferencial$/i.test(String(difTeam.cargo || '').trim());
+      const firmaDiferencial = (difTeam && difTeam.nombre ? '<div style="font-weight:700;margin-bottom:2px;">' + escapeHtml(difTeam.nombre) + '</div>' : '') +
+        (esEducador ? 'Educador Diferencial' : 'Educadora Diferencial');
+      // Coordinación PIE: firma del documento si existe; si no, la del personal del colegio (admin.html)
+      const firmaCoord = (d.firmas || []).find((f) => /coordinador/i.test(String(f.rol || '')) && f.nombre);
+      const staffCoord = (staffDelColegio() || {})['Coordinador/a PIE'] || [];
+      const nombreCoord = (firmaCoord && firmaCoord.nombre) || staffCoord[0] || '';
+      const firmaCoordinacion = (nombreCoord ? '<div style="font-weight:700;margin-bottom:2px;">' + escapeHtml(nombreCoord) + '</div>' : '') + 'Coordinación PIE';
+      // Sección IX completa en un bloque: las líneas de firma nunca quedan solas en otra hoja
+      html += '<div style="break-inside:avoid;page-break-inside:avoid;">' +
+        secHeader('IX', 'Firmas y compromisos') +
         '<table style="' + DOC.table + '"><thead><tr>' +
-          th('Rol') + th('Nombre') + th('Email / Contacto') + th('Estado') +
+          th('Rol') + th('Nombre') + th('Email / Contacto') +
         '</tr></thead><tbody>' + filasFirmas + '</tbody></table>' +
         '<div style="margin-top:40px;display:flex;justify-content:space-around;text-align:center;font-size:10px;color:#334155;">' +
-          '<div style="border-top:1px solid #475569;padding-top:6px;width:38%;">Profesional Educación Diferencial</div>' +
-          '<div style="border-top:1px solid #475569;padding-top:6px;width:38%;">Coordinación PIE</div>' +
-        '</div>';
+          '<div style="border-top:1px solid #475569;padding-top:6px;width:38%;">' + firmaDiferencial + '</div>' +
+          '<div style="border-top:1px solid #475569;padding-top:6px;width:38%;">' + firmaCoordinacion + '</div>' +
+        '</div></div>';
 
       return html;
     }
@@ -1202,8 +1253,10 @@
       const css =
         'body{font-family:' + fuente.stack + ';color:#1a1a2e;font-size:12px;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}' +
         (zoomDoc !== 1 ? 'body{zoom:' + zoomDoc + ';}' : '') +
-        'h3{-webkit-print-color-adjust:exact;print-color-adjust:exact;}' +
-        'table{page-break-inside:auto;}' +
+        // El título de sección nunca queda solo al final de la hoja: viaja con su contenido
+        'h3{-webkit-print-color-adjust:exact;print-color-adjust:exact;break-after:avoid;page-break-after:avoid;}' +
+        'thead{display:table-header-group;}' +
+        'table{break-inside:avoid;page-break-inside:avoid;}' +
         'tr{page-break-inside:avoid;}' +
         '@page{size:letter;margin:1.5cm;}';
       return '<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">' +
@@ -1418,6 +1471,7 @@
         if (studentId) await prefillEstudiante(studentId);
         agregarApoyo();
       }
+      await autoloadTenantLogos();
       renderApoyos();
       renderEquipo();
       renderEquipoAula();

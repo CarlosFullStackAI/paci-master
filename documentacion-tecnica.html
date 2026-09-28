@@ -87,7 +87,7 @@
 <header class="hero">
   <h1>PIE MASTER — Documentación técnica</h1>
   <p>Plataforma de gestión documental para Educadores Diferenciales chilenos (Decreto 83/2015 y Decreto 170/2009).</p>
-  <span class="badge">Última actualización: 2026-09-10</span>
+  <span class="badge">Última actualización: 2026-09-27</span>
   <span class="badge">Interna — solo admins (link en el dashboard)</span>
 </header>
 
@@ -270,6 +270,13 @@ npx wrangler d1 execute paci-db --remote --file migrations/0XX.sql   # migrar AN
 
 <section id="historial">
   <h2>11. Historial de cambios</h2>
+
+  <div class="chg">
+    <div class="fecha">2026-09-27</div>
+    <ul>
+      <li><strong>Documento PAI: formato de impresión ordenado, cargos con género y logos del colegio</strong> (<code>pai.html</code>, commit "Tidy PAI print layout, gendered roles and school logos"). (1) <strong>Sin cortes entre páginas</strong>: los títulos de sección llevan <code>break-after:avoid</code>, los recuadros y tablas <code>break-inside:avoid</code>, y la sección IX (tabla + líneas de firma) es un solo bloque; <strong>V. DUA siempre empieza en hoja nueva</strong> (<code>break-before:page</code>). (2) <strong>Estados pendientes fuera</strong>: se quitó "Por evaluar" del seguimiento (documentos antiguos se muestran en blanco) y la columna "Estado/Pendiente" de las firmas; las celdas sin dato quedan en blanco para completar a mano (<code>tdManual</code>) en vez de "—". (3) <strong>Cargo diferencial con género</strong>: el editor ofrece "Educador Diferencial" o "Educadora Diferencial" según <code>paci_user.genero</code>; la línea de firma muestra nombre + cargo de la educadora/or del equipo de apoyo y el nombre de la Coordinación PIE (firma del documento o, si no hay, <code>staff['Coordinador/a PIE']</code> del colegio). (4) <strong>Logos automáticos</strong>: igual que el PACI, se cargan desde <code>data/tenants/&lt;slug&gt;/logos/</code> al abrir el PAI y <em>no</em> se guardan en el documento (~2 MB); los subidos a mano sí se guardan. Datos: en los 10 PAI del 3er trimestre se completó "Equipo de aula" (diferencial + Lenguaje + Matemática según las firmas; en NT2, Educadora de Párvulos Gisela Kliebs), los correos de las firmas y el cargo "Educadora Diferencial" en III/VII (UPDATE directo en D1 con respaldo previo).</li>
+    </ul>
+  </div>
 
   <div class="chg">
     <div class="fecha">2026-09-10</div>
