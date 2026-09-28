@@ -13,6 +13,8 @@ tailwind.config.js
 
 # Documentos binarios: por privacidad (staff/) o tamaño (formato MINEDUC)
 *.docx
+# Excepcion: plantillas oficiales que la app rellena en runtime (publicas, livianas)
+!data/mineduc/formatos/formato-anamnesis-2010.docx
 
 # PDFs grandes de bases curriculares y normativa MINEDUC
 # (publicos pero pesados; se descargan desde curriculumnacional.cl)

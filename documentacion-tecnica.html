@@ -87,7 +87,7 @@
 <header class="hero">
   <h1>PIE MASTER — Documentación técnica</h1>
   <p>Plataforma de gestión documental para Educadores Diferenciales chilenos (Decreto 83/2015 y Decreto 170/2009).</p>
-  <span class="badge">Última actualización: 2026-09-27</span>
+  <span class="badge">Última actualización: 2026-09-28</span>
   <span class="badge">Interna — solo admins (link en el dashboard)</span>
 </header>
 
@@ -270,6 +270,13 @@ npx wrangler d1 execute paci-db --remote --file migrations/0XX.sql   # migrar AN
 
 <section id="historial">
   <h2>11. Historial de cambios</h2>
+
+  <div class="chg">
+    <div class="fecha">2026-09-28</div>
+    <ul>
+      <li><strong>Anamnesis: se rellena el formato OFICIAL MINEDUC (Word y PDF), no una copia</strong> (spec <code>specs/formatos-oficiales-rellenos.md</code>). (1) <strong>Formulario calcado del oficial</strong> (<code>docs-registry.js</code>): mismas 15 tablas, preguntas y orden de <code>ANAMNESIS_2010.doc</code> (~180 datos); tipos nuevos <code>sino</code>, <code>opciones</code> (casillas, una o varias) y <code>tabla</code> (4 informantes, 4 entrevistadores, 8 convivientes). Cada campo lleva <code>docx: {at:[tabla, fila, celda], mode}</code>. Los campos viejos que el oficial no pide se eliminaron (no había Anamnesis guardadas en D1). (2) <strong>Word</strong> (<code>formatos-oficiales/rellenar-docx.js</code> + <code>vendor/fflate.js</code>): abre <code>data/mineduc/formatos/formato-anamnesis-2010.docx</code> (convertido 1:1 con <code>Wordconv.exe</code>), escribe en las celdas, marca casillas (glifo Wingdings F0FE) y pone una X en negrita junto a Sí/No. (3) <strong>PDF</strong> (<code>formatos-oficiales/rellenar-pdf.js</code> + pdf-lib 1.17.1 desde cdnjs con SRI): escribe encima del PDF publicado por MINEDUC usando <code>formatos-oficiales/anamnesis-pdf-map.js</code> (407 posiciones). <strong>Nunca achica la letra</strong>: lo que no cabe muestra "(continúa en anexo)" y va completo en hojas anexas al final. (4) El mapa lo genera <code>scripts/build-anamnesis-pdf-map.mjs</code> (una vez, con Word): una copia del .docx con marcas aplastadas al 1% (misma diagramación, verificado página por página) → PDF con Word → pdfjs lee dónde quedó cada marca; casillas y Sí/No se toman del PDF oficial y los límites de cada celda de sus bordes dibujados. (5) Botones <strong>Word/PDF</strong> de <code>docs.html</code> descargan el oficial para los tipos con <code>officialTemplate</code>; las librerías se cargan solo al descargar. Vista previa = resumen de lo completado. (6) <strong>IA</strong> (<code>functions/api/ai/fill-document.js</code>): además de redactar textos, propone Sí/No, casillas y filas de tabla SOLO si los datos entregados lo respaldan; el servidor valida cada valor contra las opciones del campo y el editor las marca en ámbar hasta que la educadora las revise.</li>
+    </ul>
+  </div>
 
   <div class="chg">
     <div class="fecha">2026-09-27</div>

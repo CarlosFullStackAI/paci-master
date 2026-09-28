@@ -54,6 +54,19 @@ const APODERADO_BLOCK = [
   { id: 'apoderado_tel',    label: 'Teléfono de contacto', type: 'text' }
 ];
 
+// Anamnesis oficial: campos calcados del Word MINEDUC 2010. `docx` dice en que celda
+// del formato oficial va el dato: [tabla, fila, celda] contados desde 1 y el modo
+// (put = celda vacia, append = despues de la etiqueta, prepend = antes, fill = sobre la
+// n-esima linea de puntos o guiones bajos). Lo usa formatos-oficiales/rellenar-docx.js.
+const anaSn = (id, label, t, r, c) => ({ id, label, type: 'sino', docx: { si: [t, r, c], no: [t, r, c + 1] } });
+const anaTxt = (id, label, at, mode, extra) => Object.assign({ id, label, type: 'text', docx: { at, mode: mode || 'append' } }, extra || {});
+const anaObs = (id, label, at, rows) => ({ id, label, type: 'textarea', rows: rows || 2, docx: { at, mode: 'append' } });
+const anaOpc = (id, label, options, at, extra) => {
+  const e = extra || {};
+  return { id, label, type: 'opciones', options, multiple: !!e.multiple, docx: { at, first: e.first || 0 } };
+};
+const anaFill = (id, label, at, n) => ({ id, label, type: 'text', docx: { at, mode: 'fill', n: n || 1 } });
+
 window.DOC_TYPES = {
   // ============================================================
   // FASE 1 - INGRESO
@@ -77,45 +90,275 @@ window.DOC_TYPES = {
       paraQuien: 'Todo estudiante en proceso de evaluación PIE. Se entrevista al apoderado titular.',
       renovacion: 'Una sola vez al ingreso. Se actualiza solo si hay cambios familiares o de salud relevantes.'
     },
+    // Archivos oficiales que se rellenan (Word convertido 1:1 desde ANAMNESIS_2010.doc y
+    // PDF publicado por MINEDUC). Ver specs/formatos-oficiales-rellenos.md.
+    officialTemplate: {
+      docx: '/data/mineduc/formatos/formato-anamnesis-2010.docx',
+      pdf: '/data/mineduc/formatos/formato-anamnesis-2010.pdf',
+      pdfMap: 'ANAMNESIS_PDF_MAP',
+      pdfMapSrc: '/formatos-oficiales/anamnesis-pdf-map.js'
+    },
     schema: {
       sections: [
-        { key: 'identificacion', label: '1. Identificación del estudiante', icon: 'fa-user',
-          fields: STUDENT_BLOCK },
-        { key: 'apoderado', label: '2. Antecedentes del apoderado', icon: 'fa-people-roof',
-          fields: APODERADO_BLOCK },
-        { key: 'familiares', label: '3. Antecedentes familiares', icon: 'fa-house-user',
+        { key: 'identificacion', label: 'Identificación del estudiante', icon: 'fa-user',
           fields: [
-            { id: 'composicion_familiar', label: 'Composicion del grupo familiar', type: 'textarea', rows: 2, placeholder: 'Quienes viven con el estudiante; edades; ocupaciones.' },
-            { id: 'dinamica_familiar',    label: 'Dinamica familiar', type: 'textarea', rows: 2, placeholder: 'Relaciones, apoyo emocional, rutinas, estresores.' },
-            { id: 'antecedentes_genet',   label: 'Antecedentes genetico-hereditarios', type: 'textarea', rows: 2, placeholder: 'Patologias relevantes en familiares directos.' }
+            { id: 'student_name', label: 'Nombre', type: 'text', required: true, prefillFrom: 'student.name', docx: { at: [1, 1, 2], mode: 'put' } },
+            { id: 'sexo', label: 'Sexo', type: 'select', options: ['F', 'M'], docx: { marks: { F: [1, 1, 4], M: [1, 1, 6] } } },
+            { id: 'student_birth', label: 'Fecha de nacimiento', type: 'date', prefillFrom: 'student.birthDate', docx: { at: [1, 2, 2], mode: 'put' } },
+            anaTxt('edad_anos', 'Edad actual (años)', [1, 2, 4], 'prepend'),
+            anaTxt('edad_meses', 'Edad actual (meses)', [1, 2, 5], 'prepend'),
+            anaTxt('pais_natal', 'País natal', [1, 2, 7], 'put'),
+            anaTxt('domicilio', 'Domicilio actual', [1, 3, 2], 'put'),
+            anaTxt('telefono', 'Teléfono', [1, 3, 4], 'put'),
+            anaTxt('lengua_materna', 'Lengua materna', [1, 4, 2], 'put'),
+            anaOpc('lengua_materna_dominio', 'Grado de dominio (lengua materna)', ['comprende', 'habla', 'lee', 'escribe'], [1, 4, 4], { multiple: true }),
+            anaTxt('lengua_uso', 'Lengua de uso', [1, 5, 2], 'put'),
+            anaOpc('lengua_uso_dominio', 'Grado de dominio (lengua de uso)', ['comprende', 'habla', 'lee', 'escribe'], [1, 5, 4], { multiple: true }),
+            { id: 'student_curso', label: 'Escolaridad actual (curso)', type: 'text', prefillFrom: 'student.real_level', docx: { at: [1, 6, 2], mode: 'put', also: [[14, 7, 2]] } },
+            anaTxt('establecimiento', 'Establecimiento', [1, 6, 4], 'put')
           ]},
-        { key: 'gestacion', label: '4. Antecedentes prenatales, perinatales y postnatales', icon: 'fa-baby',
+        { key: 'informantes', label: 'Identificación del o los informantes', icon: 'fa-people-roof',
           fields: [
-            { id: 'gestacion',  label: 'Gestacion / embarazo', type: 'textarea', rows: 2, placeholder: 'Planificado, controles, complicaciones, medicacion.' },
-            { id: 'parto',      label: 'Parto', type: 'textarea', rows: 2, placeholder: 'Tipo de parto, edad gestacional, complicaciones, APGAR.' },
-            { id: 'postnatal',  label: 'Postnatal (primeros meses)', type: 'textarea', rows: 2, placeholder: 'Lactancia, sueno, hospitalizaciones.' }
+            { id: 'informantes', label: 'Informantes', type: 'tabla', rows: 4,
+              columns: [
+                { key: 'fecha', label: 'Fecha de la entrevista', type: 'date' },
+                { key: 'nombre', label: 'Nombre' },
+                { key: 'relacion', label: 'Relación con el/la estudiante' },
+                { key: 'presencia', label: 'En presencia de' }
+              ],
+              docx: { modes: ['put', 'append', 'append', 'append'], cells: [
+                [[2, 1, 2], [2, 2, 1], [2, 3, 1], [2, 4, 1]],
+                [[2, 1, 4], [2, 2, 2], [2, 3, 2], [2, 4, 2]],
+                [[2, 5, 2], [2, 6, 1], [2, 7, 1], [2, 8, 1]],
+                [[2, 5, 4], [2, 6, 2], [2, 7, 2], [2, 8, 2]]
+              ] } }
           ]},
-        { key: 'desarrollo', label: '5. Desarrollo psicomotor, del lenguaje y socioemocional', icon: 'fa-child-reaching',
+        { key: 'entrevistadores', label: 'Identificación del o los entrevistadores', icon: 'fa-user-tie',
           fields: [
-            { id: 'desarrollo_motor',    label: 'Hitos del desarrollo motor', type: 'textarea', rows: 2, placeholder: 'Edad de sentarse, gatear, caminar.' },
-            { id: 'desarrollo_lenguaje', label: 'Desarrollo del lenguaje', type: 'textarea', rows: 2, placeholder: 'Primeras palabras, frases; comprension; expresion.' },
-            { id: 'desarrollo_social',   label: 'Desarrollo socioemocional', type: 'textarea', rows: 2, placeholder: 'Relacion con pares, expresion de emociones, autonomia.' }
+            { id: 'entrevistadores', label: 'Entrevistadores', type: 'tabla', rows: 4,
+              columns: [
+                { key: 'fecha', label: 'Fecha de la entrevista', type: 'date' },
+                { key: 'nombre', label: 'Nombre' },
+                { key: 'rol', label: 'Rol/cargo' }
+              ],
+              docx: { modes: ['put', 'append', 'append'], cells: [
+                [[3, 1, 2], [3, 2, 1], [3, 3, 1]],
+                [[3, 1, 4], [3, 2, 2], [3, 3, 2]],
+                [[3, 4, 2], [3, 5, 1], [3, 6, 1]],
+                [[3, 4, 4], [3, 5, 2], [3, 6, 2]]
+              ] } }
           ]},
-        { key: 'salud', label: '6. Antecedentes de salud', icon: 'fa-stethoscope',
+        { key: 'motivo', label: 'Definición del problema o situación que motiva la entrevista', icon: 'fa-magnifying-glass',
           fields: [
-            { id: 'enfermedades', label: 'Enfermedades relevantes', type: 'textarea', rows: 2 },
-            { id: 'medicacion',   label: 'Medicacion actual', type: 'textarea', rows: 2 },
-            { id: 'especialistas', label: 'Tratamientos con especialistas externos', type: 'textarea', rows: 2 }
+            { id: 'motivo', label: 'Problema o situación que motiva la entrevista', type: 'textarea', rows: 4, docx: { at: [4, 1, 1], mode: 'put' } }
           ]},
-        { key: 'escolaridad', label: '7. Trayectoria escolar previa', icon: 'fa-school',
+        { key: 'diagnosticos', label: 'Desarrollo y salud: diagnósticos previos', icon: 'fa-stethoscope',
           fields: [
-            { id: 'escuelas_previas',  label: 'Escuelas anteriores', type: 'textarea', rows: 2 },
-            { id: 'repitencias',        label: 'Repitencias / cambios de colegio', type: 'textarea', rows: 2 },
-            { id: 'apoyos_previos',     label: 'Apoyos PIE / SEP / otros recibidos', type: 'textarea', rows: 2 }
+            anaOpc('diag_previo', '¿Tiene algún diagnóstico previo?', ['No', 'Sí'], [5, 1, 1]),
+            anaTxt('diag_previo_detalle', 'Diagnóstico previo (especificar)', [5, 1, 1]),
+            anaTxt('esp_pediatria', 'Pediatría', [5, 2, 1]),
+            anaTxt('esp_psicologia', 'Psicología', [5, 2, 2]),
+            anaTxt('esp_kinesiologia', 'Kinesiología', [5, 3, 1]),
+            anaTxt('esp_psiquiatria', 'Psiquiatría', [5, 3, 2]),
+            anaTxt('esp_genetico', 'Genético', [5, 4, 1]),
+            anaTxt('esp_psicopedagogia', 'Psicopedagogía', [5, 4, 2]),
+            anaTxt('esp_fonoaudiologia', 'Fonoaudiología', [5, 5, 1]),
+            anaTxt('esp_terapia_ocupacional', 'Terapia Ocupacional', [5, 5, 2]),
+            anaTxt('esp_neurologia', 'Neurología', [5, 6, 1]),
+            anaTxt('esp_otro', 'Otro', [5, 6, 2])
           ]},
-        { key: 'observaciones', label: '8. Observaciones del entrevistador', icon: 'fa-note-sticky',
+        { key: 'primer_ano', label: 'Primer año de vida', icon: 'fa-baby',
           fields: [
-            { id: 'observaciones', label: 'Observaciones', type: 'textarea', rows: 3 }
+            anaOpc('tipo_parto', 'Tipo de parto', ['normal', 'inducido', 'fórceps', 'cesárea'], [6, 2, 1]),
+            anaTxt('parto_motivo', 'Motivo (si fue cesárea)', [6, 2, 1]),
+            anaOpc('asistencia_parto', '¿Tuvo asistencia médica durante el parto?', ['Sí', 'No'], [6, 3, 1]),
+            anaTxt('peso_nacer', 'Peso', [6, 3, 2]),
+            anaTxt('talla_nacer', 'Talla', [6, 3, 3]),
+            anaObs('embarazo_parto', 'Antecedentes relevantes del embarazo y parto', [6, 4, 1]),
+            anaSn('desnutricion', 'Desnutrición', 6, 6, 2),
+            anaSn('traumatismos', 'Traumatismos', 6, 6, 5),
+            anaSn('encefalitis', 'Encefalitis', 6, 6, 8),
+            anaSn('obesidad_12m', 'Obesidad', 6, 7, 2),
+            anaSn('intoxicacion', 'Intoxicación', 6, 7, 5),
+            anaSn('meningitis', 'Meningitis', 6, 7, 8),
+            anaSn('fiebre_alta', 'Fiebre alta', 6, 8, 2),
+            anaSn('enf_respiratoria', 'Enfermedad respiratoria', 6, 8, 5),
+            anaTxt('otras_12m', 'Otra(s)', [6, 8, 7]),
+            anaSn('convulsiones', 'Convulsiones', 6, 9, 2),
+            anaSn('asma', 'Asma', 6, 9, 5),
+            anaSn('hospitalizaciones', 'Hospitalizaciones', 6, 10, 2),
+            anaTxt('hosp_detalle', 'Motivos y duración de hospitalizaciones', [6, 10, 4]),
+            anaSn('controles_salud', 'Se realizaron controles periódicos de salud', 6, 11, 2),
+            anaSn('vacunas_12m', 'Vacunas', 6, 11, 6),
+            anaObs('obs_primer_ano', 'Observaciones', [6, 12, 1])
+          ]},
+        { key: 'sensoriomotriz', label: 'Desarrollo sensorio motriz', icon: 'fa-child-reaching',
+          fields: [
+            anaTxt('edad_fija_cabeza', 'Edad en que fija la cabeza', [7, 3, 1]),
+            anaTxt('edad_se_sienta', 'Se sienta solo/a', [7, 3, 2]),
+            anaTxt('edad_camina', 'Camina sin apoyo', [7, 3, 3]),
+            anaTxt('edad_primeras_palabras', 'Primeras palabras', [7, 4, 1]),
+            anaTxt('edad_primeras_frases', 'Primeras frases', [7, 4, 2]),
+            anaTxt('edad_se_viste', 'Se viste solo/a', [7, 4, 3]),
+            anaFill('esfinter_vesical_diurno', 'Esfínter vesical diurno', [7, 5, 1], 1),
+            anaFill('esfinter_vesical_nocturno', 'Esfínter vesical nocturno', [7, 5, 1], 2),
+            anaFill('esfinter_anal_diurno', 'Esfínter anal diurno', [7, 5, 2], 1),
+            anaFill('esfinter_anal_nocturno', 'Esfínter anal nocturno', [7, 5, 2], 2),
+            anaObs('obs_edades', 'Observaciones (edades del desarrollo)', [7, 6, 1]),
+            anaOpc('actividad_motora', 'Actividad motora general', ['normal', 'activo', 'hiperactivo', 'hipoactivo'], [7, 7, 1]),
+            anaOpc('tono_muscular', 'Tono muscular general', ['normal', 'hipertónico', 'hipotónico'], [7, 7, 2]),
+            anaSn('estabilidad_caminar', 'Estabilidad al caminar', 7, 9, 2),
+            anaSn('caidas_frecuentes', 'Caídas frecuentes', 7, 9, 5),
+            anaSn('dominancia_lateral', 'Dominancia lateral', 7, 9, 8),
+            anaSn('garra', 'Garra', 7, 11, 2),
+            anaSn('prension', 'Prensión', 7, 11, 5),
+            anaSn('pinza', 'Pinza', 7, 11, 8),
+            anaSn('ensarta', 'Ensarta', 7, 12, 2),
+            anaSn('dibuja', 'Dibuja', 7, 12, 5),
+            anaSn('escribe', 'Escribe', 7, 12, 8),
+            anaSn('reacciona_voces', 'Reacciona a voces o caras familiares', 7, 14, 2),
+            anaSn('manipula_objetos', 'Manipula y explora objetos', 7, 14, 5),
+            anaSn('demanda_objetos', 'Demanda objetos y compañía', 7, 15, 2),
+            anaSn('comprende_prohibiciones', 'Comprende prohibiciones', 7, 15, 5),
+            anaSn('sonrie_balbucea', 'Sonríe, balbucea, grita, llora, indica o señala', 7, 16, 2),
+            anaSn('descoordinacion_ojo_mano', 'Posee evidente descoordinación ojo-mano', 7, 16, 5),
+            anaObs('obs_sensoriomotriz', 'Observaciones', [7, 17, 1])
+          ]},
+        { key: 'vision_audicion', label: 'Visión - Audición', icon: 'fa-eye',
+          fields: [
+            anaSn('vis_estimulos', 'Se interesa por los estímulos visuales (colores, formas, movimientos, etc.)', 8, 2, 2),
+            anaSn('aud_estimulos', 'Se interesa por los estímulos auditivos (ruidos, voces, música, etc.)', 8, 2, 5),
+            anaSn('vis_ojos_irritados', 'En ocasiones tiene los ojos irritados o llorosos', 8, 3, 2),
+            anaSn('aud_reconoce_voces', 'Reacciona o reconoce voces o sonidos familiares', 8, 3, 5),
+            anaSn('vis_dolor_cabeza', 'Presenta dolores frecuentes de cabeza', 8, 4, 2),
+            anaSn('aud_gira_cabeza', 'Gira la cabeza cuando se le llama o ante un ruido fuerte', 8, 4, 5),
+            anaSn('vis_acerca_objetos', 'Se acerca o aleja demasiado los objetos a la vista (frunce el ceño)', 8, 5, 2),
+            anaSn('aud_acerca_oidos', 'Acerca los oídos a la TV, radio o fuente de sonido', 8, 5, 5),
+            anaSn('vis_sigue_objetos', 'Sigue con la vista el desplazamiento de los objetos o personas', 8, 6, 2),
+            anaSn('aud_tapa_oidos', 'En ocasiones se tapa o golpea los oídos', 8, 6, 5),
+            anaSn('vis_mov_oculares', 'Presenta movimientos oculares “anormales”', 8, 7, 2),
+            anaSn('aud_dolor_oidos', 'Presenta frecuentes dolores de oídos', 8, 7, 5),
+            anaSn('vis_conductas_erroneas', 'Manifiesta conductas “erróneas” (tropiezos, choques)', 8, 8, 2),
+            anaSn('aud_pronunciacion', 'La pronunciación oral es adecuada', 8, 8, 5),
+            anaSn('vis_diagnostico', 'Diagnóstico médico de miopía, estrabismo, astigmatismo u otro', 8, 9, 2),
+            anaSn('aud_diagnostico', 'Diagnóstico médico de otitis crónica, hipoacusia u otra', 8, 9, 5),
+            anaObs('obs_vision_audicion', 'Observaciones', [8, 10, 1])
+          ]},
+        { key: 'lenguaje', label: 'Desarrollo del lenguaje', icon: 'fa-comments',
+          fields: [
+            anaOpc('comunicacion', 'Se comunica preferentemente en forma', ['oral', 'gestual', 'mixto', 'otro'], [9, 2, 1]),
+            anaTxt('comunicacion_otro', 'Otro (especifique)', [9, 2, 1]),
+            anaSn('balbucea', 'Balbucea (oral o señas)/emite sonidos', 9, 4, 2),
+            anaSn('emite_frases', 'Emite/produce frases', 9, 4, 5),
+            anaSn('vocaliza', 'Vocaliza/realiza gestos o señas aisladas', 9, 5, 2),
+            anaSn('relata_experiencias', 'Relata experiencias', 9, 5, 5),
+            anaSn('emite_palabras', 'Emite palabras/produce señas', 9, 6, 2),
+            anaSn('emision_clara', 'La emisión/pronunciación/producción es clara', 9, 6, 5),
+            anaSn('identifica_objetos', 'Identifica objetos', 9, 8, 2),
+            anaSn('instrucciones_simples', 'Sigue instrucciones simples', 9, 8, 5),
+            anaSn('identifica_personas', 'Identifica personas', 9, 9, 2),
+            anaSn('instrucciones_complejas', 'Sigue instrucciones complejas', 9, 9, 5),
+            anaSn('conceptos_abstractos', 'Comprende conceptos abstractos', 9, 10, 2),
+            anaSn('instrucciones_grupales', 'Sigue instrucciones grupales', 9, 10, 5),
+            anaSn('responde_coherente', 'Responde en forma coherente preguntas de la vida diaria', 9, 11, 2),
+            anaSn('comprende_relatos', 'Comprende relatos, noticias, cuentos cortos', 9, 11, 5),
+            anaObs('perdida_lenguaje', 'Manifestó pérdida del lenguaje oral (especifique edad y motivos)', [9, 12, 1]),
+            anaObs('obs_lenguaje', 'Observaciones', [9, 13, 1])
+          ]},
+        { key: 'social', label: 'Desarrollo social', icon: 'fa-people-group',
+          fields: [
+            anaSn('relaciona_espontaneo', 'Se relaciona espontáneamente con las personas de su entorno natural', 10, 2, 2),
+            anaSn('relaciona_colaborativo', 'Se relaciona en forma colaborativa', 10, 2, 5),
+            anaSn('explica_razones', 'Explica razones de sus comportamientos y actitudes', 10, 3, 2),
+            anaSn('normas_sociales', 'Respeta normas sociales', 10, 3, 5),
+            anaSn('actividades_grupales', 'Participa en actividades grupales', 10, 4, 2),
+            anaSn('normas_escolares', 'Respeta normas escolares', 10, 4, 5),
+            anaSn('trabajo_individual', 'Opta por trabajo individual', 10, 5, 2),
+            anaSn('sentido_humor', 'Muestra sentido del humor', 10, 5, 5),
+            anaSn('ecolalia', 'Presenta lenguaje ecolálico', 10, 6, 2),
+            anaSn('estereotipias', 'Movimientos estereotipados', 10, 6, 5),
+            anaSn('dificultad_adaptarse', 'Exhibe dificultad para adaptarse a situaciones nuevas', 10, 7, 2),
+            anaSn('pataletas', 'Pataletas frecuentes', 10, 7, 5),
+            anaOpc('reaccion_luces', 'Reacción ante luces', ['natural', 'desmesurada'], [10, 9, 1]),
+            anaOpc('reaccion_sonidos', 'Reacción ante sonidos', ['natural', 'desmesurada'], [10, 9, 2]),
+            anaOpc('reaccion_extranos', 'Reacción ante personas extrañas', ['natural', 'desmesurada'], [10, 9, 3]),
+            anaObs('obs_social', 'Observaciones', [10, 10, 1])
+          ]},
+        { key: 'salud_actual', label: 'Estado actual de salud', icon: 'fa-heart-pulse',
+          fields: [
+            anaSn('vacunas_al_dia', 'Vacunas al día', 11, 2, 2),
+            anaSn('trastorno_motor', 'Trastorno motor', 11, 2, 5),
+            anaSn('epilepsia', 'Epilepsia', 11, 3, 2),
+            anaSn('bronco_respiratorio', 'Problema bronco-respiratorio', 11, 3, 5),
+            anaSn('cardiacos', 'Problemas cardiacos', 11, 4, 2),
+            anaSn('infecto_contagiosa', 'Enfermedad infecto-contagiosa', 11, 4, 5),
+            anaSn('paraplejia', 'Paraplejia', 11, 5, 2),
+            anaSn('trastorno_emocional', 'Trastorno emocional', 11, 5, 5),
+            anaSn('perdida_auditiva', 'Pérdida auditiva', 11, 6, 2),
+            anaSn('trastorno_conductual', 'Trastorno conductual', 11, 6, 5),
+            anaSn('perdida_visual', 'Pérdida visual', 11, 7, 2),
+            anaTxt('salud_otro', 'Otro (especifique)', [11, 7, 4]),
+            anaObs('control_tratamiento', 'El o los problemas de salud reciben control/tratamiento (especifique)', [11, 8, 1]),
+            anaOpc('alimentacion', 'Alimentación', ['normal', '“malo/a” para comer', '“bueno/a” para comer', 'Otro'], [11, 9, 1]),
+            anaTxt('alimentacion_otro', 'Alimentación: otro (especifique)', [11, 9, 1]),
+            anaOpc('peso_apreciacion', 'Peso (apreciación del informante)', ['normal', 'bajo peso', 'obesidad'], [11, 10, 1]),
+            anaOpc('sueno', 'Sueño', ['normal', 'tranquilo', 'inquieto'], [11, 11, 1]),
+            anaTxt('horas_sueno', 'Horas que duerme', [11, 11, 1]),
+            anaOpc('sueno_signos', 'Durante el sueño presenta', ['insomnio', 'pesadillas', 'terrores nocturnos', 'sonambulismo', 'despierta de buen humor'], [11, 12, 1], { multiple: true }),
+            anaOpc('duerme', 'Duerme', ['solo', 'acompañado'], [11, 12, 2]),
+            anaTxt('duerme_con', 'Acompañado de (especifique)', [11, 12, 2]),
+            anaOpc('humor', 'Humor/comportamiento habitual', ['alegre', 'juguetón/bromista', 'risueño(a)', 'triste', 'serio', 'rebelde', 'apático', 'violento(a)'], [11, 14, 1], { multiple: true }),
+            anaTxt('humor_otro', 'Humor: otro', [11, 14, 1]),
+            anaObs('obs_salud_actual', 'Observaciones', [11, 15, 1])
+          ]},
+        { key: 'familia', label: 'Antecedentes familiares', icon: 'fa-house-user',
+          fields: [
+            { id: 'convivientes', label: 'Personas que viven con el niño o niña y/o son responsables de su cuidado', type: 'tabla', rows: 8,
+              columns: [
+                { key: 'nombre', label: 'Nombre' },
+                { key: 'parentesco', label: 'Parentesco' },
+                { key: 'edad', label: 'Edad' },
+                { key: 'escolaridad', label: 'Escolaridad' },
+                { key: 'ocupacion', label: 'Ocupación actual' }
+              ],
+              docx: { modes: ['append', 'put', 'put', 'put', 'put'],
+                cells: [1, 2, 3, 4, 5, 6, 7, 8].map(n => [1, 2, 3, 4, 5].map(c => [12, n + 2, c])) } },
+            anaObs('salud_familia', 'Antecedentes de salud de la familia (relevantes para los apoyos)', [13, 2, 1]),
+            anaObs('obs_familia', 'Observaciones', [13, 3, 1])
+          ]},
+        { key: 'escolar', label: 'Antecedentes escolares y apoyo de la familia', icon: 'fa-school',
+          fields: [
+            anaTxt('edad_ingreso_escolar', 'Edad de ingreso al sistema escolar', [14, 2, 2], 'put'),
+            anaSn('jardin_infantil', 'Asistió a jardín infantil', 14, 2, 4),
+            anaTxt('n_colegios', 'Nº de colegios en que ha estudiado', [14, 3, 2], 'put'),
+            anaOpc('modalidad', 'Modalidad de enseñanza', ['Regular', 'Especial', 'Técnica'], [14, 3, 3]),
+            anaObs('motivo_cambios', 'Motivo de los cambios de colegio', [14, 4, 1]),
+            anaSn('repitio', 'Ha repetido curso/s', 14, 5, 2),
+            anaTxt('cursos_repetidos', 'Curso(s) repetido(s)', [14, 5, 4]),
+            anaTxt('motivo_repitencia', 'Motivo de la repitencia', [14, 5, 5]),
+            anaSn('dif_aprendizaje', 'Dificultad de aprendizaje', 14, 7, 4),
+            anaSn('dif_participar', 'Dificultad para participar', 14, 7, 7),
+            anaSn('conducta_disruptiva', 'Conducta disruptiva', 14, 7, 10),
+            anaSn('asiste_regular', 'Asiste regularmente', 14, 8, 2),
+            anaSn('asiste_agrado', 'Asiste con agrado', 14, 8, 5),
+            anaSn('apoyo_tareas', 'Apoyo familiar en tareas', 14, 8, 8),
+            anaSn('amigos', 'Amigos (as)', 14, 8, 11),
+            anaOpc('eval_familia', '¿Cómo evalúa la familia el desempeño escolar?', ['satisfactorio', 'insatisfactorio'], [14, 10, 1]),
+            anaFill('eval_familia_motivos', 'Motivos (si es insatisfactorio)', [14, 10, 1], 1),
+            anaOpc('resp_dificultades', 'Respuesta de la familia frente a las dificultades escolares', ['apoyo', 'castigo', 'indiferencia', 'compasión', 'tensión', 'otra'], [14, 11, 1], { multiple: true }),
+            anaFill('resp_dificultades_otra', 'Dificultades: otra', [14, 11, 1], 1),
+            anaOpc('resp_exitos', 'Respuesta de la familia frente a los éxitos escolares', ['apoyo', 'indiferencia', 'otra'], [14, 12, 1], { multiple: true }),
+            anaFill('resp_exitos_otra', 'Éxitos: otra', [14, 12, 1], 1),
+            anaOpc('refuerzos', 'Tipo de refuerzos o premios', ['expresiones afectivas', 'alimentos preferidos', 'ver TV', 'juguetes', 'tiempo libre', 'otro(s)'], [14, 12, 1], { multiple: true, first: 3 }),
+            anaFill('refuerzos_otro', 'Refuerzos: otro(s)', [14, 12, 1], 2),
+            anaOpc('apoyan_aprendizaje', '¿Quiénes apoyan el proceso de aprendizaje y desarrollo?', ['madre', 'padre', 'hermanos/as', 'Otros familiares', 'Otros profesionales'], [14, 13, 1], { multiple: true }),
+            anaFill('apoyan_otros', 'Apoyan: otros (especifique)', [14, 13, 1], 1),
+            anaOpc('expectativas', 'Expectativas de la familia frente al futuro escolar', ['alta (incluye al grupo familiar)', 'mediana (incluye sólo madre/padre)', 'baja (no incluye a ningún miembro)'], [14, 14, 1]),
+            anaOpc('ambiente', '¿Ofrece la familia un ambiente físico y emocional adecuado?', ['Ambos', 'Sólo físico', 'Sólo emocional'], [14, 15, 1])
+          ]},
+        { key: 'comentarios', label: 'Comentarios u otras observaciones relevantes', icon: 'fa-note-sticky',
+          fields: [
+            anaObs('comentarios', 'Comentarios u otras observaciones relevantes que no se han registrado o explorado', [15, 1, 1], 4)
           ]}
       ]
     }

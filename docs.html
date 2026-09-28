@@ -769,6 +769,41 @@
           '<label class="field-checkbox"><input type="checkbox" id="' + id + '"' + checked + '><span>' + esc(f.label) + '</span></label>' +
           '</div>';
       }
+      // Pregunta Sí/No del formato oficial (vacio = se completa a mano).
+      if (f.type === 'sino') {
+        const opts = ['Sí', 'No'].map(o => '<option value="' + o + '"' + (o === value ? ' selected' : '') + '>' + o + '</option>').join('');
+        return '<div class="field-group" style="display:flex;align-items:center;justify-content:space-between;gap:0.6rem;">' +
+          '<label for="' + id + '" style="margin:0;flex:1;">' + esc(f.label) + '</label>' +
+          '<select id="' + id + '" style="width:5.2rem;flex:0 0 auto;"><option value="">—</option>' + opts + '</select>' +
+          '</div>';
+      }
+      // Casillas del formato oficial: varias (multiple) o una sola (se puede desmarcar).
+      if (f.type === 'opciones') {
+        const sel = Array.isArray(value) ? value : (value ? [value] : []);
+        const items = (f.options || []).map((o, i) =>
+          '<label class="field-checkbox" style="display:inline-flex;margin:0 0.9rem 0.3rem 0;">' +
+            '<input type="checkbox" name="' + id + '" id="' + id + '-' + i + '" value="' + esc(o) + '"' + (sel.indexOf(o) >= 0 ? ' checked' : '') +
+            (f.multiple ? '' : ' onchange="opcionUnica(this)"') + '><span>' + esc(o) + '</span></label>'
+        ).join('');
+        return '<div class="field-group" style="grid-column:1/-1;">' +
+          '<label>' + esc(f.label) + (f.multiple ? ' <span style="font-weight:500;opacity:0.7;">(puede marcar varias)</span>' : '') + '</label>' +
+          '<div id="' + id + '" style="display:flex;flex-wrap:wrap;">' + items + '</div>' +
+          '</div>';
+      }
+      // Tabla de filas fijas del formato oficial (informantes, entrevistadores, convivientes).
+      if (f.type === 'tabla') {
+        const filas = Array.isArray(value) ? value : [];
+        const th = 'text-align:left;font-size:0.72rem;color:#94a3b8;padding:0 0.25rem 0.25rem;font-weight:700;';
+        const head = (f.columns || []).map(c => '<th style="' + th + '">' + esc(c.label) + '</th>').join('');
+        const body = Array.from({ length: f.rows || 1 }, (_, r) => '<tr>' +
+          (f.columns || []).map(c =>
+            '<td style="padding:0.15rem;"><input type="' + esc(c.type || 'text') + '" id="' + id + '-' + r + '-' + esc(c.key) + '" value="' + esc(((filas[r] || {})[c.key]) || '') + '" style="width:100%;min-width:6rem;"></td>'
+          ).join('') + '</tr>').join('');
+        return '<div class="field-group" style="grid-column:1/-1;">' +
+          '<label>' + esc(f.label) + '</label>' +
+          '<div id="' + id + '" style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;"><thead><tr>' + head + '</tr></thead><tbody>' + body + '</tbody></table></div>' +
+          '</div>';
+      }
       // text / date / default
       const inputType = f.type || 'text';
       return '<div class="field-group">' +
@@ -813,6 +848,12 @@
       updatePreview();
     }
 
+    // Casillas de opcion unica: al marcar una se desmarcan las otras del grupo.
+    function opcionUnica(el) {
+      if (!el.checked) return;
+      document.querySelectorAll('input[name="' + el.name + '"]').forEach(x => { if (x !== el) x.checked = false; });
+    }
+
     // Acordeones: abrir/cerrar (igual que el editor PACI/PAI)
     function toggleAcc(id) {
       const el = $(id);
@@ -839,8 +880,22 @@
         apoderado_nombre: student.guardian || profile.apoderado_nombre || '',
         apoderado_rut:   profile.apoderado_rut || '',
         apoderado_rel:   profile.apoderado_rel || '',
-        apoderado_tel:   profile.apoderado_tel || ''
+        apoderado_tel:   profile.apoderado_tel || '',
+        establecimiento: (window.TENANT_CONFIG && window.TENANT_CONFIG.nombre) || ''
       };
+      // Edad actual en años y meses (Anamnesis oficial) desde la fecha de nacimiento.
+      const nac = student.birth_date ? new Date(student.birth_date + 'T00:00:00') : null;
+      if (nac && !isNaN(nac)) {
+        const hoy = new Date();
+        let meses = (hoy.getFullYear() - nac.getFullYear()) * 12 + (hoy.getMonth() - nac.getMonth());
+        if (hoy.getDate() < nac.getDate()) meses--;
+        if (meses >= 0) { mapById.edad_anos = String(Math.floor(meses / 12)); mapById.edad_meses = String(meses % 12); }
+      }
+      // Entrevistador 1 = el profesional que usa la app (si la fila esta vacia).
+      const entNombre = document.getElementById('f-entrevistadores-0-nombre');
+      const entRol = document.getElementById('f-entrevistadores-0-rol');
+      if (entNombre && !entNombre.value && USER.name) entNombre.value = USER.name;
+      if (entRol && !entRol.value) entRol.value = USER.genero === 'hombre' ? 'Educador Diferencial' : 'Educadora Diferencial';
 
       docType.schema.sections.forEach(sec => {
         sec.fields.forEach(f => {
@@ -1016,6 +1071,19 @@
           const el = document.getElementById('f-' + f.id);
           if (!el) return;
           if (f.type === 'checkbox') result[f.id] = !!el.checked;
+          else if (f.type === 'opciones') {
+            const sel = Array.from(el.querySelectorAll('input:checked')).map(x => x.value);
+            result[f.id] = f.multiple ? sel : (sel[0] || '');
+          } else if (f.type === 'tabla') {
+            result[f.id] = Array.from({ length: f.rows || 1 }, (_, r) => {
+              const fila = {};
+              (f.columns || []).forEach(c => {
+                const inp = document.getElementById('f-' + f.id + '-' + r + '-' + c.key);
+                fila[c.key] = inp ? inp.value : '';
+              });
+              return fila;
+            });
+          }
           else result[f.id] = el.value;
         });
       });
@@ -1109,8 +1177,25 @@
         });
       });
 
-      if (!vacios.length) {
-        toast('No hay campos de redacción vacíos: todos tienen contenido.');
+      // Campos de marcar vacios (Sí/No, casillas, tablas): la IA solo los propone si el
+      // contenido entregado lo respalda; quedan marcados como sugerencia para revisar.
+      const data0 = collectSchemaData();
+      const estructurados = [];
+      docType.schema.sections.forEach(sec => {
+        sec.fields.forEach(f => {
+          if (['sino', 'opciones', 'tabla'].indexOf(f.type) < 0) return;
+          const v = data0[f.id];
+          const vacio = f.type === 'tabla'
+            ? !(v || []).some(fila => Object.values(fila || {}).some(x => String(x || '').trim()))
+            : (Array.isArray(v) ? !v.length : !v);
+          if (!vacio) return;
+          estructurados.push({ id: f.id, label: f.label, section: sec.label, type: f.type,
+            options: f.options, multiple: !!f.multiple, columns: f.columns, rows: f.rows });
+        });
+      });
+
+      if (!vacios.length && !estructurados.length) {
+        toast('No hay campos vacíos: todos tienen contenido.');
         return;
       }
 
@@ -1141,28 +1226,30 @@
             docLabel: docType.label,
             studentInfo,
             camposPrevios,
-            fields: vacios.slice(0, 20)
+            fields: vacios.slice(0, 20),
+            estructurados: estructurados.slice(0, 250)
           })
         });
         const out = await res.json();
-        if (!out.ok || !out.fields) {
+        if (!out.ok || (!out.fields && !out.sugerencias)) {
           toast(out.error || 'No se pudo redactar con IA. Intenta de nuevo.', true);
           return;
         }
         // Rellenar SOLO los campos que siguen vacios
         let aplicados = 0;
-        for (const [fid, txt] of Object.entries(out.fields)) {
+        for (const [fid, txt] of Object.entries(out.fields || {})) {
           const el = document.getElementById('f-' + fid);
           if (el && !(el.value || '').trim() && txt) {
             el.value = String(txt);
             aplicados++;
           }
         }
+        const sugeridos = aplicarSugerenciasIA(out.sugerencias || {});
         updatePreview();
-        if (aplicados > 0) {
-          toast('IA redactó ' + aplicados + ' campo(s). Revisa y edita los textos antes de guardar.');
+        if (aplicados > 0 || sugeridos > 0) {
+          toast('IA redactó ' + aplicados + ' texto(s)' + (sugeridos ? ' y sugirió ' + sugeridos + ' respuesta(s) (en ámbar)' : '') + '. Revisa todo antes de guardar.');
         } else {
-          toast('La IA no aportó texto nuevo (los campos ya tenían contenido).', true);
+          toast('La IA no aportó contenido nuevo (sin datos suficientes o campos ya completos).', true);
         }
       } catch (e) {
         toast('Error de conexión al redactar con IA.', true);
@@ -1173,6 +1260,46 @@
           btn.innerHTML = btnHtml;
         }
       }
+    }
+
+    // Aplica las sugerencias de la IA (Sí/No, casillas, filas de tabla) SOLO en campos vacios
+    // y las marca en ámbar hasta que la educadora las toque (revisar = aceptar o corregir).
+    function marcarSugerencia(el) {
+      el.style.outline = '2px solid #f59e0b';
+      el.style.outlineOffset = '2px';
+      el.title = 'Sugerencia de la IA: revisa antes de guardar';
+      const quitar = () => { el.style.outline = ''; el.title = ''; el.removeEventListener('input', quitar); el.removeEventListener('change', quitar); };
+      el.addEventListener('input', quitar);
+      el.addEventListener('change', quitar);
+    }
+
+    function aplicarSugerenciasIA(sug) {
+      let n = 0;
+      docType.schema.sections.forEach(sec => sec.fields.forEach(f => {
+        if (!(f.id in sug)) return;
+        const el = document.getElementById('f-' + f.id);
+        if (!el) return;
+        const v = sug[f.id];
+        if (f.type === 'sino' && !el.value && (v === 'Sí' || v === 'No')) {
+          el.value = v; marcarSugerencia(el); n++;
+        } else if (f.type === 'opciones' && !el.querySelector('input:checked')) {
+          const lista = Array.isArray(v) ? v : [v];
+          let alguna = false;
+          el.querySelectorAll('input').forEach(inp => { if (lista.indexOf(inp.value) >= 0) { inp.checked = true; alguna = true; } });
+          if (alguna) { marcarSugerencia(el); n++; }
+        } else if (f.type === 'tabla' && Array.isArray(v)) {
+          v.slice(0, f.rows).forEach((fila, r) => {
+            const inputs = f.columns.map(c => document.getElementById('f-' + f.id + '-' + r + '-' + c.key));
+            if (inputs.some(inp => inp && inp.value.trim())) return;
+            f.columns.forEach((c, ci) => {
+              const inp = inputs[ci];
+              if (inp && fila && fila[c.key]) { inp.value = String(fila[c.key]); marcarSugerencia(inp); }
+            });
+            n++;
+          });
+        }
+      }));
+      return n;
     }
 
     // ====== Student picker: base de datos curso → estudiante ======
@@ -1243,6 +1370,7 @@
         let aplicados = 0;
         docType.schema.sections.forEach(sec => {
           sec.fields.forEach(f => {
+            if (f.type === 'opciones' || f.type === 'tabla') return;
             if (harvested[f.id] != null && harvested[f.id] !== '') {
               const el = document.getElementById('f-' + f.id);
               if (el && !el.value) {
@@ -1352,6 +1480,12 @@
     // Estilos inline para que se vea identico con o sin las hojas de estilo de la app.
     // ============================================================
     const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    // 'AAAA-MM-DD' -> 'DD/MM/AAAA' (formato de fecha de los documentos).
+    function fmtFechaCorta(iso) {
+      const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || '');
+      return m ? m[3] + '/' + m[2] + '/' + m[1] : (iso || '');
+    }
+
     function fmtFechaLarga(iso) {
       const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || '');
       if (!m) return iso || '';
@@ -1414,6 +1548,31 @@
     // Plantillas legales (texto fijo con campos): se renderizan con prosa oficial + firmas propias.
     const PARR = 'margin:0 0 10px;font-size:10.5pt;line-height:1.65;text-align:justify;color:#1a1a2e;';
     const CUSTOM_BODIES = {
+      // Anamnesis: la descarga es el formato oficial MINEDUC relleno; la vista previa solo
+      // resume lo ya completado (son ~180 preguntas y la mayoria puede ir a mano).
+      anamnesis: function (d) {
+        const aviso = '<div style="background:#f5f3ff;border-left:3px solid #7c3aed;padding:7px 10px;font-size:9.5pt;color:#4c1d95;margin-bottom:6px;">' +
+          'Los botones <strong>Word</strong> y <strong>PDF</strong> descargan el <strong>formato oficial MINEDUC</strong> (Anamnesis 2010) con estos datos. Lo que quede vacío se completa a mano.</div>';
+        const secciones = docType.schema.sections.map(sec => {
+          const filas = sec.fields.map(f => {
+            const v = d[f.id];
+            if (f.type === 'tabla') {
+              const llenas = (v || []).filter(fila => Object.values(fila || {}).some(x => String(x || '').trim()));
+              if (!llenas.length) return '';
+              const th = 'border:1px solid #cbd5e1;padding:3px 5px;font-size:8.5pt;background:#f1f5f9;text-align:left;';
+              const td = 'border:1px solid #cbd5e1;padding:3px 5px;font-size:9pt;';
+              return '<table style="width:100%;border-collapse:collapse;margin:4px 0;"><tr>' +
+                f.columns.map(c => '<th style="' + th + '">' + esc(c.label) + '</th>').join('') + '</tr>' +
+                llenas.map(fila => '<tr>' + f.columns.map(c => '<td style="' + td + '">' + esc(c.type === 'date' ? fmtFechaCorta(fila[c.key]) : (fila[c.key] || '')) + '</td>').join('') + '</tr>').join('') +
+                '</table>';
+            }
+            const txt = Array.isArray(v) ? v.join(', ') : (f.type === 'date' ? fmtFechaCorta(v) : v);
+            return txt ? _docField(f.label, txt, f.type === 'textarea') : '';
+          }).join('');
+          return filas ? '<div style="margin-top:10px;page-break-inside:avoid;"><div style="' + DOCX.h2 + '">' + esc(sec.label) + '</div>' + filas + '</div>' : '';
+        }).join('');
+        return aviso + (secciones || '<p style="color:#94a3b8;font-size:10pt;">Aún no hay datos completados.</p>');
+      },
       autorizacion_familia: function (d, tenant, fecha) {
         const fechaAut = d.fecha_autorizacion ? fmtFechaLarga(d.fecha_autorizacion) : '____________________';
         const curEst = (d.student_curso || '') + (tenant.nombre ? ' — ' + tenant.nombre : '');
@@ -1730,8 +1889,69 @@
     // Genera HTML con metadata MS Office y lo descarga como .doc. Word lo abre como
     // documento nativo y el educador puede editarlo y guardarlo como .docx para enviarlo
     // a la supervisión MINEDUC. Funciona offline (sin servidor) y sin librerías.
+    // ====== Formato oficial MINEDUC relleno (Word y PDF) ======
+    // Para los documentos con officialTemplate (docs-registry.js) se descarga el archivo
+    // OFICIAL con los datos escritos encima, no la copia HTML. Las librerias se cargan
+    // solo al descargar. Ver specs/formatos-oficiales-rellenos.md.
+    const PDF_LIB_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js';
+    const PDF_LIB_SRI = 'sha512-z8IYLHO8bTgFqj+yrPyIJnzBDf7DDhWwiEsk4sY+Oe6J2M+WQequeGS7qioI5vT6rXgVRb4K1UVQC5ER7MKzKQ==';
+    const scriptsCargados = {};
+    function cargarScript(src, integrity) {
+      if (!scriptsCargados[src]) {
+        scriptsCargados[src] = new Promise((ok, fail) => {
+          const s = document.createElement('script');
+          s.src = src;
+          if (integrity) { s.integrity = integrity; s.crossOrigin = 'anonymous'; }
+          s.onload = ok;
+          s.onerror = () => { delete scriptsCargados[src]; fail(new Error('No se pudo cargar ' + src)); };
+          document.head.appendChild(s);
+        });
+      }
+      return scriptsCargados[src];
+    }
+
+    function bajarArchivo(blob, nombre) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = nombre;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    async function descargarOficial(formato) {
+      const data = collectSchemaData();
+      if (!data.student_name || !data.student_name.trim()) {
+        toast('Selecciona o ingresa al estudiante antes de descargar.', true);
+        return;
+      }
+      const tpl = docType.officialTemplate;
+      const safeName = data.student_name.replace(/[\\/:*?"<>|]/g, '').trim();
+      const nombre = docType.label.replace(/\s+/g, '_') + '_' + safeName;
+      toast('Preparando el formato oficial MINEDUC...');
+      try {
+        await cargarScript('/formatos-oficiales/rellenar-docx.js');
+        if (formato === 'docx') {
+          await cargarScript('/vendor/fflate.js');
+          const bytes = new Uint8Array(await (await fetch(tpl.docx)).arrayBuffer());
+          const out = window.FormatosOficiales.rellenarDocxOficial(bytes, docType.schema, data);
+          bajarArchivo(new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }), nombre + '.docx');
+        } else {
+          await cargarScript(PDF_LIB_URL, PDF_LIB_SRI);
+          await cargarScript(tpl.pdfMapSrc);
+          await cargarScript('/formatos-oficiales/rellenar-pdf.js');
+          const bytes = new Uint8Array(await (await fetch(tpl.pdf)).arrayBuffer());
+          const out = await window.FormatosOficiales.rellenarPdfOficial(bytes, docType.schema, data, window[tpl.pdfMap]);
+          bajarArchivo(new Blob([out], { type: 'application/pdf' }), nombre + '.pdf');
+        }
+        toast('Formato oficial descargado. Revisa los datos antes de imprimir.');
+      } catch (e) {
+        toast('No se pudo generar el formato oficial. Recarga la página e intenta de nuevo.', true);
+      }
+    }
+
     function descargarWord() {
       if (!docType) { toast('Tipo de documento invalido.', true); return; }
+      if (docType.officialTemplate) { descargarOficial('docx'); return; }
       const data = collectSchemaData();
       if (!data.student_name || !data.student_name.trim()) {
         toast('Selecciona o ingresa al estudiante antes de generar el Word.', true);
@@ -1771,6 +1991,7 @@
 
     async function descargarPDF() {
       if (!docType) { toast('Tipo de documento invalido.', true); return; }
+      if (docType.officialTemplate) { descargarOficial('pdf'); return; }
       const data = collectSchemaData();
       if (!data.student_name || !data.student_name.trim()) {
         toast('Selecciona o ingresa al estudiante antes de generar el PDF.', true);
