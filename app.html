@@ -4997,6 +4997,20 @@
                 : '<span style="color:#64748b;font-style:italic;">Completa los criterios en la sección 1.7 del panel.</span>';
         }
 
+        // Cargo diferencial con género: el del equipo si ya viene como Educador/Educadora
+        // Diferencial; si no, el género del docente con sesión (Mi Perfil > Trato) cuando el
+        // documento es suyo. Si es de otra persona (ej. admin revisando), queda neutro.
+        function cargoDiferencialPaci() {
+            const ed = state.equipo.find(m => (m.rol || '').toLowerCase().includes('diferencial'));
+            if (ed && /^Educadora? Diferencial$/.test((ed.rol || '').trim())) return ed.rol.trim();
+            let user = {};
+            try { user = JSON.parse(localStorage.getItem('paci_user') || '{}'); } catch (e) {}
+            const esSuyo = !ed || !(ed.nom || '').trim() || (ed.nom || '').trim() === (user.name || '').trim();
+            if (esSuyo && user.genero === 'hombre') return 'Educador Diferencial';
+            if (esSuyo && user.genero === 'mujer') return 'Educadora Diferencial';
+            return 'Educador/a Diferencial';
+        }
+
         // ---- Fecha revisión / ajustes realizados / responsable ----
         function responsableDefault() {
             const ed = state.equipo.find(m => (m.rol || '').toLowerCase().includes('diferencial') && (m.nom || '').trim());
@@ -6696,7 +6710,7 @@
                         <div class="franja-celeste" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
                             <div>
                                 <div>${escapeHtml(franjaTexto)}</div>
-                                <div style="font-weight:600;">Responsable: Educador/a Diferencial</div>
+                                <div style="font-weight:600;">Responsable: ${escapeHtml(cargoDiferencialPaci())}</div>
                             </div>
                             <button onclick="confirmRemoveMod(${m.id})" class="no-print" data-html2canvas-ignore="true" style="background:transparent;border:none;color:#7f1d1d;cursor:pointer;flex-shrink:0;" title="Eliminar este bloque de planificación"><i class="fa-solid fa-trash-can"></i></button>
                         </div>
