@@ -10,6 +10,7 @@
  */
 (function (root) {
   const CASILLA_MARCADA = '<w:sym w:font="Wingdings" w:char="F0FE"/>';
+  const CASILLA_VACIA = '<w:sym w:font="Symbol" w:char="F07F"/>';
   const RELLENO = /[_…]{3,}(?:[.…_]*[_…])?/g;
 
   const escXml = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -100,6 +101,18 @@
     return px;
   }
 
+  const MARGEN_ANGOSTO = '<w:tcMar><w:left w:w="45" w:type="dxa"/><w:right w:w="30" w:type="dxa"/></w:tcMar>';
+  function margenAngosto(celda) {
+    if (/<w:tcMar>/.test(celda)) return celda.replace(/<w:tcMar>[\s\S]*?<\/w:tcMar>/, MARGEN_ANGOSTO);
+    if (/<w:tcPr>/.test(celda)) {
+      // tcMar va despues de tcW/gridSpan/vMerge/tcBorders/shd/noWrap y antes de textDirection/vAlign.
+      const m = celda.match(/<w:tcPr>[\s\S]*?<\/w:tcPr>/)[0];
+      const antes = m.search(/<w:(textDirection|tcFitText|vAlign|hideMark)\b|<\/w:tcPr>/);
+      return celda.replace(m, m.slice(0, antes) + MARGEN_ANGOSTO + m.slice(antes));
+    }
+    return celda.replace('<w:tc>', '<w:tc><w:tcPr>' + MARGEN_ANGOSTO + '</w:tcPr>');
+  }
+
   function escribir(celda, texto, modo, negrita) {
     const p = elegirParrafo(celda);
     if (!p) return celda;
@@ -114,6 +127,17 @@
     } else if (modo === 'marca') {
       // X junto a la palabra con espacio no separable: "No X" no se parte en dos lineas.
       px = quitarEspaciosFinales(px).replace(/<\/w:p>$/, run(' ' + texto, rpr) + '</w:p>');
+    } else if (modo === 'casilla') {
+      // Casilla junto a Sí/No: vacia (la misma del oficial) o marcada. Va pegada a la palabra
+      // (sin espacio): las celdas Sí/No del oficial son tan angostas que el espacio la bajaba
+      // a otra linea.
+      const sym = texto === 'marcada' ? CASILLA_MARCADA : CASILLA_VACIA;
+      const r = '<w:r>' + rprBase(px, false) + sym + '</w:r>';
+      px = quitarEspaciosFinales(px).replace(/<\/w:p>$/, r + '</w:p>');
+      // En las celdas mas angostas "Sí☐" no cabe con el margen interno normal (0,19 cm por
+      // lado): se achica solo ese margen invisible (bordes, colores y textos no cambian).
+      celda = celda.slice(0, p.ini) + px + celda.slice(p.ini + p.xml.length);
+      return margenAngosto(celda);
     } else {
       // El oficial trae espacios en blanco al final de algunas lineas (lugar para escribir
       // a mano); se quitan para que el dato quede ahi y no salte a la linea siguiente.
@@ -174,11 +198,14 @@
     (schema.sections || []).forEach((sec) => sec.fields.forEach((f) => {
       const d = f.docx;
       const v = data[f.id];
+      // Sí/No: SIEMPRE lleva casilla en ambas opciones (vacias se marcan a mano).
+      if (d && f.type === 'sino') {
+        add(d.si, (c) => escribir(c, v === 'Sí' ? 'marcada' : 'vacia', 'casilla'));
+        add(d.no, (c) => escribir(c, v === 'No' ? 'marcada' : 'vacia', 'casilla'));
+        return;
+      }
       if (!d || vacio(v)) return;
-      if (f.type === 'sino') {
-        const at = v === 'Sí' ? d.si : v === 'No' ? d.no : null;
-        add(at, (c) => escribir(c, 'X', 'marca', true));
-      } else if (d.marks) {
+      if (d.marks) {
         add(d.marks[v], (c) => escribir(c, 'X', 'marca', true));
       } else if (f.type === 'opciones') {
         const elegidas = Array.isArray(v) ? v : [v];

@@ -125,11 +125,27 @@
       if (!cupo && !anexos.some((a) => a.titulo === titulo && a.texto === v)) anexos.push({ titulo, texto: v });
     };
 
+    // Casilla junto a Sí/No (siempre, para marcar a mano si quedo en blanco); con X si se eligio.
+    const LADO = 6.5;
+    const casillaSiNo = (pos, marcada) => {
+      if (!pos) return;
+      pag(pos).drawRectangle({ x: pos.x, y: pos.y - 0.5, width: LADO, height: LADO, borderColor: L.rgb(0.1, 0.1, 0.1), borderWidth: 0.6 });
+      if (marcada) {
+        const w = bold.widthOfTextAtSize('X', TAM_X - 1);
+        pag(pos).drawText('X', { x: pos.x + (LADO - w) / 2, y: pos.y + 0.1, size: TAM_X - 1, font: bold, color });
+      }
+    };
+
     (schema.sections || []).forEach((sec) => sec.fields.forEach((f) => {
       const v = data[f.id];
+      if (f.type === 'sino') {
+        casillaSiNo(C[f.id + ':Sí'], v === 'Sí');
+        casillaSiNo(C[f.id + ':No'], v === 'No');
+        return;
+      }
       if (v == null || v === '' || (Array.isArray(v) && !v.length)) return;
       const titulo = sec.label + ' — ' + f.label;
-      if (f.type === 'sino' || (f.docx && f.docx.marks)) marcarX(C[f.id + ':' + v]);
+      if (f.docx && f.docx.marks) marcarX(C[f.id + ':' + v]);
       else if (f.type === 'opciones') (Array.isArray(v) ? v : [v]).forEach((o) => marcarCasilla(C[f.id + ':' + o]));
       else if (f.type === 'tabla') {
         (Array.isArray(v) ? v : []).forEach((fila, r) => f.columns.forEach((c) =>

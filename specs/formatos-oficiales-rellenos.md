@@ -100,8 +100,9 @@ Implementado 2026-09-27/28 (Etapa A y B en la misma sesion, por decision de Carl
   automatizacion COM de Word se trababa al guardar un .doc. (3) Las coordenadas del PDF se
   obtienen con una "sonda" (marcas aplastadas al 1% en una copia del .docx, exportada con Word);
   Sí/No y casillas se toman del PDF oficial y los limites de celda de sus bordes dibujados.
-- Limitacion conocida (Word): en celdas Sí/No muy angostas la X baja a una segunda linea (la
-  celda mide menos que "No X"); se lee bien y no se cambio el diseno del oficial.
+- Sí/No (pedido de Carlos, 28/09): cada Sí y cada No lleva casilla a la derecha, SIEMPRE
+  (vacia ☐ para marcar a mano, ☒ la elegida). En Word, para que "Sí☐" quepa en las celdas
+  angostas, se achica solo el margen interno invisible de esas celdas (tcMar).
 - Pendiente: probar con 2 estudiantes reales en produccion (no habia Anamnesis guardadas).
 - Si MINEDUC cambia el formato: reemplazar el .docx/.pdf, ajustar los `docx.at` del schema y
   regenerar el mapa (`node scripts/build-anamnesis-pdf-map.mjs sonda|mapa`).
